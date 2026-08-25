@@ -2,12 +2,12 @@ FROM eclipse-temurin:21-jdk-alpine
 
 WORKDIR /app
 
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
+COPY ../../gradlew .
+COPY ../../gradle gradle
+COPY ../../build.gradle settings.gradle ./
 
 RUN chmod +x gradlew
 
-COPY src src
+COPY ../../src src
 
 CMD ["./gradlew", "test", "--info"]

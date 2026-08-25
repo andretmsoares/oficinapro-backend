@@ -14,8 +14,8 @@ services:
 
   app-tests:
     build:
-      context: .
-      dockerfile: dockerfile-test
+      context: ../..
+      dockerfile: ../dockerfile-test
     container_name: oficinapro-app-tests
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-test:5432/${POSTGRES_DB:-oficinapro_test}
