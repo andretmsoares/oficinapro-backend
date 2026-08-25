@@ -18,6 +18,8 @@ repositories {
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
 	// Spring
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -55,4 +57,13 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	forkEvery = 0
+
+	maxParallelForks = 1
+
+	jvmArgs(
+			'-Xms256m',
+			'-Xmx1024m'
+	)
 }
