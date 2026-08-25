@@ -546,23 +546,359 @@ Histórico do veículo
 
 ---
 
-# 🔐 Segurança
+## 🔐 Fluxo de Autenticação
 
-A aplicação utilizará:
 
-* Spring Security
-* JWT
-* Hash seguro de senhas
-* Controle de acesso baseado em roles
+O OficinaPro utiliza autenticação baseada em **JWT (JSON Web Token)** e autorização baseada em **roles**.
 
-Perfis inicialmente previstos:
+
+A segurança possui dois níveis:
+
+
+- **ADMIN**: administrador da plataforma SaaS, responsável pelo gerenciamento das oficinas.
+- **GERENTE**, **ADMINISTRATIVO** e **MECANICO**: usuários vinculados a uma oficina específica.
+
+
+### 👥 Roles
+
+
+| Role | Descrição |
+|---|---|
+| `ADMIN` | Administrador da plataforma SaaS |
+| `GERENTE` | Gerencia operações da sua oficina |
+| `ADMINISTRATIVO` | Executa operações administrativas da sua oficina |
+| `MECANICO` | Executa operações relacionadas aos serviços da sua oficina |
+
+
+O `ADMIN` não pertence a uma oficina específica. Seu `oficina_id` é `NULL`.
+
+
+Os demais usuários possuem um `oficina_id` que determina a qual oficina pertencem.
+
+
+---
+
+
+### 🔑 Fluxo de Login
+
+
+O processo de autenticação segue o fluxo:
+
 
 ```text
+┌─────────────────┐
+│     Cliente     │
+│   Frontend/API  │
+└────────┬────────┘
+         │
+         │ POST /api/auth/login
+         │ username + password
+         ▼
+┌─────────────────────────┐
+│   AuthenticationService │
+└────────────┬────────────┘
+             │
+             │ busca usuário
+             ▼
+┌─────────────────────────┐
+│      UserDetailsService │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│       PostgreSQL        │
+│                         │
+│ Usuario                 │
+│ - username              │
+│ - password              │
+│ - role                  │
+│ - oficina_id            │
+└────────────┬────────────┘
+             │
+             │ usuário encontrado
+             ▼
+┌─────────────────────────┐
+│     PasswordEncoder     │
+│         BCrypt          │
+└────────────┬────────────┘
+             │
+             │ senha válida
+             ▼
+┌─────────────────────────┐
+│       JwtService        │
+│                         │
+│ Gera JWT contendo:      │
+│ - username              │
+│ - role                  │
+│ - oficina_id            │
+└────────────┬────────────┘
+             │
+             │ JWT
+             ▼
+┌─────────────────┐
+│     Cliente     │
+└─────────────────┘
+```
+
+--- 
+
+### 🪪 Estrutura do JWT
+
+Após o login, o servidor gera um token contendo as informações necessárias para identificar e autorizar o usuário.
+
+Exemplo conceitual:
+
+{
+  "sub": "joao",
+  "role": "GERENTE",
+  "oficinaId": 1
+}
+
+O ADMIN possui:
+
+{
+  "sub": "admin",
+  "role": "ADMIN",
+  "oficinaId": null
+}
+
+O token não deve armazenar informações sensíveis, como a senha do usuário.
+
+---
+
+### 🛡️ Autenticação das Requisições
+
+Após realizar o login, o cliente deve enviar o JWT no header Authorization:
+
+Authorization: Bearer <JWT>
+
+O fluxo de uma requisição protegida é:
+
+Cliente
+   │
+   │ Authorization: Bearer <JWT>
+   ▼
+JwtAuthenticationFilter
+   │
+   │ valida token
+   ▼
+JwtService
+   │
+   │ token válido
+   ▼
+SecurityContext
+   │
+   ├── username
+   ├── role
+   └── oficinaId
+   │
+   ▼
+Controller
+   │
+   ▼
+Service
+   │
+   ▼
+Repository
+   │
+   ▼
+PostgreSQL
+
+Se o token for inválido ou estiver expirado:
+
+HTTP 401 Unauthorized
+
+---
+
+### 🔒 Autorização por Role
+
+A autenticação identifica o usuário.
+
+A autorização determina o que ele pode fazer.
+
+Exemplo:
+
+@PreAuthorize("hasRole('ADMIN')")
+public Oficina criar(OficinaRequestDTO dto) {
+    // ...
+}
+
+Nesse caso, somente usuários com a role ADMIN podem executar a operação.
+
+Para múltiplas roles:
+
+@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+
+---
+
+### 🏢 Isolamento entre Oficinas
+
+Além da autorização por role, o sistema utiliza oficina_id para garantir o isolamento dos dados entre oficinas.
+
+Um usuário comum só pode acessar dados pertencentes à sua própria oficina.
+
+Exemplo:
+
+Oficina 1
+├── João       (GERENTE)
+├── Maria      (ADMINISTRATIVO)
+└── Carlos     (MECANICO)
+
+
+Oficina 2
+├── Pedro      (GERENTE)
+└── Ana        (MECANICO)
+
+João possui:
+
+role = GERENTE
+oficina_id = 1
+
+Portanto, uma consulta de clientes deve considerar:
+
+WHERE oficina_id = 1
+
+e não permitir que o usuário escolha arbitrariamente:
+
+GET /api/clientes?oficinaId=2
+
+O oficina_id utilizado para autorização deve ser obtido a partir do usuário autenticado, e não confiado a partir dos dados enviados pelo cliente.
+
+---
+
+### 🔐 Níveis de Segurança
+
+O sistema utiliza duas verificações complementares:
+
+                 Requisição
+                     │
+                     ▼
+              JWT é válido?
+                     │
+              ┌──────┴──────┐
+              │             │
+             NÃO            SIM
+              │             │
+              ▼             ▼
+          HTTP 401      Verificar Role
+                            │
+                     ┌──────┴──────┐
+                     │             │
+                   NÃO            SIM
+                     │             │
+                     ▼             ▼
+                 HTTP 403     Verificar
+                              oficina_id
+                                  │
+                                  ▼
+                         Acesso aos dados
+401 — Unauthorized
+
+O usuário não está autenticado.
+
+Exemplos:
+
+JWT ausente;
+JWT inválido;
+JWT expirado.
+403 — Forbidden
+
+O usuário está autenticado, mas não possui permissão para realizar a operação.
+
+Exemplo:
+
+GERENTE → POST /api/oficinas
+             ↓
+          HTTP 403
+
+---
+
+### 🌐 Endpoints Públicos
+
+Inicialmente, os seguintes endpoints não exigem autenticação:
+
+POST /api/auth/**
+GET  /actuator/health
+GET  /swagger-ui/**
+GET  /v3/api-docs/**
+
+Os demais endpoints da API devem exigir autenticação.
+
+---
+
+### 🏪 Gerenciamento de Oficinas
+
+A criação e manipulação das oficinas é uma operação exclusiva do administrador da plataforma.
+
 ADMIN
+ │
+ ├── Criar oficina
+ ├── Visualizar oficinas
+ ├── Atualizar oficina
+ └── Excluir oficina
+
+Usuários pertencentes às oficinas:
+
 GERENTE
 ADMINISTRATIVO
 MECANICO
-```
+
+não podem criar ou manipular outras oficinas.
+
+---
+
+### 🔄 Resumo do Fluxo
+┌──────────────┐
+│    Login     │
+└──────┬───────┘
+       │
+       ▼
+Validar username/password
+       │
+       ▼
+      BCrypt
+       │
+       ▼
+Gerar JWT
+       │
+       ▼
+Cliente recebe JWT
+       │
+       ▼
+Envia Bearer Token
+       │
+       ▼
+Validar JWT
+       │
+       ▼
+Identificar usuário
+       │
+       ├── role
+       └── oficina_id
+       │
+       ▼
+Verificar autorização
+       │
+       ▼
+Filtrar dados pela oficina
+       │
+       ▼
+Acessar recurso
+
+---
+
+### 📌 Princípios
+
+Senhas nunca são armazenadas em texto puro.
+Senhas são protegidas utilizando BCrypt.
+A autenticação utiliza JWT.
+A API é stateless.
+A autorização utiliza roles.
+O ADMIN possui acesso à plataforma como um todo.
+GERENTE, ADMINISTRATIVO e MECANICO são vinculados a uma oficina.
+Usuários de uma oficina não podem acessar dados de outras oficinas.
+O oficina_id utilizado para autorização não deve ser confiado diretamente ao cliente.
+Dados devem ser filtrados pela oficina no nível de serviço/repositório.
 
 ---
 
