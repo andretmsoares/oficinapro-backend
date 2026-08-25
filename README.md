@@ -1,4 +1,3 @@
-````markdown
 # OficinaPro
 
 **SaaS para gerenciamento de oficinas automotivas**
