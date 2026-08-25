@@ -5,8 +5,8 @@ CREATE TABLE oficina (
     telefone VARCHAR(20),
 
     CONSTRAINT uq_oficina_cnpj
-        UNIQUE (cnpj);
-)
+        UNIQUE (cnpj)
+);
 
 CREATE TABLE unidade (
      id BIGSERIAL PRIMARY KEY,

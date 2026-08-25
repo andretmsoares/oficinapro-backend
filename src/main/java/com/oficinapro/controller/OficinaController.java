@@ -2,7 +2,7 @@ package com.oficinapro.controller;
 
 import com.oficinapro.dto.oficina.OficinaRequest;
 import com.oficinapro.dto.oficina.OficinaResponse;
-import com.oficinapro.service.OficinaService;
+import com.oficinapro.service.oficina.OficinaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

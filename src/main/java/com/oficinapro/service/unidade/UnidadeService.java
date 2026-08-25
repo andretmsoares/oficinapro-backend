@@ -1,4 +1,4 @@
-package com.oficinapro.service;
+package com.oficinapro.service.unidade;
 
 import com.oficinapro.dto.unidade.UnidadeRequest;
 import com.oficinapro.dto.unidade.UnidadeResponse;

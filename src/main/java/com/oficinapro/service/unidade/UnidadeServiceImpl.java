@@ -1,4 +1,4 @@
-package com.oficinapro.service.impl;
+package com.oficinapro.service.unidade;
 
 import com.oficinapro.dto.unidade.UnidadeRequest;
 import com.oficinapro.dto.unidade.UnidadeResponse;
@@ -9,7 +9,7 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.repository.UnidadeRepository;
-import com.oficinapro.service.UnidadeService;
+import com.oficinapro.service.unidade.UnidadeService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

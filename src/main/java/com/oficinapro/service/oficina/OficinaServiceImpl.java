@@ -1,4 +1,4 @@
-package com.oficinapro.service.impl;
+package com.oficinapro.service.oficina;
 
 import com.oficinapro.dto.oficina.OficinaRequest;
 import com.oficinapro.dto.oficina.OficinaResponse;
@@ -6,7 +6,7 @@ import com.oficinapro.exception.CnpjAlreadyExistsException;
 import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
-import com.oficinapro.service.OficinaService;
+import com.oficinapro.service.oficina.OficinaService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
