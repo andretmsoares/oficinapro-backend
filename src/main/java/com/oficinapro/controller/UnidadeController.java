@@ -3,6 +3,7 @@ package com.oficinapro.controller;
 import com.oficinapro.dto.unidade.UnidadeRequest;
 import com.oficinapro.dto.unidade.UnidadeResponse;
 import com.oficinapro.service.unidade.UnidadeService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(
+            name = "Unidades",
+        description = "Operações de gerenciamento das Unidades de cada Oficina"
+)
 @RestController
 @RequestMapping("/api/unidades")
 public class UnidadeController {

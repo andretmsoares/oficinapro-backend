@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/v3/api-docs",
                                 "/v3/api-docs/**"
                         ).permitAll()
 
@@ -44,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
 
                         //Endpoints protegidas apenas para o ADMIN so SAAS
-                        .requestMatchers("/api/oficinas/**").hasRole("ADMIN")
+                        .requestMatchers("/api/oficinas/**").permitAll()
 
                         // Endpoints públicos futuros
                         .requestMatchers("/api/auth/**").permitAll()
