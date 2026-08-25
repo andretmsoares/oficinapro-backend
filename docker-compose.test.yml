@@ -1,0 +1,28 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: oficinapro-db-test
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oficinapro_test}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret_test}
+      POSTGRES_DB: ${POSTGRES_DB:-oficinapro_test}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oficinapro_test} -d ${POSTGRES_DB:-oficinapro_test}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  app-tests:
+    build:
+      context: .
+      dockerfile: dockerfile-test
+    container_name: oficinapro-app-tests
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-test:5432/${POSTGRES_DB:-oficinapro_test}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-oficinapro_test}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-secret_test}
+    volumes:
+      - ./build/reports/tests:/app/build/reports/tests
+    depends_on:
+      postgres-test:
+        condition: service_healthy

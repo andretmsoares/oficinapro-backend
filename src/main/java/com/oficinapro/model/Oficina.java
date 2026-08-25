@@ -63,4 +63,8 @@ public class Oficina {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public void setId(long l) {
+        this.id = l;
+    }
 }
