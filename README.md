@@ -674,6 +674,7 @@ Authorization: Bearer <JWT>
 
 O fluxo de uma requisição protegida é:
 
+```text
 Cliente
    │
    │ Authorization: Bearer <JWT>
@@ -703,6 +704,7 @@ Repository
    │
    ▼
 PostgreSQL
+```
 
 Se o token for inválido ou estiver expirado:
 
@@ -770,6 +772,7 @@ O oficina_id utilizado para autorização deve ser obtido a partir do usuário a
 
 O sistema utiliza duas verificações complementares:
 
+```text
                  Requisição
                      │
                      ▼
@@ -792,6 +795,7 @@ O sistema utiliza duas verificações complementares:
                                   │
                                   ▼
                          Acesso aos dados
+```
 401 — Unauthorized
 
 O usuário não está autenticado.
@@ -806,11 +810,11 @@ JWT expirado.
 O usuário está autenticado, mas não possui permissão para realizar a operação.
 
 Exemplo:
-
+```text
 GERENTE → POST /api/oficinas
              ↓
           HTTP 403
-
+```
 ---
 
 ### 🌐 Endpoints Públicos
@@ -848,6 +852,7 @@ não podem criar ou manipular outras oficinas.
 ---
 
 ### 🔄 Resumo do Fluxo
+```text
 ┌──────────────┐
 │    Login     │
 └──────┬───────┘
@@ -884,7 +889,7 @@ Filtrar dados pela oficina
        │
        ▼
 Acessar recurso
-
+```
 ---
 
 ### 📌 Princípios
