@@ -1,6 +1,6 @@
 CREATE TABLE pessoa (
     id BIGSERIAL PRIMARY KEY,
-    oficina_id BIGINT NOT NULL,
+    oficina_id BIGINT,
     nome VARCHAR(255) NOT NULL,
     telefone VARCHAR(20),
     documento VARCHAR(14),
@@ -28,6 +28,14 @@ CREATE TABLE usuario (
      username VARCHAR(100) NOT NULL UNIQUE,
      password VARCHAR(255) NOT NULL,
      role VARCHAR(50) NOT NULL,
+
+     CONSTRAINT chk_usuario_role
+         CHECK (role IN (
+                         'ADMIN',
+                         'GERENTE',
+                         'ADMINISTRATIVO',
+                         'MECANICO'
+             )),
 
      CONSTRAINT fk_usuario_pessoa
          FOREIGN KEY (pessoa_id)
