@@ -1,0 +1,1 @@
+docker exec -it oficinapro-db psql -U oficinapro -d oficinapro -c "ALTER USER oficinapro WITH PASSWORD 'oficinapro';"

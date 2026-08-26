@@ -1,9 +1,11 @@
-package com.oficinaPro;
+package com.oficinapro;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class OficinaProApplicationTests {
 
 	@Test

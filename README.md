@@ -12,7 +12,7 @@ O **OficinaPro** é uma aplicação web para gerenciamento de oficinas automotiv
 
 O projeto surgiu a partir da identificação de necessidades reais da **Soares Auto Center**, permitindo transformar processos atualmente realizados de forma manual em um sistema centralizado.
 
-A primeira versão será desenvolvida como um **MVP**, focado nas operações essenciais da oficina.
+A primeira versão está sendo desenvolvida como um **MVP**, focado nas operações essenciais da oficina.
 
 Posteriormente, o projeto poderá evoluir para um **SaaS multiempresa**, permitindo que diferentes oficinas utilizem a plataforma de forma isolada e segura.
 
@@ -22,46 +22,61 @@ Posteriormente, o projeto poderá evoluir para um **SaaS multiempresa**, permiti
 
 O OficinaPro tem como principais objetivos:
 
-- Centralizar o cadastro de clientes.
-- Gerenciar veículos.
-- Criar e acompanhar Ordens de Serviço.
-- Associar mecânicos aos serviços.
-- Registrar pagamentos.
-- Manter o histórico dos veículos.
-- Facilitar o acompanhamento operacional da oficina.
-- Futuramente gerenciar peças, fornecedores e compras.
-- Futuramente automatizar o cadastro de documentos utilizando OCR.
-- Evoluir para uma plataforma SaaS multiempresa.
+* Centralizar o cadastro de oficinas.
+* Centralizar o cadastro de clientes.
+* Gerenciar veículos.
+* Criar e acompanhar Ordens de Serviço.
+* Associar mecânicos aos serviços.
+* Registrar pagamentos.
+* Manter o histórico dos veículos.
+* Facilitar o acompanhamento operacional da oficina.
+* Gerenciar futuramente peças, fornecedores e compras.
+* Automatizar futuramente o cadastro de documentos utilizando OCR.
+* Utilizar Inteligência Artificial para processamento e estruturação de documentos.
+* Evoluir para uma plataforma SaaS multiempresa.
 
 ---
 
-## 🚧 Status do projeto
+# 🚧 Status do projeto
 
 **Em desenvolvimento 🚧**
 
 Atualmente o projeto está na fase de construção do **MVP**.
 
-### Roadmap inicial
+### Progresso atual
 
-- [x] Inicialização do projeto Spring Boot
-- [ ] Configuração do PostgreSQL
-- [ ] Configuração do Flyway
-- [ ] Configuração do Docker
-- [ ] Cadastro de oficinas
-- [ ] Autenticação
-- [ ] Cadastro de clientes
-- [ ] Cadastro de veículos
-- [ ] Cadastro de mecânicos
-- [ ] Ordens de Serviço
-- [ ] Pagamentos
-- [ ] Histórico de veículos
-- [ ] Dashboard
-- [ ] Fornecedores
-- [ ] Compras e peças
-- [ ] OCR
-- [ ] Inteligência Artificial
-- [ ] Multi-tenancy
-- [ ] SaaS
+* [x] Inicialização do projeto Spring Boot
+* [x] Configuração do Gradle
+* [x] Configuração do Java 21
+* [x] Configuração do PostgreSQL
+* [x] Configuração do Flyway
+* [x] Configuração do Docker
+* [x] Docker Compose para desenvolvimento
+* [x] Docker Compose para testes
+* [x] Configuração de profiles `dev` e `prod`
+* [x] Configuração de variáveis de ambiente
+* [x] Configuração do Actuator
+* [x] Configuração inicial do Spring Security
+* [x] Configuração do OpenAPI/Swagger
+* [x] CRUD de oficinas
+* [x] DTOs de oficinas
+* [x] Tratamento de exceções de oficinas
+* [x] Testes do controller de oficinas
+* [ ] Correção de todas as falhas da suíte de testes
+* [ ] Autenticação completa
+* [ ] Cadastro de clientes
+* [ ] Cadastro de veículos
+* [ ] Cadastro de mecânicos
+* [ ] Ordens de Serviço
+* [ ] Pagamentos
+* [ ] Histórico de veículos
+* [ ] Dashboard
+* [ ] Fornecedores
+* [ ] Compras e peças
+* [ ] OCR
+* [ ] Inteligência Artificial
+* [ ] Multi-tenancy
+* [ ] SaaS
 
 ---
 
@@ -87,6 +102,7 @@ A primeira versão do projeto será desenvolvida utilizando um **monólito modul
                  │        Spring Boot          │
                  │                             │
                  │  Autenticação               │
+                 │  Oficinas                   │
                  │  Clientes                   │
                  │  Veículos                   │
                  │  Ordens de Serviço          │
@@ -100,7 +116,7 @@ A primeira versão do projeto será desenvolvida utilizando um **monólito modul
                         ┌───────────────┐
                         │  PostgreSQL   │
                         └───────────────┘
-````
+```
 
 A arquitetura poderá evoluir futuramente para serviços independentes caso exista necessidade.
 
@@ -111,19 +127,20 @@ A arquitetura poderá evoluir futuramente para serviços independentes caso exis
 ## Backend
 
 * **Java 21**
-* **Spring Boot**
-* **Spring Web**
+* **Spring Boot 4.1.1**
+* **Spring Web MVC**
 * **Spring Data JPA**
 * **Hibernate**
 * **Spring Security**
-* **JWT**
 * **Bean Validation**
-* **Gradle**
+* **Gradle 9.5.1**
 * **Flyway**
+* **Spring Boot Actuator**
+* **Lombok**
 
 ## Banco de dados
 
-* **PostgreSQL**
+* **PostgreSQL 16**
 
 ## Frontend
 
@@ -145,20 +162,25 @@ Planejado:
 
 ## Testes
 
-* **JUnit**
+* **JUnit 5**
 * **Mockito**
 * **Spring Boot Test**
+* **Spring MVC Test**
+* **Spring Security Test**
+* **MockMvc**
+* **`@WebMvcTest`**
+* **`@MockitoBean`**
 
 ## Documentação
 
 * **OpenAPI**
-* **Swagger**
+* **Swagger UI**
 
 ---
 
 # 📁 Estrutura do projeto
 
-A estrutura inicial do backend seguirá uma organização por responsabilidades:
+A estrutura do backend segue uma organização por responsabilidades:
 
 ```text
 oficinapro/
@@ -188,9 +210,12 @@ oficinapro/
 │   │
 │   └── test/
 │       └── java/
+│           └── com/oficinapro/
 │
 ├── docker-compose.yml
+├── docker-compose.test.yml
 ├── Dockerfile
+├── dockerfile-test
 ├── build.gradle
 ├── settings.gradle
 ├── .gitignore
@@ -200,11 +225,111 @@ oficinapro/
 
 ---
 
+# ⚙️ Configuração da aplicação
+
+O projeto utiliza **Spring Profiles** para separar configurações comuns, desenvolvimento e produção.
+
+```text
+application.yml
+       │
+       ├───────────────┐
+       ▼               ▼
+application-dev.yml  application-prod.yml
+       │               │
+       ▼               ▼
+ Desenvolvimento      Produção
+```
+
+## `application.yml`
+
+Contém configurações comuns da aplicação:
+
+* Nome da aplicação
+* Profile padrão
+* Configuração do JPA
+* Flyway
+* Actuator
+* Porta do servidor
+
+O profile padrão é:
+
+```yaml
+spring:
+  profiles:
+    default: dev
+```
+
+Portanto, ao executar a aplicação sem especificar outro profile, o ambiente `dev` será utilizado.
+
+## `application-dev.yml`
+
+Utilizado no desenvolvimento local.
+
+As configurações do PostgreSQL são obtidas através de variáveis de ambiente:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+```
+
+O ambiente de desenvolvimento utiliza logs mais detalhados para facilitar o diagnóstico da aplicação.
+
+## `application-prod.yml`
+
+Utilizado em produção.
+
+As credenciais e informações do banco são obrigatoriamente fornecidas através de variáveis de ambiente:
+
+```text
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+```
+
+Nenhuma credencial de produção deve ser armazenada diretamente no código-fonte.
+
+---
+
+# 🔐 Variáveis de ambiente
+
+O projeto utiliza variáveis de ambiente para configuração sensível e específica de cada ambiente.
+
+Exemplo de `.env` para desenvolvimento:
+
+```env
+POSTGRES_DB=oficinapro
+POSTGRES_USER=oficinapro
+POSTGRES_HOST=localhost
+POSTGRES_PASSWORD=oficinapro
+POSTGRES_PORT=5433
+SERVER_PORT=8080
+```
+
+O arquivo `.env` **não deve ser versionado**.
+
+O repositório deve disponibilizar apenas um `.env.example`:
+
+```env
+POSTGRES_DB=oficinapro
+POSTGRES_USER=oficinapro
+POSTGRES_HOST=localhost
+POSTGRES_PASSWORD=
+POSTGRES_PORT=5433
+SERVER_PORT=8080
+```
+
+---
+
 # 🗄️ Banco de dados
 
-O banco principal utilizado pelo projeto será o **PostgreSQL**.
+O banco principal utilizado pelo projeto é o **PostgreSQL**.
 
-A persistência será realizada utilizando:
+A persistência é realizada utilizando:
 
 ```text
 Spring Data JPA
@@ -214,9 +339,9 @@ Spring Data JPA
   PostgreSQL
 ```
 
-As alterações no banco serão controladas utilizando **Flyway**.
+As alterações do banco são controladas utilizando **Flyway**.
 
-As migrations ficarão em:
+As migrations ficam em:
 
 ```text
 src/main/resources/db/migration/
@@ -225,12 +350,12 @@ src/main/resources/db/migration/
 Exemplo:
 
 ```text
-V1__create_oficinas.sql
-V2__create_clientes.sql
-V3__create_veiculos.sql
+V1__create_oficina_table.sql
+V2__create_unidade_table.sql
+V3__create_cliente_table.sql
 ```
 
-O Hibernate será utilizado apenas para validar o schema:
+O Hibernate é utilizado apenas para validar o schema:
 
 ```yaml
 spring:
@@ -239,9 +364,73 @@ spring:
       ddl-auto: validate
 ```
 
+O projeto não utiliza o Hibernate para criação automática das tabelas.
+
 ---
 
-# 🐳 Executando o projeto
+# 🐳 Docker
+
+O projeto possui ambientes Docker separados para desenvolvimento e testes.
+
+## Desenvolvimento
+
+O PostgreSQL de desenvolvimento é executado através do:
+
+```text
+docker-compose.yml
+```
+
+A aplicação local acessa o PostgreSQL através da porta:
+
+```text
+5433
+```
+
+Fluxo:
+
+```text
+Spring Boot
+    │
+    │ localhost:5433
+    ▼
+PostgreSQL Docker
+```
+
+## Testes
+
+Os testes possuem um ambiente Docker isolado através de:
+
+```text
+docker-compose.test.yml
+```
+
+O ambiente possui:
+
+```text
+postgres-test
+      │
+      ▼
+PostgreSQL 16
+      │
+      │
+      ▼
+app-tests
+      │
+      ▼
+Gradle Test
+```
+
+O banco de testes utiliza:
+
+```text
+oficinapro_test
+```
+
+e não interfere no banco utilizado pelo ambiente de desenvolvimento.
+
+---
+
+# 🚀 Executando o projeto
 
 ## Pré-requisitos
 
@@ -252,7 +441,7 @@ Antes de executar o projeto, tenha instalado:
 * Docker
 * Docker Compose
 
-O Gradle Wrapper (`gradlew`) será utilizado pelo projeto, portanto não é necessário instalar o Gradle globalmente.
+O **Gradle Wrapper** (`gradlew`) é utilizado pelo projeto, portanto não é necessário instalar o Gradle globalmente.
 
 ---
 
@@ -260,29 +449,29 @@ O Gradle Wrapper (`gradlew`) será utilizado pelo projeto, portanto não é nece
 
 ```powershell
 git clone <URL_DO_REPOSITORIO>
-cd oficinapro
+cd projeto-oficinaPro
 ```
 
 ---
 
-## 2. Configurar variáveis de ambiente
+## 2. Configurar o ambiente
 
-Crie um arquivo `.env` baseado no exemplo:
+Crie o `.env` a partir do exemplo:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Configure as variáveis necessárias:
+Configure as variáveis:
 
 ```env
 POSTGRES_DB=oficinapro
 POSTGRES_USER=oficinapro
+POSTGRES_HOST=localhost
 POSTGRES_PASSWORD=oficinapro
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
+SERVER_PORT=8080
 ```
-
-> O arquivo `.env` não deve ser versionado.
 
 ---
 
@@ -302,16 +491,24 @@ docker compose ps
 
 ## 4. Executar o backend
 
-No Windows:
+### Windows
 
 ```powershell
 .\gradlew bootRun
 ```
 
-No Linux/macOS:
+### Linux/macOS
 
 ```bash
 ./gradlew bootRun
+```
+
+Como o profile padrão é `dev`, a aplicação utilizará:
+
+```text
+application.yml
+       +
+application-dev.yml
 ```
 
 A aplicação estará disponível em:
@@ -322,23 +519,81 @@ http://localhost:8080
 
 ---
 
-# 📚 Documentação da API
+# 🔄 Profiles
 
-A API será documentada utilizando OpenAPI/Swagger.
+O profile pode ser alterado explicitamente.
 
-Após iniciar o backend:
+## Desenvolvimento
 
-```text
-http://localhost:8080/swagger-ui/index.html
+```powershell
+.\gradlew bootRun --args="--spring.profiles.active=dev"
 ```
 
-A documentação permitirá visualizar e testar os endpoints diretamente pelo navegador.
+## Produção
+
+```powershell
+.\gradlew bootRun --args="--spring.profiles.active=prod"
+```
+
+Ou utilizando variável de ambiente:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="prod"
+.\gradlew bootRun
+```
 
 ---
 
 # 🧪 Testes
 
-Para executar os testes:
+O projeto utiliza testes automatizados com JUnit, Mockito e Spring Boot Test.
+
+Os testes de controller utilizam:
+
+```java
+@WebMvcTest(OficinaController.class)
+```
+
+e os serviços são isolados utilizando:
+
+```java
+@MockitoBean
+private OficinaService oficinaService;
+```
+
+Os testes de endpoints utilizam `MockMvc`, incluindo validação de:
+
+* Status HTTP
+* JSON de resposta
+* Criação de recursos
+* Atualização de recursos
+* Exclusão de recursos
+* Tratamento de recursos inexistentes
+* Autorização por role
+* Proteção CSRF
+
+Exemplo de teste de autorização:
+
+```text
+USER
+  │
+  └── GET /api/oficinas
+            │
+            ▼
+         HTTP 403
+```
+
+Enquanto um usuário com:
+
+```text
+ROLE_ADMIN
+```
+
+deve possuir acesso ao recurso.
+
+---
+
+## Executar os testes localmente
 
 ### Windows
 
@@ -352,41 +607,254 @@ Para executar os testes:
 ./gradlew test
 ```
 
-Para executar o build completo:
+---
+
+## Executar os testes no Docker
+
+O ambiente de testes utiliza um Compose separado:
 
 ```powershell
-.\gradlew clean build
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from app-tests
+```
+
+Para executar apenas os testes do controller de oficinas:
+
+```powershell
+docker compose -f docker-compose.test.yml run --rm app-tests ./gradlew test --tests "com.oficinapro.controller.OficinaControllerTest"
+```
+
+Os relatórios são gerados em:
+
+```text
+build/reports/tests/test/
+```
+
+e:
+
+```text
+build/test-results/test/
 ```
 
 ---
 
-# 🐳 Docker
+# 📚 Documentação da API
 
-Para iniciar os serviços:
+A API será documentada utilizando **OpenAPI/Swagger**.
 
-```powershell
-docker compose up -d
+Após iniciar o backend:
+
+```text
+http://localhost:8080/swagger-ui/index.html
 ```
 
-Para visualizar os logs:
+A documentação permite visualizar e testar os endpoints diretamente pelo navegador.
 
-```powershell
-docker compose logs -f
+A especificação OpenAPI está disponível em:
+
+```text
+http://localhost:8080/v3/api-docs
 ```
 
-Para parar os serviços:
+---
 
-```powershell
-docker compose down
+# 🏢 Gerenciamento de Oficinas
+
+O módulo de oficinas já possui a estrutura inicial de CRUD.
+
+Endpoints:
+
+```text
+GET    /api/oficinas
+GET    /api/oficinas/{id}
+POST   /api/oficinas
+PUT    /api/oficinas/{id}
+DELETE /api/oficinas/{id}
 ```
 
-Para remover também os volumes:
+A camada é organizada da seguinte forma:
 
-```powershell
-docker compose down -v
+```text
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+Entity
+    ↓
+PostgreSQL
 ```
 
-> O comando `down -v` remove os dados persistidos do PostgreSQL. Utilize apenas em ambientes de desenvolvimento quando isso for desejado.
+Os dados de entrada e saída são representados através de DTOs:
+
+```text
+OficinaRequest
+OficinaResponse
+```
+
+Exceções específicas também são utilizadas para tratar situações como oficina não encontrada.
+
+---
+
+# 🔐 Autenticação e autorização
+
+O OficinaPro utiliza **Spring Security** para controle de acesso.
+
+A arquitetura de segurança foi projetada para utilizar autenticação baseada em **JWT (JSON Web Token)** e autorização baseada em **roles**.
+
+A implementação está sendo desenvolvida incrementalmente.
+
+## 👥 Roles
+
+| Role             | Descrição                                   |
+| ---------------- | ------------------------------------------- |
+| `ADMIN`          | Administrador da plataforma SaaS            |
+| `GERENTE`        | Gerencia operações da sua oficina           |
+| `ADMINISTRATIVO` | Executa operações administrativas           |
+| `MECANICO`       | Executa operações relacionadas aos serviços |
+
+O `ADMIN` representa um administrador da plataforma.
+
+Os demais usuários são vinculados a uma oficina específica através de `oficina_id`.
+
+---
+
+## 🔑 Fluxo de autenticação planejado
+
+```text
+┌─────────────────┐
+│     Cliente     │
+│   Frontend/API  │
+└────────┬────────┘
+         │
+         │ POST /api/auth/login
+         │ username + password
+         ▼
+┌─────────────────────────┐
+│   AuthenticationService │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│      UserDetailsService │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│       PostgreSQL        │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│     PasswordEncoder     │
+│         BCrypt          │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│       JwtService        │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────┐
+│     Cliente     │
+└─────────────────┘
+```
+
+---
+
+# 🛡️ Autorização
+
+A autenticação identifica o usuário.
+
+A autorização determina o que ele pode fazer.
+
+Exemplo:
+
+```java
+@PreAuthorize("hasRole('ADMIN')")
+public Oficina criar(OficinaRequest dto) {
+    // ...
+}
+```
+
+Para múltiplas roles:
+
+```java
+@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+```
+
+---
+
+# 🏢 Isolamento entre oficinas
+
+O projeto será preparado para isolamento de dados entre diferentes oficinas.
+
+Um usuário pertencente a uma oficina deverá acessar apenas dados associados à sua própria oficina.
+
+Exemplo:
+
+```text
+Oficina 1
+├── João       (GERENTE)
+├── Maria      (ADMINISTRATIVO)
+└── Carlos     (MECANICO)
+
+
+Oficina 2
+├── Pedro      (GERENTE)
+└── Ana        (MECANICO)
+```
+
+João possui:
+
+```text
+role = GERENTE
+oficina_id = 1
+```
+
+Uma consulta de clientes deverá considerar a oficina do usuário autenticado:
+
+```sql
+WHERE oficina_id = 1
+```
+
+e não confiar em uma oficina arbitrariamente informada pelo cliente.
+
+---
+
+# 🌐 Endpoints públicos
+
+A configuração de segurança prevê inicialmente os seguintes endpoints públicos:
+
+```text
+POST /api/auth/**
+GET  /actuator/health
+GET  /swagger-ui/**
+GET  /v3/api-docs/**
+```
+
+Os demais endpoints deverão exigir autenticação conforme as regras de segurança.
+
+---
+
+# ❤️ Health Check
+
+O projeto utiliza **Spring Boot Actuator** para monitoramento básico da aplicação.
+
+Endpoint:
+
+```text
+GET /actuator/health
+```
+
+Exemplo:
+
+```text
+http://localhost:8080/actuator/health
+```
+
+Esse endpoint será utilizado também para verificar a disponibilidade da aplicação em ambientes Docker e futuramente em infraestrutura de produção.
 
 ---
 
@@ -414,11 +882,11 @@ Histórico do veículo
 
 ---
 
-# 📦 Módulos planejados
+# 📦 Módulos
 
 ## MVP
 
-* [ ] Oficinas
+* [x] Oficinas
 * [ ] Autenticação
 * [ ] Usuários
 * [ ] Clientes
@@ -471,8 +939,21 @@ Histórico do veículo
                         │
                         ▼
                 ┌───────────────┐
+                │ Infraestrutura│
+                │               │
+                │ Spring Boot   │
+                │ PostgreSQL    │
+                │ Flyway        │
+                │ Docker        │
+                │ Profiles      │
+                │ Testes        │
+                └───────┬───────┘
+                        │
+                        ▼
+                ┌───────────────┐
                 │      MVP      │
                 │               │
+                │ Oficinas      │
                 │ Clientes      │
                 │ Veículos      │
                 │ OS            │
@@ -545,45 +1026,37 @@ Histórico do veículo
 
 ---
 
-# 🔐 Segurança
+# 🧪 Estratégia de testes
 
-A aplicação utilizará:
-
-* Spring Security
-* JWT
-* Hash seguro de senhas
-* Controle de acesso baseado em roles
-
-Perfis inicialmente previstos:
+Os testes são executados em um ambiente Docker separado do ambiente de desenvolvimento.
 
 ```text
-ADMIN
-GERENTE
-ADMINISTRATIVO
-MECANICO
+                 docker-compose.test.yml
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+              ▼                       ▼
+       postgres-test              app-tests
+              │                       │
+              │                       ▼
+              │                    Gradle
+              │                       │
+              │                       ▼
+              │                    JUnit 5
+              │                       │
+              └───────────────────────┘
 ```
 
----
+Os testes de controller utilizam `MockMvc` e isolam os serviços com Mockito.
 
-# 🏢 Modelo SaaS
+A suíte também possui testes relacionados à segurança, incluindo validação de acesso por roles.
 
-Embora a primeira versão seja destinada à Soares Auto Center, o sistema será projetado considerando uma futura arquitetura multiempresa.
+Os resultados dos testes são armazenados em:
 
 ```text
-Oficina A
- ├── Clientes
- ├── Veículos
- ├── OS
- └── Compras
-
-Oficina B
- ├── Clientes
- ├── Veículos
- ├── OS
- └── Compras
+build/reports/tests/test/
+build/test-results/test/
 ```
-
-Os dados de uma oficina deverão permanecer isolados dos dados das demais oficinas.
 
 ---
 
@@ -621,7 +1094,29 @@ Posteriormente, uma LLM poderá ser utilizada para melhorar a interpretação e 
 
 ---
 
-# 📌 Desenvolvimento
+# 🏢 Modelo SaaS
+
+Embora a primeira versão seja destinada à **Soares Auto Center**, o sistema será projetado considerando uma futura arquitetura multiempresa.
+
+```text
+Oficina A
+ ├── Clientes
+ ├── Veículos
+ ├── OS
+ └── Compras
+
+Oficina B
+ ├── Clientes
+ ├── Veículos
+ ├── OS
+ └── Compras
+```
+
+Os dados de uma oficina deverão permanecer isolados dos dados das demais oficinas.
+
+---
+
+# 📌 Princípios de desenvolvimento
 
 O projeto será desenvolvido de forma incremental, priorizando primeiro as necessidades reais da Soares Auto Center.
 
@@ -647,11 +1142,25 @@ O objetivo é evitar desenvolver funcionalidades complexas antes de validar o fl
 
 ---
 
+# 🔒 Princípios de segurança
+
+* Senhas nunca devem ser armazenadas em texto puro.
+* Senhas devem ser protegidas utilizando BCrypt.
+* A autenticação utilizará JWT.
+* A API deve ser stateless.
+* A autorização utiliza roles.
+* O `ADMIN` possui acesso à plataforma como um todo.
+* `GERENTE`, `ADMINISTRATIVO` e `MECANICO` são vinculados a uma oficina.
+* Usuários de uma oficina não podem acessar dados de outras oficinas.
+* O `oficina_id` utilizado para autorização não deve ser confiado diretamente ao cliente.
+* Dados devem ser filtrados pela oficina no nível de serviço/repositório.
+* Credenciais de banco não devem ser armazenadas no código-fonte.
+* Configurações específicas de ambiente devem utilizar variáveis de ambiente.
+
+---
+
 # 👨‍💻 Autor
 
 **André Tharssys Marques Soares**
 
 Projeto desenvolvido no contexto de aplicação prática de tecnologias de desenvolvimento de software, utilizando como cenário inicial a **Soares Auto Center**.
-
-```
-```
