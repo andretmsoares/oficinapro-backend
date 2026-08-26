@@ -1,5 +1,6 @@
 package com.oficinapro.controller;
 
+import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.oficina.OficinaRequest;
 import com.oficinapro.dto.oficina.OficinaResponse;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OficinaController.class)
+@ActiveProfiles("test")
 class OficinaControllerTest {
 
     @Autowired
