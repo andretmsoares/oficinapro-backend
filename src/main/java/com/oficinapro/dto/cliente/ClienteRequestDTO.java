@@ -17,6 +17,6 @@ public record ClienteRequestDTO
                 String documento,
 
                 @NotNull(message = "O ID da oficina é obrigatório")
-                Long oficianId
+                Long oficinaId
         ) {
 }

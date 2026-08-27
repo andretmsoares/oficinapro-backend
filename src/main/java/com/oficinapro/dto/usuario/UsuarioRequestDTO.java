@@ -18,7 +18,7 @@ public record UsuarioRequestDTO
                 String documento,
 
                 @NotNull(message = "O ID da oficina é obrigatório")
-                Long oficianId,
+                Long oficinaId,
 
                 @NotBlank
                 @Size(max = 100, message = "Username deve ter no máximo 100 caracteres")

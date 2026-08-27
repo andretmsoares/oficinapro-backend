@@ -1,15 +1,13 @@
 package com.oficinapro.repository;
 
 import com.oficinapro.model.Usuario;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.Optional;
 
-@Repository
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-
-    Optional<Usuario> findByUsername(String username);
+public interface UsuarioRepository extends PessoaCrudRepository<Usuario> {
 
     boolean existsByUsername(String username);
+
+    boolean existsByUsernameAndIdNot(String username, Long id);
+
+    Optional<Usuario> findByUsername(String username);
 }

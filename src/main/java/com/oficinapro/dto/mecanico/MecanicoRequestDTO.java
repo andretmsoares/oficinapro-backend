@@ -20,7 +20,7 @@ public record MecanicoRequestDTO
                 String documento,
 
                 @NotNull(message = "O ID da oficina é obrigatório")
-                Long oficianId,
+                Long oficinaId,
 
                 @Positive(message = "O salário deve ser maior que zero")
                 BigDecimal salario,

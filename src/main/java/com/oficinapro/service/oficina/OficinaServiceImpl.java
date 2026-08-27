@@ -6,18 +6,16 @@ import com.oficinapro.exception.CnpjAlreadyExistsException;
 import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class OficinaServiceImpl implements OficinaService {
 
     private final OficinaRepository oficinaRepository;
-
-    public OficinaServiceImpl(OficinaRepository oficinaRepository) {
-        this.oficinaRepository = oficinaRepository;
-    }
 
     @Override
     public List<OficinaResponseDTO> listar() {
@@ -30,11 +28,22 @@ public class OficinaServiceImpl implements OficinaService {
     @Override
     public OficinaResponseDTO buscarPorId(Long id) {
 
-        Oficina oficina = oficinaRepository.findById(id)
-                .orElseThrow(() ->
-                        new OficinaNotFoundException(id));
+        Oficina oficina = this.buscarPorEntidadeId(id);
 
         return toResponse(oficina);
+    }
+
+    @Override
+    public Oficina buscarPorEntidadeId(Long id) {
+
+        return oficinaRepository.findById(id)
+                .orElseThrow(() ->
+                        new OficinaNotFoundException(id));
+    }
+
+    @Override
+    public boolean existsById(Long id) {
+        return oficinaRepository.existsById(id);
     }
 
     @Override

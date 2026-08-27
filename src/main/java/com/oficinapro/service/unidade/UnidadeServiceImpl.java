@@ -3,29 +3,22 @@ package com.oficinapro.service.unidade;
 import com.oficinapro.dto.unidade.UnidadeRequestDTO;
 import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.exception.EnderecoAlreadyExistsException;
-import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.exception.UnidadeNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
-import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.repository.UnidadeRepository;
+import com.oficinapro.service.oficina.OficinaService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class UnidadeServiceImpl implements UnidadeService {
 
     private final UnidadeRepository unidadeRepository;
-    private final OficinaRepository oficinaRepository;
-
-    public UnidadeServiceImpl(
-            UnidadeRepository unidadeRepository,
-            OficinaRepository oficinaRepository) {
-
-        this.unidadeRepository = unidadeRepository;
-        this.oficinaRepository = oficinaRepository;
-    }
+    private OficinaService oficinaService;
 
     @Override
     public List<UnidadeResponseDTO> listar() {
@@ -48,9 +41,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     @Override
     public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
 
-        if (!oficinaRepository.existsById(oficinaId)) {
-            throw new OficinaNotFoundException(oficinaId);
-        }
+        oficinaService.buscarPorEntidadeId(oficinaId);
 
         return unidadeRepository.findByOficinaId(oficinaId)
                 .stream()
@@ -63,9 +54,7 @@ public class UnidadeServiceImpl implements UnidadeService {
             Long oficinaId,
             UnidadeRequestDTO request) {
 
-        Oficina oficina = oficinaRepository.findById(oficinaId)
-                .orElseThrow(() ->
-                        new OficinaNotFoundException(oficinaId));
+        Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
         if (unidadeRepository.existsByEndereco(request.endereco())) {
             throw new EnderecoAlreadyExistsException(
