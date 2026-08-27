@@ -1,19 +1,19 @@
 package com.oficinapro.service.oficina;
 
-import com.oficinapro.dto.oficina.OficinaRequest;
-import com.oficinapro.dto.oficina.OficinaResponse;
+import com.oficinapro.dto.oficina.OficinaRequestDTO;
+import com.oficinapro.dto.oficina.OficinaResponseDTO;
 
 import java.util.List;
 
 public interface OficinaService {
 
-    List<OficinaResponse> listar();
+    List<OficinaResponseDTO> listar();
 
-    OficinaResponse buscarPorId(Long id);
+    OficinaResponseDTO buscarPorId(Long id);
 
-    OficinaResponse criar(OficinaRequest request);
+    OficinaResponseDTO criar(OficinaRequestDTO request);
 
-    OficinaResponse atualizar(Long id, OficinaRequest request);
+    OficinaResponseDTO atualizar(Long id, OficinaRequestDTO request);
 
     void deletar(Long id);
 }

@@ -1,6 +1,6 @@
 package com.oficinapro.dto.unidade;
 
-public record UnidadeResponse(
+public record UnidadeResponseDTO(
         Long id,
         Long oficinaId,
         String nome,

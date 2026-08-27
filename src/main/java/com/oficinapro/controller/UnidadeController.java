@@ -1,7 +1,7 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.dto.unidade.UnidadeRequest;
-import com.oficinapro.dto.unidade.UnidadeResponse;
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.service.unidade.UnidadeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,14 +26,14 @@ public class UnidadeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UnidadeResponse>> listar() {
+    public ResponseEntity<List<UnidadeResponseDTO>> listar() {
         return ResponseEntity.ok(
                 unidadeService.listar()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UnidadeResponse> buscarPorId(
+    public ResponseEntity<UnidadeResponseDTO> buscarPorId(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
@@ -42,7 +42,7 @@ public class UnidadeController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
-    public ResponseEntity<List<UnidadeResponse>> listarPorOficina(
+    public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
             @PathVariable Long oficinaId) {
 
         return ResponseEntity.ok(
@@ -51,9 +51,9 @@ public class UnidadeController {
     }
 
     @PostMapping("/oficina/{oficinaId}")
-    public ResponseEntity<UnidadeResponse> criar(
+    public ResponseEntity<UnidadeResponseDTO> criar(
             @PathVariable Long oficinaId,
-            @Valid @RequestBody UnidadeRequest request) {
+            @Valid @RequestBody UnidadeRequestDTO request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -66,9 +66,9 @@ public class UnidadeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UnidadeResponse> atualizar(
+    public ResponseEntity<UnidadeResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UnidadeRequest request) {
+            @Valid @RequestBody UnidadeRequestDTO request) {
 
         return ResponseEntity.ok(
                 unidadeService.atualizar(id, request)

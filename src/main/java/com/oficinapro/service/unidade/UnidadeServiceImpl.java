@@ -1,7 +1,7 @@
 package com.oficinapro.service.unidade;
 
-import com.oficinapro.dto.unidade.UnidadeRequest;
-import com.oficinapro.dto.unidade.UnidadeResponse;
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.exception.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.exception.UnidadeNotFoundException;
@@ -9,7 +9,6 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.repository.UnidadeRepository;
-import com.oficinapro.service.unidade.UnidadeService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,7 +28,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
-    public List<UnidadeResponse> listar() {
+    public List<UnidadeResponseDTO> listar() {
         return unidadeRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -37,7 +36,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
-    public UnidadeResponse buscarPorId(Long id) {
+    public UnidadeResponseDTO buscarPorId(Long id) {
 
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() ->
@@ -47,7 +46,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
-    public List<UnidadeResponse> listarPorOficina(Long oficinaId) {
+    public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
 
         if (!oficinaRepository.existsById(oficinaId)) {
             throw new OficinaNotFoundException(oficinaId);
@@ -60,9 +59,9 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
-    public UnidadeResponse criar(
+    public UnidadeResponseDTO criar(
             Long oficinaId,
-            UnidadeRequest request) {
+            UnidadeRequestDTO request) {
 
         Oficina oficina = oficinaRepository.findById(oficinaId)
                 .orElseThrow(() ->
@@ -87,9 +86,9 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
-    public UnidadeResponse atualizar(
+    public UnidadeResponseDTO atualizar(
             Long id,
-            UnidadeRequest request) {
+            UnidadeRequestDTO request) {
 
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() ->
@@ -122,9 +121,9 @@ public class UnidadeServiceImpl implements UnidadeService {
         unidadeRepository.deleteById(id);
     }
 
-    private UnidadeResponse toResponse(Unidade unidade) {
+    private UnidadeResponseDTO toResponse(Unidade unidade) {
 
-        return new UnidadeResponse(
+        return new UnidadeResponseDTO(
                 unidade.getId(),
                 unidade.getOficina().getId(),
                 unidade.getNome(),

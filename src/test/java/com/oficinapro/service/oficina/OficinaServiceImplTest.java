@@ -1,7 +1,7 @@
 package com.oficinapro.service.oficina;
 
-import com.oficinapro.dto.oficina.OficinaRequest;
-import com.oficinapro.dto.oficina.OficinaResponse;
+import com.oficinapro.dto.oficina.OficinaRequestDTO;
+import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.exception.CnpjAlreadyExistsException;
 import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
@@ -34,7 +34,7 @@ class OficinaServiceImplTest {
     private OficinaServiceImpl oficinaService;
 
     private Oficina oficina;
-    private OficinaRequest oficinaRequest;
+    private OficinaRequestDTO oficinaRequestDTO;
 
     @BeforeEach
     void setUp() {
@@ -44,7 +44,7 @@ class OficinaServiceImplTest {
         oficina.setCnpj("12345678000195");
         oficina.setTelefone("83999998888");
 
-        oficinaRequest = new OficinaRequest("Oficina Central", "12345678000195", "83999998888");
+        oficinaRequestDTO = new OficinaRequestDTO("Oficina Central", "12345678000195", "83999998888");
     }
 
     @Test
@@ -52,7 +52,7 @@ class OficinaServiceImplTest {
     void deveListarOficinas() {
         when(oficinaRepository.findAll()).thenReturn(List.of(oficina));
 
-        List<OficinaResponse> resultado = oficinaService.listar();
+        List<OficinaResponseDTO> resultado = oficinaService.listar();
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).id()).isEqualTo(1L);
@@ -65,7 +65,7 @@ class OficinaServiceImplTest {
     void deveBuscarPorIdComSucesso() {
         when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
 
-        OficinaResponse resultado = oficinaService.buscarPorId(1L);
+        OficinaResponseDTO resultado = oficinaService.buscarPorId(1L);
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.id()).isEqualTo(1L);
@@ -84,22 +84,22 @@ class OficinaServiceImplTest {
     @Test
     @DisplayName("Deve criar oficina com sucesso quando CNPJ não existir")
     void deveCriarOficinaComSucesso() {
-        when(oficinaRepository.existsByCnpj(oficinaRequest.cnpj())).thenReturn(false);
+        when(oficinaRepository.existsByCnpj(oficinaRequestDTO.cnpj())).thenReturn(false);
         when(oficinaRepository.save(any(Oficina.class))).thenReturn(oficina);
 
-        OficinaResponse resultado = oficinaService.criar(oficinaRequest);
+        OficinaResponseDTO resultado = oficinaService.criar(oficinaRequestDTO);
 
         assertThat(resultado).isNotNull();
-        assertThat(resultado.nome()).isEqualTo(oficinaRequest.nome());
+        assertThat(resultado.nome()).isEqualTo(oficinaRequestDTO.nome());
         verify(oficinaRepository, times(1)).save(any(Oficina.class));
     }
 
     @Test
     @DisplayName("Deve lançar exceção ao criar oficina com CNPJ já existente")
     void deveLancarExcecaoAoCriarComCnpjExistente() {
-        when(oficinaRepository.existsByCnpj(oficinaRequest.cnpj())).thenReturn(true);
+        when(oficinaRepository.existsByCnpj(oficinaRequestDTO.cnpj())).thenReturn(true);
 
-        assertThatThrownBy(() -> oficinaService.criar(oficinaRequest))
+        assertThatThrownBy(() -> oficinaService.criar(oficinaRequestDTO))
                 .isInstanceOf(CnpjAlreadyExistsException.class);
 
         verify(oficinaRepository, never()).save(any());
@@ -111,7 +111,7 @@ class OficinaServiceImplTest {
         when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
         when(oficinaRepository.save(any(Oficina.class))).thenReturn(oficina);
 
-        OficinaResponse resultado = oficinaService.atualizar(1L, oficinaRequest);
+        OficinaResponseDTO resultado = oficinaService.atualizar(1L, oficinaRequestDTO);
 
         assertThat(resultado).isNotNull();
         verify(oficinaRepository, never()).existsByCnpj(anyString());
@@ -121,13 +121,13 @@ class OficinaServiceImplTest {
     @Test
     @DisplayName("Deve atualizar oficina alterando para um CNPJ novo e válido")
     void deveAtualizarComNovoCnpjValido() {
-        OficinaRequest requestNovoCnpj = new OficinaRequest("Oficina Nova", "98765432000110", "83988887777");
+        OficinaRequestDTO requestNovoCnpj = new OficinaRequestDTO("Oficina Nova", "98765432000110", "83988887777");
 
         when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
         when(oficinaRepository.existsByCnpj("98765432000110")).thenReturn(false);
         when(oficinaRepository.save(any(Oficina.class))).thenReturn(oficina);
 
-        OficinaResponse resultado = oficinaService.atualizar(1L, requestNovoCnpj);
+        OficinaResponseDTO resultado = oficinaService.atualizar(1L, requestNovoCnpj);
 
         assertThat(resultado).isNotNull();
         verify(oficinaRepository, times(1)).existsByCnpj("98765432000110");

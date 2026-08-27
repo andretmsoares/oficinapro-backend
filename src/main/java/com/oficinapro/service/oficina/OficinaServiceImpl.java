@@ -1,12 +1,11 @@
 package com.oficinapro.service.oficina;
 
-import com.oficinapro.dto.oficina.OficinaRequest;
-import com.oficinapro.dto.oficina.OficinaResponse;
+import com.oficinapro.dto.oficina.OficinaRequestDTO;
+import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.exception.CnpjAlreadyExistsException;
 import com.oficinapro.exception.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
-import com.oficinapro.service.oficina.OficinaService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +20,7 @@ public class OficinaServiceImpl implements OficinaService {
     }
 
     @Override
-    public List<OficinaResponse> listar() {
+    public List<OficinaResponseDTO> listar() {
         return oficinaRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -29,7 +28,7 @@ public class OficinaServiceImpl implements OficinaService {
     }
 
     @Override
-    public OficinaResponse buscarPorId(Long id) {
+    public OficinaResponseDTO buscarPorId(Long id) {
 
         Oficina oficina = oficinaRepository.findById(id)
                 .orElseThrow(() ->
@@ -39,7 +38,7 @@ public class OficinaServiceImpl implements OficinaService {
     }
 
     @Override
-    public OficinaResponse criar(OficinaRequest request) {
+    public OficinaResponseDTO criar(OficinaRequestDTO request) {
 
         if (oficinaRepository.existsByCnpj(request.cnpj())) {
             throw new CnpjAlreadyExistsException(request.cnpj());
@@ -57,9 +56,9 @@ public class OficinaServiceImpl implements OficinaService {
     }
 
     @Override
-    public OficinaResponse atualizar(
+    public OficinaResponseDTO atualizar(
             Long id,
-            OficinaRequest request) {
+            OficinaRequestDTO request) {
 
         Oficina oficina = oficinaRepository.findById(id)
                 .orElseThrow(() ->
@@ -90,9 +89,9 @@ public class OficinaServiceImpl implements OficinaService {
         oficinaRepository.deleteById(id);
     }
 
-    private OficinaResponse toResponse(Oficina oficina) {
+    private OficinaResponseDTO toResponse(Oficina oficina) {
 
-        return new OficinaResponse(
+        return new OficinaResponseDTO(
                 oficina.getId(),
                 oficina.getNome(),
                 oficina.getCnpj(),
