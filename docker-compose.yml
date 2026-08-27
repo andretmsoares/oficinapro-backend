@@ -22,7 +22,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: ./infra.docker/src/dockerfile
+      dockerfile: ./Dockerfile
     container_name: oficinapro-app
     restart: unless-stopped
     env_file:
