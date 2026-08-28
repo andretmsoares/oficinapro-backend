@@ -3,6 +3,7 @@ package com.oficinapro.controller;
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
 import com.oficinapro.service.cliente.ClienteService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(
+        name = "Clientes",
+        description = "Operações de gerenciamento de clientes"
+)
 @RequestMapping("/api/clientes")
 @RequiredArgsConstructor
 public class ClienteController {

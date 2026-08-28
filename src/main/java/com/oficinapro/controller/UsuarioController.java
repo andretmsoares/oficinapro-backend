@@ -4,6 +4,7 @@ import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
 import com.oficinapro.service.usuario.UsuarioService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(
+        name = "Usuários",
+        description = "Operações de gerenciamento de usuários"
+)
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
