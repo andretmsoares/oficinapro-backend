@@ -7,6 +7,7 @@ import com.oficinapro.exception.MecanicoNotFoundException;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.MecanicoRepository;
+import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -19,8 +20,9 @@ public class MecanicoServiceImpl
 
     public MecanicoServiceImpl(MecanicoRepository repository,
                                OficinaServiceImpl oficinaService,
-                               PessoaService pessoaService) {
-        super(repository, oficinaService, pessoaService);
+                               PessoaService pessoaService,
+                               AuthenticatedUserProvider authenticatedUserProvider) {
+        super(repository, oficinaService, pessoaService, authenticatedUserProvider);
     }
 
     @Override

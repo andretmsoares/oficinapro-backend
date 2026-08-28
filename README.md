@@ -213,9 +213,7 @@ oficinapro/
 │           └── com/oficinapro/
 │
 ├── docker-compose.yml
-├── docker-compose.test.yml
 ├── Dockerfile
-├── dockerfile-test
 ├── build.gradle
 ├── settings.gradle
 ├── .gitignore
@@ -383,7 +381,7 @@ docker-compose.yml
 A aplicação local acessa o PostgreSQL através da porta:
 
 ```text
-5433
+5432
 ```
 
 Fluxo:
@@ -391,42 +389,11 @@ Fluxo:
 ```text
 Spring Boot
     │
-    │ localhost:5433
+    │ localhost:5432
     ▼
 PostgreSQL Docker
 ```
 
-## Testes
-
-Os testes possuem um ambiente Docker isolado através de:
-
-```text
-docker-compose.test.yml
-```
-
-O ambiente possui:
-
-```text
-postgres-test
-      │
-      ▼
-PostgreSQL 16
-      │
-      │
-      ▼
-app-tests
-      │
-      ▼
-Gradle Test
-```
-
-O banco de testes utiliza:
-
-```text
-oficinapro_test
-```
-
-e não interfere no banco utilizado pelo ambiente de desenvolvimento.
 
 ---
 
@@ -469,7 +436,7 @@ POSTGRES_DB=oficinapro
 POSTGRES_USER=oficinapro
 POSTGRES_HOST=localhost
 POSTGRES_PASSWORD=oficinapro
-POSTGRES_PORT=5433
+POSTGRES_PORT=5432
 SERVER_PORT=8080
 ```
 
@@ -487,22 +454,6 @@ Verifique os containers:
 docker compose ps
 ```
 
----
-
-## 4. Executar o backend
-
-### Windows
-
-```powershell
-.\gradlew bootRun
-```
-
-### Linux/macOS
-
-```bash
-./gradlew bootRun
-```
-
 Como o profile padrão é `dev`, a aplicação utilizará:
 
 ```text
@@ -514,9 +465,8 @@ application-dev.yml
 A aplicação estará disponível em:
 
 ```text
-http://localhost:8080
+localhost:8080
 ```
-
 ---
 
 # 🔄 Profiles
@@ -606,35 +556,6 @@ deve possuir acesso ao recurso.
 ```bash
 ./gradlew test
 ```
-
----
-
-## Executar os testes no Docker
-
-O ambiente de testes utiliza um Compose separado:
-
-```powershell
-docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from app-tests
-```
-
-Para executar apenas os testes do controller de oficinas:
-
-```powershell
-docker compose -f docker-compose.test.yml run --rm app-tests ./gradlew test --tests "com.oficinapro.controller.OficinaControllerTest"
-```
-
-Os relatórios são gerados em:
-
-```text
-build/reports/tests/test/
-```
-
-e:
-
-```text
-build/test-results/test/
-```
-
 ---
 
 # 📚 Documentação da API

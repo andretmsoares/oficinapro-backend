@@ -7,6 +7,7 @@ import com.oficinapro.exception.ClienteNotFoundException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.ClienteRepository;
+import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -19,8 +20,9 @@ public class ClienteServiceImpl
 
     public ClienteServiceImpl(ClienteRepository repository,
                               OficinaServiceImpl oficinaService,
-                              PessoaService pessoaService) {
-        super(repository, oficinaService, pessoaService);
+                              PessoaService pessoaService,
+                              AuthenticatedUserProvider authenticatedUserProvider) {
+        super(repository, oficinaService, pessoaService, authenticatedUserProvider);
     }
 
     @Override

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class UnidadeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<List<UnidadeResponseDTO>> listar() {
         return ResponseEntity.ok(
                 unidadeService.listar()
@@ -33,6 +35,7 @@ public class UnidadeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<UnidadeResponseDTO> buscarPorId(
             @PathVariable Long id) {
 
@@ -42,6 +45,7 @@ public class UnidadeController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
             @PathVariable Long oficinaId) {
 
@@ -51,6 +55,7 @@ public class UnidadeController {
     }
 
     @PostMapping("/oficina/{oficinaId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<UnidadeResponseDTO> criar(
             @PathVariable Long oficinaId,
             @Valid @RequestBody UnidadeRequestDTO request) {
@@ -66,6 +71,7 @@ public class UnidadeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<UnidadeResponseDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody UnidadeRequestDTO request) {
@@ -76,6 +82,7 @@ public class UnidadeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<Void> deletar(
             @PathVariable Long id) {
 
