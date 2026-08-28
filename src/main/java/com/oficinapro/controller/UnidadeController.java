@@ -1,12 +1,13 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.dto.unidade.UnidadeRequest;
-import com.oficinapro.dto.unidade.UnidadeResponse;
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.service.unidade.UnidadeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,14 +27,16 @@ public class UnidadeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UnidadeResponse>> listar() {
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    public ResponseEntity<List<UnidadeResponseDTO>> listar() {
         return ResponseEntity.ok(
                 unidadeService.listar()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UnidadeResponse> buscarPorId(
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    public ResponseEntity<UnidadeResponseDTO> buscarPorId(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
@@ -42,7 +45,8 @@ public class UnidadeController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
-    public ResponseEntity<List<UnidadeResponse>> listarPorOficina(
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
             @PathVariable Long oficinaId) {
 
         return ResponseEntity.ok(
@@ -51,9 +55,10 @@ public class UnidadeController {
     }
 
     @PostMapping("/oficina/{oficinaId}")
-    public ResponseEntity<UnidadeResponse> criar(
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    public ResponseEntity<UnidadeResponseDTO> criar(
             @PathVariable Long oficinaId,
-            @Valid @RequestBody UnidadeRequest request) {
+            @Valid @RequestBody UnidadeRequestDTO request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -66,9 +71,10 @@ public class UnidadeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UnidadeResponse> atualizar(
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    public ResponseEntity<UnidadeResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UnidadeRequest request) {
+            @Valid @RequestBody UnidadeRequestDTO request) {
 
         return ResponseEntity.ok(
                 unidadeService.atualizar(id, request)
@@ -76,6 +82,7 @@ public class UnidadeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<Void> deletar(
             @PathVariable Long id) {
 

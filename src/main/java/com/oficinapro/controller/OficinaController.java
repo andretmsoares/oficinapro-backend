@@ -1,7 +1,7 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.dto.oficina.OficinaRequest;
-import com.oficinapro.dto.oficina.OficinaResponse;
+import com.oficinapro.dto.oficina.OficinaRequestDTO;
+import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.service.oficina.OficinaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -39,7 +39,7 @@ public class OficinaController {
     )
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<OficinaResponse>> listar() {
+    public ResponseEntity<List<OficinaResponseDTO>> listar() {
         return ResponseEntity.ok(oficinaService.listar());
     }
 
@@ -59,7 +59,7 @@ public class OficinaController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<OficinaResponse> buscarPorId(
+    public ResponseEntity<OficinaResponseDTO> buscarPorId(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
@@ -87,8 +87,8 @@ public class OficinaController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<OficinaResponse> criar(
-            @Valid @RequestBody OficinaRequest request) {
+    public ResponseEntity<OficinaResponseDTO> criar(
+            @Valid @RequestBody OficinaRequestDTO request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -119,9 +119,9 @@ public class OficinaController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<OficinaResponse> atualizar(
+    public ResponseEntity<OficinaResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody OficinaRequest request) {
+            @Valid @RequestBody OficinaRequestDTO request) {
 
         return ResponseEntity.ok(
                 oficinaService.atualizar(id, request)
