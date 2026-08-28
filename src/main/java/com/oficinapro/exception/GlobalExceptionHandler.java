@@ -13,45 +13,83 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // ==========================================
+    // EXCEPTIONS DE RECURSOS NÃO ENCONTRADOS (404)
+    // ==========================================
+
     @ExceptionHandler(OficinaNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleOficinaNotFound(
             OficinaNotFoundException exception) {
-
-        return buildResponse(
-                HttpStatus.NOT_FOUND,
-                exception.getMessage()
-        );
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(UnidadeNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUnidadeNotFound(
             UnidadeNotFoundException exception) {
-
-        return buildResponse(
-                HttpStatus.NOT_FOUND,
-                exception.getMessage()
-        );
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
+
+    @ExceptionHandler(ClienteNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleClienteNotFound(
+            ClienteNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(MecanicoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMecanicoNotFound(
+            MecanicoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(UsuarioNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUsuarioNotFound(
+            UsuarioNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    // ==========================================
+    // EXCEPTIONS DE CONFLITOS / DADOS DUPLICADOS (409)
+    // ==========================================
 
     @ExceptionHandler(CnpjAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
             CnpjAlreadyExistsException exception) {
-
-        return buildResponse(
-                HttpStatus.CONFLICT,
-                exception.getMessage()
-        );
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(EnderecoAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleEnderecoAlreadyExists(
             EnderecoAlreadyExistsException exception) {
-
-        return buildResponse(
-                HttpStatus.CONFLICT,
-                exception.getMessage()
-        );
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
+
+    @ExceptionHandler(ClienteAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleClienteAlreadyExists(
+            ClienteAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(MecanicoAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleMecanicoAlreadyExists(
+            MecanicoAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExists(
+            UsernameAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(UsuarioAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleUsuarioAlreadyExists(
+            UsuarioAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    // ==========================================
+    // EXCEPTIONS DE VALIDAÇÃO DE CAMPOS (400)
+    // ==========================================
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(
@@ -80,6 +118,10 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(body);
     }
+
+    // ==========================================
+    // MÉTODO AUXILIAR
+    // ==========================================
 
     private ResponseEntity<Map<String, Object>> buildResponse(
             HttpStatus status,
