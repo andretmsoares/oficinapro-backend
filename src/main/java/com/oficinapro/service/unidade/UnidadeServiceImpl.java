@@ -71,12 +71,17 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     @Override
     public UnidadeResponseDTO buscarPorId(Long id) {
+        return toResponse(this.buscarPorEntidadeId(id));
+    }
+
+    @Override
+    public Unidade buscarPorEntidadeId(Long id) {
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));
 
         validarAcessoAoRegistro(unidade);
 
-        return toResponse(unidade);
+        return unidade;
     }
 
     @Override
