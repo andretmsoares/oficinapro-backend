@@ -13,10 +13,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ==========================================
-    // EXCEPTIONS DE RECURSOS NÃO ENCONTRADOS (404)
-    // ==========================================
-
     @ExceptionHandler(OficinaNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleOficinaNotFound(
             OficinaNotFoundException exception) {
@@ -47,9 +43,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
-    // ==========================================
-    // EXCEPTIONS DE CONFLITOS / DADOS DUPLICADOS (409)
-    // ==========================================
+    @ExceptionHandler(OrdemDeServicoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleOSNotFound(
+            OrdemDeServicoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
 
     @ExceptionHandler(CnpjAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
@@ -87,9 +85,23 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
-    // ==========================================
-    // EXCEPTIONS DE VALIDAÇÃO DE CAMPOS (400)
-    // ==========================================
+    @ExceptionHandler(OSCanceledException.class)
+    public ResponseEntity<Map<String, Object>> handleOSCanceled(
+            OSCanceledException exception) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+    }
+
+    @ExceptionHandler(OSFinishedException.class)
+    public ResponseEntity<Map<String, Object>> handleOSFinished(
+            OSFinishedException exception) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+    }
+
+    @ExceptionHandler(OSIsNotPossibleSwapWorkshopException.class)
+    public ResponseEntity<Map<String, Object>> handleOSIsNotPossibleSwapWorkshop(
+            OSIsNotPossibleSwapWorkshopException exception) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(
@@ -118,10 +130,6 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(body);
     }
-
-    // ==========================================
-    // MÉTODO AUXILIAR
-    // ==========================================
 
     private ResponseEntity<Map<String, Object>> buildResponse(
             HttpStatus status,

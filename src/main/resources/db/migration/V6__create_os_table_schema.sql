@@ -4,6 +4,7 @@ CREATE TABLE ordem_servico (
        cliente_id BIGINT,
        veiculo_id BIGINT NOT NULL,
        unidade_id BIGINT NOT NULL,
+       mecanico_id BIGINT,
        data_abertura TIMESTAMP NOT NULL,
        data_fechamento TIMESTAMP,
        status VARCHAR(30) NOT NULL,
@@ -25,4 +26,8 @@ CREATE TABLE ordem_servico (
        CONSTRAINT fk_os_unidade
            FOREIGN KEY (unidade_id)
                REFERENCES unidade(id)
+
+       CONSTRAINT fk_os_mecanico
+            FOREIGN KEY (mecanico_id)
+               REFERENCES mecanico(pessoa_id)
 );

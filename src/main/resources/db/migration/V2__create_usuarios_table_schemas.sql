@@ -32,7 +32,6 @@ CREATE TABLE usuario (
      CONSTRAINT chk_usuario_role
          CHECK (role IN (
                          'ADMIN',
-                         'GERENTE',
                          'ADMINISTRATIVO',
                          'MECANICO'
              )),
