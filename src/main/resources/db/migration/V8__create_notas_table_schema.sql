@@ -25,3 +25,11 @@ CREATE TABLE item_nota_compra (
               REFERENCES nota_compra(id)
               ON DELETE CASCADE
 );
+
+ALTER TABLE item_os_peca
+    ADD COLUMN item_nota_compra_id BIGINT;
+
+ALTER TABLE item_os_peca
+    ADD CONSTRAINT fk_item_os_peca_nota
+        FOREIGN KEY (item_nota_compra_id)
+            REFERENCES item_nota_compra(id);
