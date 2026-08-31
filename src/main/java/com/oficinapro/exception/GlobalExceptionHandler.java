@@ -49,6 +49,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
+    @ExceptionHandler(ItemOsPecaNotFoundException .class)
+    public ResponseEntity<Map<String, Object>> handleItemOSNotFound(
+            ItemOsPecaNotFoundException  exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
     @ExceptionHandler(CnpjAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
             CnpjAlreadyExistsException exception) {
