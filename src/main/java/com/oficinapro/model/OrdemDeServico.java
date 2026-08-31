@@ -35,7 +35,7 @@ public class OrdemDeServico {
     private Veiculo veiculo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unidade_id", nullable = false, foreignKey = @ForeignKey(name = "fk_os_unidade"))
+    @JoinColumn(name = "unidade_id", foreignKey = @ForeignKey(name = "fk_os_unidade"))
     private Unidade unidade;
 
     @ManyToOne(fetch = FetchType.LAZY)
