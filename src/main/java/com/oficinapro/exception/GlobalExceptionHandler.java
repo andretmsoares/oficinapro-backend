@@ -47,6 +47,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
+    @ExceptionHandler(OrdemDeServicoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleOSNotFound(
+            OrdemDeServicoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
     // ==========================================
     // EXCEPTIONS DE CONFLITOS / DADOS DUPLICADOS (409)
     // ==========================================
