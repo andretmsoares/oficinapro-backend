@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.oficina;
 
 public class CnpjAlreadyExistsException extends RuntimeException {
 

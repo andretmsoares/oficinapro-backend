@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.mecanico;
 
 public class MecanicoAlreadyExistsException extends RuntimeException {
     public MecanicoAlreadyExistsException() {

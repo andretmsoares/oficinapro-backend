@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.unidade;
 
 public class UnidadeNotFoundException extends RuntimeException {
 

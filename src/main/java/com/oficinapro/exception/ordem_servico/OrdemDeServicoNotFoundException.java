@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.ordem_servico;
 
 public class OrdemDeServicoNotFoundException extends RuntimeException {
     public OrdemDeServicoNotFoundException(Long id) {

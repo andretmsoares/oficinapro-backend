@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.unidade;
 
 public class EnderecoAlreadyExistsException extends RuntimeException {
   public EnderecoAlreadyExistsException(String endereco) {

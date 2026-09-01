@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.usuario;
 
 public class UsuarioNotFoundException extends RuntimeException {
     public UsuarioNotFoundException() {

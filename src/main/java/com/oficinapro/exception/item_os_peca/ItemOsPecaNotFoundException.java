@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.item_os_peca;
 
 public class ItemOsPecaNotFoundException extends RuntimeException {
     public ItemOsPecaNotFoundException(Long id) {
