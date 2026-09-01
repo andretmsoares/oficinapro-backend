@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "pagamento")
+@Table(name = "registro_pagamento")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,7 +31,8 @@ public class RegistroPagamento {
     private BigDecimal valor;
 
     @Column(name = "meio_pagamento", nullable = false)
-    private MeioPagamento meio_pagamento;
+    @Enumerated(EnumType.STRING)
+    private MeioPagamento meioPagamento;
 
     @Column(name = "data", nullable = false)
     private LocalDateTime data;

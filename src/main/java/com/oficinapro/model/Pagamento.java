@@ -1,5 +1,6 @@
 package com.oficinapro.model;
 
+import com.oficinapro.enums.StatusPagamento;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,14 +28,15 @@ public class Pagamento {
     private OrdemDeServico ordemDeServico;
 
     @Column(name = "valor_pago", precision = 12, scale = 2)
-    private BigDecimal valor_pago;
+    private BigDecimal valorPago;
 
     @Column(name = "obs")
     private String obs;
 
-    @Column(name = "desconto", precision = 12, scale = 2)
-    private BigDecimal desconto;
-
     @Column(name = "data_pagamento_total")
-    private LocalDateTime data_pagamento_total;
+    private LocalDateTime dataPagamentoTotal;
+
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private StatusPagamento status;
 }
