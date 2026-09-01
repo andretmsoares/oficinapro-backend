@@ -2,11 +2,11 @@
 
 **SaaS para gerenciamento de oficinas automotivas**
 
-> Projeto desenvolvido inicialmente para a **Soares Auto Center**, com o objetivo de centralizar e facilitar o gerenciamento de clientes, veículos, ordens de serviço, mecânicos, pagamentos e, futuramente, compras e documentos de peças.
+> Projeto desenvolvido inicialmente para a **Soares Auto Center**, com o objetivo de centralizar e facilitar o gerenciamento de clientes, veículos, ordens de serviço, mecânicos, peças e pagamentos.
 
 ---
 
-## 📋 Sobre o projeto
+## Sobre o projeto
 
 O **OficinaPro** é uma aplicação web para gerenciamento de oficinas automotivas.
 
@@ -18,15 +18,17 @@ Posteriormente, o projeto poderá evoluir para um **SaaS multiempresa**, permiti
 
 ---
 
-## 🎯 Objetivos
+## Objetivos
 
 O OficinaPro tem como principais objetivos:
 
 * Centralizar o cadastro de oficinas.
+* Gerenciar unidades por oficina.
 * Centralizar o cadastro de clientes.
 * Gerenciar veículos.
 * Criar e acompanhar Ordens de Serviço.
 * Associar mecânicos aos serviços.
+* Registrar peças utilizadas nas ordens de serviço.
 * Registrar pagamentos.
 * Manter o histórico dos veículos.
 * Facilitar o acompanhamento operacional da oficina.
@@ -37,92 +39,111 @@ O OficinaPro tem como principais objetivos:
 
 ---
 
-# 🚧 Status do projeto
+# Status do projeto
 
-**Em desenvolvimento 🚧**
+**Em desenvolvimento**
 
 Atualmente o projeto está na fase de construção do **MVP**.
 
 ### Progresso atual
 
+**Infraestrutura**
 * [x] Inicialização do projeto Spring Boot
 * [x] Configuração do Gradle
 * [x] Configuração do Java 21
 * [x] Configuração do PostgreSQL
-* [x] Configuração do Flyway
+* [x] Configuração do Flyway (migrations V1 a V9)
 * [x] Configuração do Docker
 * [x] Docker Compose para desenvolvimento
-* [x] Docker Compose para testes
 * [x] Configuração de profiles `dev` e `prod`
 * [x] Configuração de variáveis de ambiente
-* [x] Configuração do Actuator
-* [x] Configuração inicial do Spring Security
+* [x] Configuração do Actuator (health check)
+* [x] Configuração inicial do Spring Security (stateless, CORS, CSRF desabilitado)
 * [x] Configuração do OpenAPI/Swagger
-* [x] CRUD de oficinas
-* [x] DTOs de oficinas
-* [x] Tratamento de exceções de oficinas
-* [x] Testes do controller de oficinas
-* [ ] Correção de todas as falhas da suíte de testes
-* [ ] Autenticação completa
-* [ ] Cadastro de clientes
-* [ ] Cadastro de veículos
-* [ ] Cadastro de mecânicos
-* [ ] Ordens de Serviço
+
+**Domínios implementados**
+* [x] CRUD de Oficinas
+* [x] CRUD de Unidades
+* [x] CRUD de Clientes (com paginação e busca por nome/documento)
+* [x] CRUD de Mecânicos (com paginação, salário e observações)
+* [x] CRUD de Usuários (com roles e criptografia de senha)
+* [x] CRUD de Veículos (com validação de placa no formato mercosul/antigo)
+* [x] CRUD de Ordens de Serviço
+* [x] Controle de status da OS (8 status operacionais)
+* [x] Atribuição de mecânico à OS
+* [x] Atribuição de cliente à OS
+* [x] Itens de peça da OS com recálculo automático do valor total
+* [x] Isolamento de dados por oficina (multi-tenancy básico)
+* [x] Autorização por roles: ADMIN, ADMINISTRATIVO, MECANICO
+* [x] Global Exception Handler
+* [x] Tratamento de exceções de todos os módulos
+
+**Testes**
+* [x] Testes do controller de Oficinas (WebMvcTest + MockMvc)
+* [x] Testes unitários do service de Oficinas
+* [x] Testes unitários dos services de Clientes, Mecânicos e Usuários
+* [x] Testes unitários dos services de Veículos, Unidades
+* [x] Testes unitários dos services de Ordens de Serviço e Itens de OS
+* [x] Testes E2E (MockMvc) dos controllers de Clientes, Mecânicos
+* [x] Testes E2E (MockMvc) dos controllers de Veículos, Unidades, Usuários
+* [x] Testes E2E (MockMvc) dos controllers de Ordens de Serviço e Itens de OS
+
+**Pendente**
+* [ ] Autenticação JWT completa (login, refresh token)
 * [ ] Pagamentos
 * [ ] Histórico de veículos
 * [ ] Dashboard
-* [ ] Fornecedores
-* [ ] Compras e peças
-* [ ] OCR
-* [ ] Inteligência Artificial
-* [ ] Multi-tenancy
-* [ ] SaaS
+* [ ] Fornecedores / Distribuidoras
+* [ ] Compras e peças externas
+* [ ] OCR e Inteligência Artificial
+* [ ] Multi-tenancy completo (SaaS)
 
 ---
 
-# 🏗️ Arquitetura
+# Arquitetura
 
-A primeira versão do projeto será desenvolvida utilizando um **monólito modular**.
+A primeira versão do projeto é desenvolvida utilizando um **monólito modular**.
 
 ```text
-                        ┌───────────────┐
-                        │    Usuário    │
-                        └───────┬───────┘
-                                │
-                                ▼
-                        ┌───────────────┐
-                        │    React      │
-                        │   Frontend    │
-                        └───────┬───────┘
-                                │
-                             REST API
-                                │
-                                ▼
-                 ┌─────────────────────────────┐
-                 │        Spring Boot          │
-                 │                             │
-                 │  Autenticação               │
-                 │  Oficinas                   │
-                 │  Clientes                   │
-                 │  Veículos                   │
-                 │  Ordens de Serviço          │
-                 │  Mecânicos                  │
-                 │  Pagamentos                 │
-                 │  Compras                    │
-                 │  Relatórios                 │
-                 └──────────────┬──────────────┘
-                                │
-                                ▼
-                        ┌───────────────┐
-                        │  PostgreSQL   │
-                        └───────────────┘
+                       ┌───────────────┐
+                       │    Usuário    │
+                       └───────┬───────┘
+                               │
+                               ▼
+                       ┌───────────────┐
+                       │    React      │
+                       │   Frontend    │
+                       └───────┬───────┘
+                               │
+                            REST API
+                               │
+                               ▼
+                ┌─────────────────────────────┐
+                │        Spring Boot          │
+                │                             │
+                │  Autenticação               │
+                │  Oficinas                   │
+                │  Unidades                   │
+                │  Clientes                   │
+                │  Veículos                   │
+                │  Ordens de Serviço          │
+                │  Mecânicos                  │
+                │  Itens de OS (Peças)        │
+                │  Usuários                   │
+                │  Pagamentos (futuro)        │
+                │  Compras (futuro)           │
+                │  Relatórios (futuro)        │
+                └──────────────┬──────────────┘
+                               │
+                               ▼
+                       ┌───────────────┐
+                       │  PostgreSQL   │
+                       └───────────────┘
 ```
-
-A arquitetura poderá evoluir futuramente para serviços independentes caso exista necessidade.
 
 ---
 
-# 🛠️ Tecnologias
+# Tecnologias
 
 ## Backend
 
@@ -170,6 +191,7 @@ Planejado:
 * **MockMvc**
 * **`@WebMvcTest`**
 * **`@MockitoBean`**
+* **H2 (banco em memória para testes)**
 
 ## Documentação
 
@@ -178,9 +200,7 @@ Planejado:
 
 ---
 
-# 📁 Estrutura do projeto
-
-A estrutura do backend segue uma organização por responsabilidades:
+# Estrutura do projeto
 
 ```text
 oficinapro/
@@ -190,40 +210,43 @@ oficinapro/
 │   │   ├── java/
 │   │   │   └── com/oficinapro/
 │   │   │       │
-│   │   │       ├── config/
-│   │   │       ├── controller/
-│   │   │       ├── dto/
-│   │   │       ├── entity/
-│   │   │       ├── enums/
-│   │   │       ├── exception/
-│   │   │       ├── mapper/
-│   │   │       ├── repository/
-│   │   │       ├── security/
-│   │   │       └── service/
+│   │   │       ├── config/          # SecurityConfig, OpenApiConfig, SpringDocConfig
+│   │   │       ├── controller/      # Controladores REST
+│   │   │       ├── dto/             # DTOs de entrada e saída por módulo
+│   │   │       ├── enums/           # StatusOrdemDeServico
+│   │   │       ├── exception/       # Exceções de domínio + GlobalExceptionHandler
+│   │   │       ├── model/           # Entidades JPA
+│   │   │       ├── repository/      # Repositórios Spring Data
+│   │   │       ├── security/        # AuthenticatedUserProvider, Role, JWT (parcial)
+│   │   │       └── service/         # Interfaces e implementações de serviços
 │   │   │
 │   │   └── resources/
 │   │       ├── db/
-│   │       │   └── migration/
+│   │       │   └── migration/       # Scripts Flyway (V1 a V9)
 │   │       ├── application.yml
 │   │       ├── application-dev.yml
 │   │       └── application-prod.yml
 │   │
 │   └── test/
-│       └── java/
-│           └── com/oficinapro/
+│       ├── java/
+│       │   └── com/oficinapro/
+│       │       ├── controller/      # Testes E2E com MockMvc
+│       │       └── service/         # Testes unitários dos services
+│       └── resources/
+│           └── application-test.properties  # H2 + Flyway desabilitado
 │
 ├── docker-compose.yml
 ├── Dockerfile
 ├── build.gradle
 ├── settings.gradle
 ├── .gitignore
-├── .env.example
+├── .env-example
 └── README.md
 ```
 
 ---
 
-# ⚙️ Configuração da aplicação
+# Configuração da aplicação
 
 O projeto utiliza **Spring Profiles** para separar configurações comuns, desenvolvimento e produção.
 
@@ -243,21 +266,11 @@ application-dev.yml  application-prod.yml
 Contém configurações comuns da aplicação:
 
 * Nome da aplicação
-* Profile padrão
+* Profile padrão (`dev`)
 * Configuração do JPA
 * Flyway
 * Actuator
 * Porta do servidor
-
-O profile padrão é:
-
-```yaml
-spring:
-  profiles:
-    default: dev
-```
-
-Portanto, ao executar a aplicação sem especificar outro profile, o ambiente `dev` será utilizado.
 
 ## `application-dev.yml`
 
@@ -272,8 +285,6 @@ spring:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 ```
-
-O ambiente de desenvolvimento utiliza logs mais detalhados para facilitar o diagnóstico da aplicação.
 
 ## `application-prod.yml`
 
@@ -293,7 +304,7 @@ Nenhuma credencial de produção deve ser armazenada diretamente no código-font
 
 ---
 
-# 🔐 Variáveis de ambiente
+# Variáveis de ambiente
 
 O projeto utiliza variáveis de ambiente para configuração sensível e específica de cada ambiente.
 
@@ -304,26 +315,26 @@ POSTGRES_DB=oficinapro
 POSTGRES_USER=oficinapro
 POSTGRES_HOST=localhost
 POSTGRES_PASSWORD=oficinapro
-POSTGRES_PORT=5433
+POSTGRES_PORT=5432
 SERVER_PORT=8080
 ```
 
 O arquivo `.env` **não deve ser versionado**.
 
-O repositório deve disponibilizar apenas um `.env.example`:
+O repositório disponibiliza apenas um `.env-example`:
 
 ```env
 POSTGRES_DB=oficinapro
 POSTGRES_USER=oficinapro
 POSTGRES_HOST=localhost
 POSTGRES_PASSWORD=
-POSTGRES_PORT=5433
+POSTGRES_PORT=5432
 SERVER_PORT=8080
 ```
 
 ---
 
-# 🗄️ Banco de dados
+# Banco de dados
 
 O banco principal utilizado pelo projeto é o **PostgreSQL**.
 
@@ -349,8 +360,14 @@ Exemplo:
 
 ```text
 V1__create_oficina_table.sql
-V2__create_unidade_table.sql
-V3__create_cliente_table.sql
+V2__create_usuario_table.sql
+V3__create_veiculo_table.sql
+V4__create_os_table.sql
+V5__peca_create_table.sql
+V6__pagamento_table.sql
+V7__create_fornecedor_table.sql
+V8__create_notas_compra_table.sql
+V9__create_indexes.sql
 ```
 
 O Hibernate é utilizado apenas para validar o schema:
@@ -362,11 +379,9 @@ spring:
       ddl-auto: validate
 ```
 
-O projeto não utiliza o Hibernate para criação automática das tabelas.
-
 ---
 
-# 🐳 Docker
+# Docker
 
 O projeto possui ambientes Docker separados para desenvolvimento e testes.
 
@@ -378,26 +393,9 @@ O PostgreSQL de desenvolvimento é executado através do:
 docker-compose.yml
 ```
 
-A aplicação local acessa o PostgreSQL através da porta:
-
-```text
-5432
-```
-
-Fluxo:
-
-```text
-Spring Boot
-    │
-    │ localhost:5432
-    ▼
-PostgreSQL Docker
-```
-
-
 ---
 
-# 🚀 Executando o projeto
+# Executando o projeto
 
 ## Pré-requisitos
 
@@ -426,7 +424,7 @@ cd projeto-oficinaPro
 Crie o `.env` a partir do exemplo:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item .env-example .env
 ```
 
 Configure as variáveis:
@@ -454,12 +452,12 @@ Verifique os containers:
 docker compose ps
 ```
 
-Como o profile padrão é `dev`, a aplicação utilizará:
+---
 
-```text
-application.yml
-       +
-application-dev.yml
+## 4. Executar a aplicação
+
+```powershell
+.\gradlew bootRun
 ```
 
 A aplicação estará disponível em:
@@ -467,9 +465,10 @@ A aplicação estará disponível em:
 ```text
 localhost:8080
 ```
+
 ---
 
-# 🔄 Profiles
+# Profiles
 
 O profile pode ser alterado explicitamente.
 
@@ -494,56 +493,53 @@ $env:SPRING_PROFILES_ACTIVE="prod"
 
 ---
 
-# 🧪 Testes
+# Testes
 
-O projeto utiliza testes automatizados com JUnit, Mockito e Spring Boot Test.
+O projeto utiliza testes automatizados com JUnit 5, Mockito e Spring Boot Test.
 
-Os testes de controller utilizam:
+## Tipos de testes
+
+### Testes unitários (service layer)
+
+Utilizam `@ExtendWith(MockitoExtension.class)` com `@Mock` e `@InjectMocks`.
+
+Não carregam contexto Spring — são rápidos e isolados.
+
+Cobrem as regras de negócio dos services:
+
+* Retorno correto dos dados
+* Lançamento de exceções (não encontrado, já existe, acesso negado)
+* Isolamento de dados por oficina
+* Validação de roles para operações sensíveis
+
+### Testes E2E de controller (camada web)
+
+Utilizam `@WebMvcTest` com `MockMvc`, `@MockitoBean` e `@WithMockUser`:
 
 ```java
-@WebMvcTest(OficinaController.class)
+@WebMvcTest(ClienteController.class)
+@ActiveProfiles("test")
+class ClienteControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private ClienteService clienteService;
+}
 ```
 
-e os serviços são isolados utilizando:
+Os testes de endpoints validam:
 
-```java
-@MockitoBean
-private OficinaService oficinaService;
-```
-
-Os testes de endpoints utilizam `MockMvc`, incluindo validação de:
-
-* Status HTTP
-* JSON de resposta
+* Status HTTP correto (200, 201, 204, 400, 403, 404, 409)
+* Corpo da resposta JSON
 * Criação de recursos
 * Atualização de recursos
 * Exclusão de recursos
 * Tratamento de recursos inexistentes
-* Autorização por role
-* Proteção CSRF
+* Autorização por role (403 para roles sem permissão)
 
-Exemplo de teste de autorização:
-
-```text
-USER
-  │
-  └── GET /api/oficinas
-            │
-            ▼
-         HTTP 403
-```
-
-Enquanto um usuário com:
-
-```text
-ROLE_ADMIN
-```
-
-deve possuir acesso ao recurso.
-
----
-
-## Executar os testes localmente
+## Executar os testes
 
 ### Windows
 
@@ -556,19 +552,31 @@ deve possuir acesso ao recurso.
 ```bash
 ./gradlew test
 ```
+
+### Com relatório
+
+```powershell
+.\gradlew test --info
+```
+
+Os resultados ficam em:
+
+```text
+build/reports/tests/test/
+build/test-results/test/
+```
+
 ---
 
-# 📚 Documentação da API
+# Documentação da API
 
-A API será documentada utilizando **OpenAPI/Swagger**.
+A API é documentada utilizando **OpenAPI/Swagger**.
 
 Após iniciar o backend:
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
-
-A documentação permite visualizar e testar os endpoints diretamente pelo navegador.
 
 A especificação OpenAPI está disponível em:
 
@@ -578,9 +586,11 @@ http://localhost:8080/v3/api-docs
 
 ---
 
-# 🏢 Gerenciamento de Oficinas
+# Módulos implementados
 
-O módulo de oficinas já possui a estrutura inicial de CRUD.
+## Oficinas (`/api/oficinas`)
+
+Gerencia o cadastro de oficinas automotivas.
 
 Endpoints:
 
@@ -592,161 +602,233 @@ PUT    /api/oficinas/{id}
 DELETE /api/oficinas/{id}
 ```
 
-A camada é organizada da seguinte forma:
+DTOs: `OficinaRequestDTO`, `OficinaResponseDTO`
 
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-Entity
-    ↓
-PostgreSQL
-```
-
-Os dados de entrada e saída são representados através de DTOs:
-
-```text
-OficinaRequest
-OficinaResponse
-```
-
-Exceções específicas também são utilizadas para tratar situações como oficina não encontrada.
+Acesso restrito a: `ADMIN`
 
 ---
 
-# 🔐 Autenticação e autorização
+## Unidades (`/api/unidades`)
+
+Gerencia unidades (filiais) de cada oficina.
+
+Endpoints:
+
+```text
+GET    /api/unidades
+GET    /api/unidades/{id}
+GET    /api/unidades/oficina/{oficinaId}
+POST   /api/unidades/oficina/{oficinaId}
+PUT    /api/unidades/{id}
+DELETE /api/unidades/{id}
+```
+
+DTOs: `UnidadeRequestDTO`, `UnidadeResponseDTO`
+
+Acesso: `ADMIN`, `ADMINISTRATIVO`
+
+---
+
+## Clientes (`/api/clientes`)
+
+Gerencia o cadastro de clientes.
+
+Endpoints:
+
+```text
+GET    /api/clientes                         (ADMIN)
+GET    /api/clientes/{id}
+GET    /api/clientes/oficina/{oficinaId}
+GET    /api/clientes/nome/{nome}
+GET    /api/clientes/documento/{documento}
+POST   /api/clientes
+PUT    /api/clientes/{id}
+DELETE /api/clientes/{id}
+```
+
+DTOs: `ClienteRequestDTO`, `ClienteResponseDTO`
+
+Suporta paginação com `Pageable`.
+
+Acesso: `ADMIN`, `ADMINISTRATIVO`
+
+---
+
+## Mecânicos (`/api/mecanicos`)
+
+Gerencia o cadastro de mecânicos com suporte a salário e observações.
+
+Endpoints:
+
+```text
+GET    /api/mecanicos                         (ADMIN)
+GET    /api/mecanicos/{id}
+GET    /api/mecanicos/oficina/{oficinaId}
+GET    /api/mecanicos/nome/{nome}
+GET    /api/mecanicos/documento/{documento}
+POST   /api/mecanicos
+PUT    /api/mecanicos/{id}
+DELETE /api/mecanicos/{id}
+```
+
+DTOs: `MecanicoRequestDTO`, `MecanicoResponseDTO`
+
+Suporta paginação com `Pageable`.
+
+Acesso: `ADMIN`, `ADMINISTRATIVO`
+
+---
+
+## Usuários (`/api/usuarios`)
+
+Gerencia os usuários do sistema.
+
+Endpoints:
+
+```text
+GET    /api/usuarios                         (ADMIN)
+GET    /api/usuarios/{id}
+GET    /api/usuarios/oficina/{oficinaId}
+GET    /api/usuarios/nome/{nome}             (ADMIN)
+GET    /api/usuarios/documento/{documento}   (ADMIN)
+POST   /api/usuarios
+PUT    /api/usuarios/{id}
+DELETE /api/usuarios/{id}                    (ADMIN)
+```
+
+DTOs: `UsuarioRequestDTO`, `UsuarioResponseDTO`, `UsuarioUpdateRequestDTO`
+
+Suporta paginação com `Pageable`.
+
+Regras de role:
+* Apenas `ADMIN` pode criar ou promover usuários com role `ADMIN`.
+* `ADMINISTRATIVO` pode criar usuários com role `ADMINISTRATIVO` ou `MECANICO`.
+
+---
+
+## Veículos (`/api/veiculos`)
+
+Gerencia o cadastro de veículos.
+
+Endpoints:
+
+```text
+GET    /api/veiculos
+GET    /api/veiculos/{id}
+GET    /api/veiculos/placa/{placa}
+GET    /api/veiculos/oficina/{oficinaId}
+POST   /api/veiculos
+PUT    /api/veiculos/{id}
+DELETE /api/veiculos/{id}
+```
+
+DTOs: `VeiculoRequestDTO`, `VeiculoResponseDTO`
+
+Suporta paginação com `Pageable`.
+
+A placa é validada com regex para o formato antigo (`ABC1234`) e Mercosul (`ABC1D23`).
+
+Acesso leitura: `ADMIN`, `ADMINISTRATIVO`, `MECANICO`
+
+Acesso escrita: `ADMIN`, `ADMINISTRATIVO`
+
+---
+
+## Ordens de Serviço (`/api/ordens-servico`)
+
+Gerencia o ciclo de vida completo das ordens de serviço.
+
+Endpoints:
+
+```text
+GET    /api/ordens-servico
+GET    /api/ordens-servico/{id}
+GET    /api/ordens-servico/veiculo/{veiculoId}
+GET    /api/ordens-servico/mecanico/{mecanicoId}
+GET    /api/ordens-servico/unidade/{unidadeId}
+GET    /api/ordens-servico/oficina/{oficinaId}
+GET    /api/ordens-servico/cliente/{clienteId}
+POST   /api/ordens-servico
+PUT    /api/ordens-servico/{id}
+DELETE /api/ordens-servico/{id}
+PATCH  /api/ordens-servico/{id}/status
+PATCH  /api/ordens-servico/{id}/mecanico
+PATCH  /api/ordens-servico/{id}/cliente
+```
+
+DTOs: `OrdemDeServicoRequestDTO`, `OrdemDeServicoResponseDTO`, `AtualizarStatusOSRequestDTO`, `AtribuirMecanicoRequestDTO`, `AtribuirClienteRequestDTO`
+
+Status da OS:
+
+```text
+ABERTA → DIAGNOSTICO → AGUARDANDO_APROVACAO → AGUARDANDO_PECAS → EM_EXECUCAO → FINALIZADA → ENTREGUE
+                                                                                           ↘ CANCELADA
+```
+
+Regras de negócio:
+* O cliente pode ser nulo na criação (OS sem proprietário identificado).
+* Não é possível alterar o status de uma OS cancelada.
+* Não é possível mover uma OS entregue de volta para aberta.
+* Não é possível trocar a oficina de uma OS após a criação.
+
+Acesso leitura: `ADMIN`, `ADMINISTRATIVO`, `MECANICO`
+
+Acesso escrita: `ADMIN`, `ADMINISTRATIVO`
+
+---
+
+## Itens de OS — Peças (`/api/itens-os-peca`)
+
+Gerencia as peças associadas a uma ordem de serviço.
+
+Endpoints:
+
+```text
+GET    /api/itens-os-peca/os/{osId}
+GET    /api/itens-os-peca/{id}
+POST   /api/itens-os-peca
+PUT    /api/itens-os-peca/{id}
+DELETE /api/itens-os-peca/{id}
+```
+
+DTOs: `ItemOsPecaRequestDTO`, `ItemOsPecaResponseDTO`, `ItemOsPecaUpdateRequestDTO`
+
+Regras de negócio:
+* O `valorTotal` do item é calculado automaticamente: `quantidade × valorUnitario`.
+* O `valorTotal` da OS é recalculado automaticamente a cada inserção, atualização ou remoção de item.
+* Não é possível adicionar ou modificar itens em uma OS cancelada ou entregue.
+
+Acesso: `ADMIN`, `ADMINISTRATIVO`, `MECANICO`
+
+---
+
+# Autenticação e autorização
 
 O OficinaPro utiliza **Spring Security** para controle de acesso.
 
-A arquitetura de segurança foi projetada para utilizar autenticação baseada em **JWT (JSON Web Token)** e autorização baseada em **roles**.
+A arquitetura de segurança é **stateless** (sem sessão).
 
-A implementação está sendo desenvolvida incrementalmente.
-
-## 👥 Roles
+## Roles
 
 | Role             | Descrição                                   |
 | ---------------- | ------------------------------------------- |
-| `ADMIN`          | Administrador da plataforma SaaS            |
-| `GERENTE`        | Gerencia operações da sua oficina           |
-| `ADMINISTRATIVO` | Executa operações administrativas           |
+| `ADMIN`          | Administrador da plataforma                 |
+| `ADMINISTRATIVO` | Gerencia operações da sua oficina           |
 | `MECANICO`       | Executa operações relacionadas aos serviços |
 
-O `ADMIN` representa um administrador da plataforma.
+O `ADMIN` possui acesso irrestrito à plataforma.
 
-Os demais usuários são vinculados a uma oficina específica através de `oficina_id`.
+Os demais usuários (`ADMINISTRATIVO`, `MECANICO`) são vinculados a uma oficina específica e só podem acessar dados da própria oficina.
 
----
+## Isolamento por oficina
 
-## 🔑 Fluxo de autenticação planejado
+O sistema aplica isolamento de dados em nível de serviço:
 
-```text
-┌─────────────────┐
-│     Cliente     │
-│   Frontend/API  │
-└────────┬────────┘
-         │
-         │ POST /api/auth/login
-         │ username + password
-         ▼
-┌─────────────────────────┐
-│   AuthenticationService │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│      UserDetailsService │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│       PostgreSQL        │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│     PasswordEncoder     │
-│         BCrypt          │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│       JwtService        │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────┐
-│     Cliente     │
-└─────────────────┘
-```
+* Ao listar recursos, usuários não-ADMIN recebem apenas registros da sua própria oficina.
+* Ao acessar um recurso específico, se o registro pertencer a outra oficina, o sistema retorna `404 Not Found` (sem revelar a existência do registro).
+* Não é possível criar ou mover registros para uma oficina diferente da do usuário autenticado.
 
----
-
-# 🛡️ Autorização
-
-A autenticação identifica o usuário.
-
-A autorização determina o que ele pode fazer.
-
-Exemplo:
-
-```java
-@PreAuthorize("hasRole('ADMIN')")
-public Oficina criar(OficinaRequest dto) {
-    // ...
-}
-```
-
-Para múltiplas roles:
-
-```java
-@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-```
-
----
-
-# 🏢 Isolamento entre oficinas
-
-O projeto será preparado para isolamento de dados entre diferentes oficinas.
-
-Um usuário pertencente a uma oficina deverá acessar apenas dados associados à sua própria oficina.
-
-Exemplo:
-
-```text
-Oficina 1
-├── João       (GERENTE)
-├── Maria      (ADMINISTRATIVO)
-└── Carlos     (MECANICO)
-
-
-Oficina 2
-├── Pedro      (GERENTE)
-└── Ana        (MECANICO)
-```
-
-João possui:
-
-```text
-role = GERENTE
-oficina_id = 1
-```
-
-Uma consulta de clientes deverá considerar a oficina do usuário autenticado:
-
-```sql
-WHERE oficina_id = 1
-```
-
-e não confiar em uma oficina arbitrariamente informada pelo cliente.
-
----
-
-# 🌐 Endpoints públicos
-
-A configuração de segurança prevê inicialmente os seguintes endpoints públicos:
+## Endpoints públicos
 
 ```text
 POST /api/auth/**
@@ -755,73 +837,61 @@ GET  /swagger-ui/**
 GET  /v3/api-docs/**
 ```
 
-Os demais endpoints deverão exigir autenticação conforme as regras de segurança.
+## Autenticação JWT (planejado)
+
+```text
+POST /api/auth/login
+  username + password
+       ↓
+  UserDetailsService
+       ↓
+  BCrypt (verificação)
+       ↓
+  JwtService
+       ↓
+  Token JWT
+```
+
+O JWT ainda não está totalmente implementado. Atualmente a camada de autenticação é parcial.
 
 ---
 
-# ❤️ Health Check
+# Health Check
 
-O projeto utiliza **Spring Boot Actuator** para monitoramento básico da aplicação.
+O projeto utiliza **Spring Boot Actuator** para monitoramento básico.
 
 Endpoint:
 
 ```text
 GET /actuator/health
-```
-
-Exemplo:
-
-```text
 http://localhost:8080/actuator/health
 ```
 
-Esse endpoint será utilizado também para verificar a disponibilidade da aplicação em ambientes Docker e futuramente em infraestrutura de produção.
-
 ---
 
-# 🔄 Fluxo principal
-
-O fluxo principal esperado para o MVP será:
-
-```text
-Cliente
-   ↓
-Veículo
-   ↓
-Ordem de Serviço
-   ↓
-Mecânico
-   ↓
-Execução do serviço
-   ↓
-Finalização
-   ↓
-Pagamento
-   ↓
-Histórico do veículo
-```
-
----
-
-# 📦 Módulos
+# Módulos
 
 ## MVP
 
 * [x] Oficinas
-* [ ] Autenticação
-* [ ] Usuários
-* [ ] Clientes
-* [ ] Veículos
-* [ ] Mecânicos
-* [ ] Ordens de Serviço
+* [x] Unidades
+* [x] Clientes
+* [x] Veículos
+* [x] Mecânicos
+* [x] Usuários
+* [x] Ordens de Serviço
+* [x] Itens de OS (Peças)
+* [x] Isolamento de dados por oficina
+* [x] Autorização por roles
+* [ ] Autenticação JWT completa
 * [ ] Pagamentos
-* [ ] Histórico
+* [ ] Histórico de veículos
 * [ ] Dashboard
 
 ## Gestão de compras
 
 * [ ] Fornecedores
-* [ ] Peças
+* [ ] Peças (catálogo)
 * [ ] Documentos de compra
 * [ ] Itens de compra
 * [ ] Associação entre peças e OS
@@ -844,243 +914,178 @@ Histórico do veículo
 
 ## SaaS
 
-* [ ] Multi-tenancy
-* [ ] Cadastro de oficinas
-* [ ] Isolamento de dados
+* [ ] Multi-tenancy completo
+* [ ] Cadastro de oficinas via portal
+* [ ] Isolamento de dados avançado
 * [ ] Planos
 * [ ] Assinaturas
 * [ ] Billing
 
 ---
 
-# 🗺️ Roadmap
+# Roadmap
 
 ```text
-                    OficinaPro
-                        │
-                        ▼
-                ┌───────────────┐
-                │ Infraestrutura│
-                │               │
-                │ Spring Boot   │
-                │ PostgreSQL    │
-                │ Flyway        │
-                │ Docker        │
-                │ Profiles      │
-                │ Testes        │
-                └───────┬───────┘
-                        │
-                        ▼
-                ┌───────────────┐
-                │      MVP      │
-                │               │
-                │ Oficinas      │
-                │ Clientes      │
-                │ Veículos      │
-                │ OS            │
-                │ Mecânicos     │
-                │ Pagamentos    │
-                └───────┬───────┘
-                        │
-                        ▼
-                ┌───────────────┐
-                │    Gestão     │
-                │               │
-                │ Peças         │
-                │ Fornecedores  │
-                │ Compras       │
-                │ Relatórios    │
-                └───────┬───────┘
-                        │
-                        ▼
-                ┌───────────────┐
-                │  Automação    │
-                │               │
-                │ OCR           │
-                │ Documentos    │
-                └───────┬───────┘
-                        │
-                        ▼
-                ┌───────────────┐
-                │      IA       │
-                │               │
-                │ LLM           │
-                │ Extração      │
-                │ Classificação │
-                └───────┬───────┘
-                        │
-                        ▼
-                ┌───────────────┐
-                │     SaaS      │
-                │               │
-                │ Multi-tenant  │
-                │ Planos        │
-                │ Billing       │
-                └───────────────┘
+                   OficinaPro
+                       │
+                       ▼
+               ┌───────────────┐
+               │ Infraestrutura│  ← concluído
+               │               │
+               │ Spring Boot   │
+               │ PostgreSQL    │
+               │ Flyway        │
+               │ Docker        │
+               │ Profiles      │
+               │ Testes        │
+               └───────┬───────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │      MVP      │  ← em andamento
+               │               │
+               │ Oficinas   ✓  │
+               │ Unidades   ✓  │
+               │ Clientes   ✓  │
+               │ Veículos   ✓  │
+               │ Mecânicos  ✓  │
+               │ OS         ✓  │
+               │ Itens OS   ✓  │
+               │ Auth JWT   ~  │
+               │ Pagamentos    │
+               └───────┬───────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │    Gestão     │
+               │               │
+               │ Peças         │
+               │ Fornecedores  │
+               │ Compras       │
+               │ Relatórios    │
+               └───────┬───────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │  Automação    │
+               │               │
+               │ OCR           │
+               │ Documentos    │
+               └───────┬───────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │      IA       │
+               │               │
+               │ LLM           │
+               │ Extração      │
+               │ Classificação │
+               └───────┬───────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │     SaaS      │
+               │               │
+               │ Multi-tenant  │
+               │ Planos        │
+               │ Billing       │
+               └───────────────┘
 ```
 
 ---
 
-# 📋 Requisitos principais
+# Requisitos principais
 
 ## Requisitos funcionais
 
-| Código | Requisito                        |
-| ------ | -------------------------------- |
-| RF01   | Cadastro de clientes             |
-| RF02   | Consulta de clientes             |
-| RF03   | Cadastro de veículos             |
-| RF04   | Histórico do veículo             |
-| RF05   | Cadastro de Ordem de Serviço     |
-| RF06   | Registro de avarias              |
-| RF07   | Controle de status da OS         |
-| RF08   | Cadastro de mecânicos            |
-| RF09   | Acompanhamento de mecânicos      |
-| RF10   | Cadastro de fornecedores         |
-| RF11   | Cadastro de documentos de compra |
-| RF12   | Cadastro de itens de compra      |
-| RF13   | Relatórios de compras            |
-| RF14   | Associação entre compras e OS    |
-| RF15   | Controle de pagamentos           |
-| RF16   | Dashboard                        |
-| RF17   | Auditoria                        |
+| Código | Requisito                        | Status        |
+| ------ | -------------------------------- | ------------- |
+| RF01   | Cadastro de clientes             | Implementado  |
+| RF02   | Consulta de clientes             | Implementado  |
+| RF03   | Cadastro de veículos             | Implementado  |
+| RF04   | Histórico do veículo             | Pendente      |
+| RF05   | Cadastro de Ordem de Serviço     | Implementado  |
+| RF06   | Registro de avarias              | Parcial (obs) |
+| RF07   | Controle de status da OS         | Implementado  |
+| RF08   | Cadastro de mecânicos            | Implementado  |
+| RF09   | Acompanhamento de mecânicos      | Parcial       |
+| RF10   | Cadastro de fornecedores         | Pendente      |
+| RF11   | Cadastro de documentos de compra | Pendente      |
+| RF12   | Cadastro de itens de compra      | Pendente      |
+| RF13   | Relatórios de compras            | Pendente      |
+| RF14   | Associação entre compras e OS    | Pendente      |
+| RF15   | Controle de pagamentos           | Pendente      |
+| RF16   | Dashboard                        | Pendente      |
+| RF17   | Auditoria                        | Pendente      |
 
 ---
 
-# 🧪 Estratégia de testes
+# Estratégia de testes
 
-Os testes são executados em um ambiente Docker separado do ambiente de desenvolvimento.
+Os testes são organizados em dois grupos:
 
-```text
-                 docker-compose.test.yml
-                          │
-              ┌───────────┴───────────┐
-              │                       │
-              ▼                       ▼
-       postgres-test              app-tests
-              │                       │
-              │                       ▼
-              │                    Gradle
-              │                       │
-              │                       ▼
-              │                    JUnit 5
-              │                       │
-              └───────────────────────┘
-```
-
-Os testes de controller utilizam `MockMvc` e isolam os serviços com Mockito.
-
-A suíte também possui testes relacionados à segurança, incluindo validação de acesso por roles.
-
-Os resultados dos testes são armazenados em:
+## Testes unitários (service layer)
 
 ```text
-build/reports/tests/test/
-build/test-results/test/
+@ExtendWith(MockitoExtension.class)
+         │
+         ▼
+  @Mock dependencies
+         │
+         ▼
+  @InjectMocks service
+         │
+         ▼
+  Testa regras de negócio
+  sem contexto Spring
 ```
+
+Cobrem os seguintes cenários:
+* Operações CRUD corretas
+* Exceções de recurso não encontrado
+* Exceções de conflito (duplicidade de dados)
+* Controle de acesso por oficina
+* Regras específicas de domínio (ex: OS cancelada, recálculo de valor total)
+
+## Testes E2E de controller
+
+```text
+@WebMvcTest(XxxController.class)
+         │
+         ▼
+  MockMvc + @WithMockUser
+         │
+         ▼
+  @MockitoBean XxxService
+         │
+         ▼
+  Testa HTTP: status, body,
+  autorização por role
+```
+
+Cobrem os seguintes cenários:
+* Retorno correto de status HTTP (200, 201, 204, 400, 403, 404, 409)
+* Corpo da resposta JSON
+* Proteção por role (`403 Forbidden` para roles sem permissão)
 
 ---
 
-# 🤖 OCR
+# Princípios de segurança
 
-A automação de documentos será implementada somente após o funcionamento do cadastro manual de compras.
-
-O fluxo planejado será:
-
-```text
-Foto/PDF
-   ↓
-OCR
-   ↓
-Texto
-   ↓
-Extração
-   ↓
-Validação pelo usuário
-   ↓
-Banco de dados
-```
-
-O OCR deverá identificar informações como:
-
-* Fornecedor
-* Número do documento
-* Número do pedido
-* Data
-* Peças
-* Quantidade
-* Valores
-
-Posteriormente, uma LLM poderá ser utilizada para melhorar a interpretação e estruturação dos dados.
-
----
-
-# 🏢 Modelo SaaS
-
-Embora a primeira versão seja destinada à **Soares Auto Center**, o sistema será projetado considerando uma futura arquitetura multiempresa.
-
-```text
-Oficina A
- ├── Clientes
- ├── Veículos
- ├── OS
- └── Compras
-
-Oficina B
- ├── Clientes
- ├── Veículos
- ├── OS
- └── Compras
-```
-
-Os dados de uma oficina deverão permanecer isolados dos dados das demais oficinas.
-
----
-
-# 📌 Princípios de desenvolvimento
-
-O projeto será desenvolvido de forma incremental, priorizando primeiro as necessidades reais da Soares Auto Center.
-
-A estratégia inicial será:
-
-```text
-Problema real
-      ↓
-MVP
-      ↓
-Uso na oficina
-      ↓
-Feedback
-      ↓
-Melhorias
-      ↓
-Automação
-      ↓
-SaaS
-```
-
-O objetivo é evitar desenvolver funcionalidades complexas antes de validar o fluxo básico do sistema em um ambiente real.
-
----
-
-# 🔒 Princípios de segurança
-
-* Senhas nunca devem ser armazenadas em texto puro.
-* Senhas devem ser protegidas utilizando BCrypt.
-* A autenticação utilizará JWT.
-* A API deve ser stateless.
+* Senhas nunca são armazenadas em texto puro.
+* Senhas são protegidas utilizando BCrypt.
+* A autenticação utilizará JWT (em implementação).
+* A API é stateless.
 * A autorização utiliza roles.
 * O `ADMIN` possui acesso à plataforma como um todo.
-* `GERENTE`, `ADMINISTRATIVO` e `MECANICO` são vinculados a uma oficina.
+* `ADMINISTRATIVO` e `MECANICO` são vinculados a uma oficina.
 * Usuários de uma oficina não podem acessar dados de outras oficinas.
-* O `oficina_id` utilizado para autorização não deve ser confiado diretamente ao cliente.
-* Dados devem ser filtrados pela oficina no nível de serviço/repositório.
-* Credenciais de banco não devem ser armazenadas no código-fonte.
-* Configurações específicas de ambiente devem utilizar variáveis de ambiente.
+* O `oficina_id` utilizado para autorização não é confiado ao cliente — é extraído do usuário autenticado.
+* Credenciais de banco não são armazenadas no código-fonte.
 
 ---
 
-# 👨‍💻 Autor
+# Autor
 
 **André Tharssys Marques Soares**
 
