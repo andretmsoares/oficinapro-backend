@@ -1,16 +1,17 @@
 package com.oficinapro.repository;
 
 import com.oficinapro.enums.MeioPagamento;
-import com.oficinapro.model.OrdemDeServico;
-import com.oficinapro.model.Pagamento;
+import com.oficinapro.model.RegistroPagamento;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface RegistroPagamentoRepository {
+public interface RegistroPagamentoRepository extends JpaRepository<RegistroPagamento, Long> {
 
-    List<Pagamento> findByPagamentoId(Long pagamentoId);
-    List<Pagamento> findById(Long id);
-    List<Pagamento> findByMeioPagamento(MeioPagamento meioPagamento);
+    List<RegistroPagamento> findByPagamentoId(Long pagamentoId);
+    Optional<RegistroPagamento> findById(Long id);
+    List<RegistroPagamento> findByMeioPagamento(MeioPagamento meioPagamento);
 }

@@ -1,14 +1,15 @@
 package com.oficinapro.repository;
 
-import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface PagamentoRepository {
+public interface PagamentoRepository extends JpaRepository<Pagamento, Long> {
 
-    List<Pagamento> findByOsId(Long osId);
-    List<Pagamento> findById(Long id);
+    Pagamento findByOrdemDeServicoId(Long osId);
+    Optional<Pagamento> findById(Long id);
 }
