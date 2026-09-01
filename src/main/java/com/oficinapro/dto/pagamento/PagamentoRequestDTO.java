@@ -14,8 +14,5 @@ public record PagamentoRequestDTO(
         @DecimalMin(value = "0.0", inclusive = true, message = "O valor pago não pode ser negativo")
         BigDecimal valorPago,
 
-        @DecimalMin(value = "0.0", inclusive = true, message = "O desconto não pode ser negativo")
-        BigDecimal desconto,
-
         String obs
 ) {}
