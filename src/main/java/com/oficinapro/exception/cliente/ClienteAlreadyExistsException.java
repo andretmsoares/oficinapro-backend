@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.cliente;
 
 public class ClienteAlreadyExistsException extends RuntimeException {
     public ClienteAlreadyExistsException() {

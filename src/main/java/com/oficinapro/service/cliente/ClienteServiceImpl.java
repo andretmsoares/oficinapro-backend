@@ -2,8 +2,8 @@ package com.oficinapro.service.cliente;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
-import com.oficinapro.exception.ClienteAlreadyExistsException;
-import com.oficinapro.exception.ClienteNotFoundException;
+import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
+import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.ClienteRepository;

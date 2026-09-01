@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.veiculo;
 
 public class PlacaAlreadyExistsException extends RuntimeException {
     public PlacaAlreadyExistsException(String placa) {

@@ -2,8 +2,8 @@ package com.oficinapro.service.mecanico;
 
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
-import com.oficinapro.exception.MecanicoAlreadyExistsException;
-import com.oficinapro.exception.MecanicoNotFoundException;
+import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
+import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.MecanicoRepository;

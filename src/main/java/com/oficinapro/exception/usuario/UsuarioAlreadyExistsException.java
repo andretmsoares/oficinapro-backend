@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.usuario;
 
 public class UsuarioAlreadyExistsException extends RuntimeException {
     public UsuarioAlreadyExistsException() {

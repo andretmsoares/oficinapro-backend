@@ -25,7 +25,7 @@ CREATE TABLE ordem_servico (
 
        CONSTRAINT fk_os_unidade
            FOREIGN KEY (unidade_id)
-               REFERENCES unidade(id)
+               REFERENCES unidade(id),
 
        CONSTRAINT fk_os_mecanico
             FOREIGN KEY (mecanico_id)

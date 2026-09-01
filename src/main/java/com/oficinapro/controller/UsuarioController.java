@@ -76,7 +76,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN', 'ADMINISTRATIVO'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         usuarioService.deletar(id);
         return ResponseEntity.noContent().build();

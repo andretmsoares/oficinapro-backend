@@ -1,4 +1,4 @@
-package com.oficinapro.exception;
+package com.oficinapro.exception.ordem_servico;
 
 public class OSCanceledException extends RuntimeException {
     public OSCanceledException() {

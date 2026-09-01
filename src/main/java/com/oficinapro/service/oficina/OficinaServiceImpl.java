@@ -2,8 +2,8 @@ package com.oficinapro.service.oficina;
 
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
-import com.oficinapro.exception.CnpjAlreadyExistsException;
-import com.oficinapro.exception.OficinaNotFoundException;
+import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
 import lombok.RequiredArgsConstructor;

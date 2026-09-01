@@ -1,7 +1,26 @@
 package com.oficinapro.exception;
 
+import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
+import com.oficinapro.exception.cliente.ClienteNotFoundException;
+import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
+import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
+import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
+import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaNotFoundException;
+import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
+import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
+import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioNotFoundException;
+import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -12,6 +31,11 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(Exception exception) {
+        return buildResponse(HttpStatus.FORBIDDEN, "Acesso negado: Você não tem permissão para acessar este recurso.");
+    }
 
     @ExceptionHandler(OficinaNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleOficinaNotFound(
@@ -43,13 +67,19 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
+    @ExceptionHandler(VeiculoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleVeiculoNotFound(
+            VeiculoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
     @ExceptionHandler(OrdemDeServicoNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleOSNotFound(
             OrdemDeServicoNotFoundException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
-    @ExceptionHandler(ItemOsPecaNotFoundException .class)
+    @ExceptionHandler(ItemOsPecaNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleItemOSNotFound(
             ItemOsPecaNotFoundException  exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
