@@ -25,7 +25,6 @@ import java.util.List;
 public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
     private final ItemOsPecaRepository itemOsPecaRepository;
-    private final OrdemDeServicoRepository ordemDeServicoRepository;
     private final OrdemDeServicoService ordemDeServicoService;
 
     @Override
@@ -127,8 +126,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
                 .map(ItemOsPeca::getValorTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        os.setValorTotal(total);
-        ordemDeServicoRepository.save(os);
+        ordemDeServicoService.recalcularValorTotal(os.getId(), total);
     }
 
     private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {
