@@ -7,10 +7,12 @@ import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
-import com.oficinapro.exception.ordem_servico.OSCanceledException;
-import com.oficinapro.exception.ordem_servico.OSFinishedException;
-import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
-import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.ordem_servico.*;
+import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
+import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
+import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundException;
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
@@ -85,10 +87,39 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
+    @ExceptionHandler(PagamentoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePagamentoNotFound(
+            PagamentoNotFoundException  exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(PagamentoNotFoundForThisOsException.class)
+    public ResponseEntity<Map<String, Object>> handlePagamentoNotFoundForThisOs(
+            PagamentoNotFoundForThisOsException  exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(RegistroPagamentoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleRegistroPagamentoNotFoundForThisOs(
+            RegistroPagamentoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(PagamentoValorExcedidoException.class)
+    public ResponseEntity<Map<String, Object>> handleValorPagamentoExcedido(
+            PagamentoValorExcedidoException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
     @ExceptionHandler(CnpjAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
             CnpjAlreadyExistsException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(PagamentoValorInvalidoException.class)
+    public ResponseEntity<Map<String, Object>> handlePagamentoValorInvalid(
+            PagamentoValorInvalidoException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(EnderecoAlreadyExistsException.class)
@@ -119,6 +150,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUsuarioAlreadyExists(
             UsuarioAlreadyExistsException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(DescontoInvalidoException.class)
+    public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
+            DescontoInvalidoException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(OSCanceledException.class)
