@@ -2,8 +2,8 @@ package com.oficinapro.service.unidade;
 
 import com.oficinapro.dto.unidade.UnidadeRequestDTO;
 import com.oficinapro.dto.unidade.UnidadeResponseDTO;
-import com.oficinapro.exception.EnderecoAlreadyExistsException;
-import com.oficinapro.exception.UnidadeNotFoundException;
+import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;

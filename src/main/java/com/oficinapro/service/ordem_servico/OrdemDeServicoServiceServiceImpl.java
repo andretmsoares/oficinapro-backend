@@ -2,7 +2,10 @@ package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
-import com.oficinapro.exception.*;
+import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
+import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
