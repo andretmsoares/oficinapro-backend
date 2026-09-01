@@ -9,5 +9,5 @@ CREATE TABLE item_os_peca (
       CONSTRAINT fk_item_os_peca_os
           FOREIGN KEY (os_id)
               REFERENCES ordem_servico(id)
-              ON DELETE CASCADE,
+              ON DELETE CASCADE
 );
