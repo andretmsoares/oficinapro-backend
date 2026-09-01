@@ -1,9 +1,12 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
-import com.oficinapro.exception.VeiculoNotFoundException;
+import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import com.oficinapro.service.veiculo.VeiculoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +31,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VeiculoController.class)
+@Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
 class VeiculoControllerTest {
 
     @Autowired

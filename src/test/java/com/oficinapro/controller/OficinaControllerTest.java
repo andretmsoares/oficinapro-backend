@@ -1,10 +1,13 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
-import com.oficinapro.exception.OficinaNotFoundException;
+import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.service.oficina.OficinaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(OficinaController.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
+@Import(GlobalExceptionHandler.class)
 class OficinaControllerTest {
 
     @Autowired

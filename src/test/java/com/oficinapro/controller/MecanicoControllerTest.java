@@ -1,9 +1,12 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
-import com.oficinapro.exception.MecanicoNotFoundException;
+import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.service.mecanico.MecanicoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MecanicoController.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
+@Import(GlobalExceptionHandler.class)
 class MecanicoControllerTest {
 
     @Autowired

@@ -1,10 +1,12 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaRequestDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaResponseDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
-import com.oficinapro.exception.ItemOsPecaNotFoundException;
 import com.oficinapro.service.item_os_peca.ItemOsPecaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ItemOsPecaController.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
+@Import(GlobalExceptionHandler.class)
 class ItemOsPecaControllerTest {
 
     @Autowired

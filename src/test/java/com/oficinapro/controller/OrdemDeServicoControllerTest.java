@@ -1,13 +1,15 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import tools.jackson.databind.ObjectMapper;
-import com.oficinapro.dto.ordemDeServico.AtribuirClienteRequestDTO;
 import com.oficinapro.dto.ordemDeServico.AtribuirMecanicoRequestDTO;
 import com.oficinapro.dto.ordemDeServico.AtualizarStatusOSRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
-import com.oficinapro.exception.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(OrdemDeServicoController.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
+@Import(GlobalExceptionHandler.class)
 class OrdemDeServicoControllerTest {
 
     @Autowired

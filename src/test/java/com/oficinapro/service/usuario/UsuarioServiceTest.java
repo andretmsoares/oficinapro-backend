@@ -3,9 +3,9 @@ package com.oficinapro.service.usuario;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
-import com.oficinapro.exception.UsernameAlreadyExistsException;
-import com.oficinapro.exception.UsuarioAlreadyExistsException;
-import com.oficinapro.exception.UsuarioNotFoundException;
+import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
@@ -175,7 +175,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("buscarPorId() deve lançar UsuarioNotFoundException quando ID não existe")
     void buscarPorId_naoEncontrado_lancaUsuarioNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.buscarPorId(99L))
@@ -332,7 +332,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("atualizar() deve lançar UsuarioNotFoundException quando ID não existe")
     void atualizar_idNaoEncontrado_lancaUsuarioNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.atualizar(99L, updateRequest))
@@ -393,7 +393,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("deletar() deve lançar UsuarioNotFoundException quando ID não existe")
     void deletar_idNaoEncontrado_lancaUsuarioNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deletar(99L))

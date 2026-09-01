@@ -2,8 +2,8 @@ package com.oficinapro.service.cliente;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
-import com.oficinapro.exception.ClienteAlreadyExistsException;
-import com.oficinapro.exception.ClienteNotFoundException;
+import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
+import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
@@ -151,7 +151,7 @@ class ClienteServiceTest {
     @Test
     @DisplayName("buscarPorId() deve lançar ClienteNotFoundException quando ID não existe")
     void buscarPorId_naoEncontrado_lancaClienteNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.buscarPorId(99L))
@@ -264,7 +264,6 @@ class ClienteServiceTest {
         ClienteRequestDTO requestAtualizar =
                 new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901", 1L);
 
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.atualizar(99L, requestAtualizar))
@@ -305,7 +304,7 @@ class ClienteServiceTest {
     @Test
     @DisplayName("deletar() deve lançar ClienteNotFoundException quando ID não existe")
     void deletar_idNaoEncontrado_lancaClienteNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deletar(99L))

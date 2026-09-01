@@ -2,8 +2,8 @@ package com.oficinapro.service.veiculo;
 
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
-import com.oficinapro.exception.PlacaAlreadyExistsException;
-import com.oficinapro.exception.VeiculoNotFoundException;
+import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
+import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;

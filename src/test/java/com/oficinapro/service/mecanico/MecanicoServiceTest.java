@@ -2,8 +2,8 @@ package com.oficinapro.service.mecanico;
 
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
-import com.oficinapro.exception.MecanicoAlreadyExistsException;
-import com.oficinapro.exception.MecanicoNotFoundException;
+import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
+import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
@@ -158,7 +158,7 @@ class MecanicoServiceTest {
     @Test
     @DisplayName("buscarPorId() deve lançar MecanicoNotFoundException quando ID não existe")
     void buscarPorId_naoEncontrado_lancaMecanicoNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(mecanicoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.buscarPorId(99L))
@@ -279,7 +279,6 @@ class MecanicoServiceTest {
                 "Carlos Atualizado", "83977776666", "12345678901",
                 1L, BigDecimal.valueOf(4000), null);
 
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(mecanicoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.atualizar(99L, requestAtualizar))
@@ -321,7 +320,7 @@ class MecanicoServiceTest {
     @Test
     @DisplayName("deletar() deve lançar MecanicoNotFoundException quando ID não existe")
     void deletar_idNaoEncontrado_lancaMecanicoNotFoundException() {
-        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+
         when(mecanicoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deletar(99L))

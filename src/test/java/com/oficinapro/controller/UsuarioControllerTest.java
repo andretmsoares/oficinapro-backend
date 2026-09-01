@@ -1,10 +1,12 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import tools.jackson.databind.ObjectMapper;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
-import com.oficinapro.exception.UsuarioNotFoundException;
 import com.oficinapro.security.role.Role;
 import com.oficinapro.service.usuario.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UsuarioController.class)
 @ActiveProfiles("test")
+@EnableMethodSecurity
+@Import(GlobalExceptionHandler.class)
 class UsuarioControllerTest {
 
     @Autowired
