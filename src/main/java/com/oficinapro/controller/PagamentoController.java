@@ -2,6 +2,7 @@ package com.oficinapro.controller;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.service.pagamento.PagamentoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/pagamentos")
@@ -36,6 +38,34 @@ public class PagamentoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<PagamentoResponseDTO> buscarPorOsId(@PathVariable Long osId) {
         return ResponseEntity.ok(pagamentoService.buscarPorOsId(osId));
+    }
+
+    @GetMapping("/oficina/{oficinaId}")
+    public ResponseEntity<List<PagamentoResponseDTO>> buscarPorOficina(
+            @PathVariable Long oficinaId
+    ) {
+        return ResponseEntity.ok(
+                pagamentoService.buscarPorOficina(oficinaId)
+        );
+    }
+
+    @GetMapping("/oficina/{oficinaId}/status/{status}")
+    public ResponseEntity<List<PagamentoResponseDTO>> buscarPorStatus(
+            @PathVariable Long oficinaId,
+            @PathVariable StatusPagamento status
+    ) {
+        return ResponseEntity.ok(
+                pagamentoService.buscarPorStatus(oficinaId, status)
+        );
+    }
+
+    @GetMapping("/oficina/{oficinaId}/a-receber")
+    public ResponseEntity<BigDecimal> calcularValorParaReceber(
+            @PathVariable Long oficinaId
+    ) {
+        return ResponseEntity.ok(
+                pagamentoService.calcularValorParaReceber(oficinaId)
+        );
     }
 
     @PutMapping("/{id}")

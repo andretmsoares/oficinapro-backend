@@ -2,6 +2,7 @@ package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.model.OrdemDeServico;
 
 import java.math.BigDecimal;
