@@ -11,7 +11,6 @@ import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
-import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,10 +38,7 @@ class ItemOsPecaServiceTest {
     @Mock
     private ItemOsPecaRepository itemOsPecaRepository;
 
-    @Mock
-    private OrdemDeServicoRepository ordemDeServicoRepository;
 
-    // OrdemDeServicoService é interface → Mockito gera o mock diretamente
     @Mock
     private OrdemDeServicoService ordemDeServicoService;
 
@@ -131,16 +127,13 @@ class ItemOsPecaServiceTest {
     @Test
     @DisplayName("deve criar item com sucesso: valorTotal = qtd × valorUnitario e OS é recalculada")
     void deveCriarItemComSucessoERecalcularValorTotalDaOS() {
-        // 2 unidades × R$ 50,00 = R$ 100,00
         ItemOsPecaRequestDTO request = new ItemOsPecaRequestDTO(
                 1L, "Pastilha de Freio", new BigDecimal("2"), new BigDecimal("50.00")
         );
 
         when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
         when(itemOsPecaRepository.save(any(ItemOsPeca.class))).thenReturn(item);
-        // recalcularValorTotalOS soma os valorTotal de todos os itens da OS
         when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of(item));
-        when(ordemDeServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
 
         ItemOsPecaResponseDTO resultado = itemOsPecaService.criar(request);
 
@@ -148,8 +141,7 @@ class ItemOsPecaServiceTest {
         assertThat(resultado.nome()).isEqualTo("Pastilha de Freio");
         assertThat(resultado.valorTotal()).isEqualByComparingTo(new BigDecimal("100.00"));
         verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
-        // garante que a OS foi recalculada e salva
-        verify(ordemDeServicoRepository).save(any(OrdemDeServico.class));
+        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(new BigDecimal("100.00")));
     }
 
     @Test
@@ -166,7 +158,7 @@ class ItemOsPecaServiceTest {
                 .isInstanceOf(OSCanceledException.class);
 
         verify(itemOsPecaRepository, never()).save(any());
-        verify(ordemDeServicoRepository, never()).save(any());
+        verify(ordemDeServicoService, never()).recalcularValorTotal(any(), any());
     }
 
     @Test
@@ -183,17 +175,12 @@ class ItemOsPecaServiceTest {
                 .isInstanceOf(OSFinishedException.class);
 
         verify(itemOsPecaRepository, never()).save(any());
-        verify(ordemDeServicoRepository, never()).save(any());
+        verify(ordemDeServicoService, never()).recalcularValorTotal(any(), any());
     }
-
-    // ---------------------------------------------------------------
-    // atualizar()
-    // ---------------------------------------------------------------
 
     @Test
     @DisplayName("deve atualizar item com sucesso e recalcular valor total da OS")
     void deveAtualizarItemComSucessoERecalcularValorTotalDaOS() {
-        // 3 unidades × R$ 30,00 = R$ 90,00
         ItemOsPecaUpdateRequestDTO request = new ItemOsPecaUpdateRequestDTO(
                 "Óleo Motor 5W30", new BigDecimal("3"), new BigDecimal("30.00")
         );
@@ -210,7 +197,6 @@ class ItemOsPecaServiceTest {
         when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
         when(itemOsPecaRepository.save(any(ItemOsPeca.class))).thenReturn(itemAtualizado);
         when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of(itemAtualizado));
-        when(ordemDeServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
 
         ItemOsPecaResponseDTO resultado = itemOsPecaService.atualizar(1L, request);
 
@@ -218,27 +204,19 @@ class ItemOsPecaServiceTest {
         assertThat(resultado.nome()).isEqualTo("Óleo Motor 5W30");
         assertThat(resultado.valorTotal()).isEqualByComparingTo(new BigDecimal("90.00"));
         verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
-        verify(ordemDeServicoRepository).save(any(OrdemDeServico.class));
+        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(new BigDecimal("90.00")));
     }
-
-    // ---------------------------------------------------------------
-    // deletar()
-    // ---------------------------------------------------------------
 
     @Test
     @DisplayName("deve deletar item e recalcular valorTotal da OS como zero (lista vazia após deleção)")
     void deveDeletarItemERecalcularValorTotalDaOSComoZero() {
         when(itemOsPecaRepository.findById(1L)).thenReturn(Optional.of(item));
         when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-        // após a deleção a lista está vazia → total = BigDecimal.ZERO
         when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of());
-        when(ordemDeServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
 
         itemOsPecaService.deletar(1L);
 
         verify(itemOsPecaRepository).delete(item);
-        // a OS deve ser salva com valorTotal = 0
-        verify(ordemDeServicoRepository).save(any(OrdemDeServico.class));
-        assertThat(os.getValorTotal()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(BigDecimal.ZERO));
     }
 }

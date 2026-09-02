@@ -57,4 +57,10 @@ public class OrdemDeServico {
 
     @Column(name = "valor_total", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorTotal = BigDecimal.ZERO;
+
+    @Column(name = "valor_com_desconto", nullable = false, precision = 12, scale = 2 )
+    private BigDecimal valorComDesconto = BigDecimal.ZERO;
+
+    @Column(name = "desconto", precision = 12, scale = 2, nullable = false)
+    private BigDecimal desconto = BigDecimal.ZERO;
 }

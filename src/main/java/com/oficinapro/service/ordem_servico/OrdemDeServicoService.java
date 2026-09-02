@@ -3,6 +3,7 @@ package com.oficinapro.service.ordem_servico;
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.model.OrdemDeServico;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface OrdemDeServicoService {
@@ -23,6 +24,10 @@ public interface OrdemDeServicoService {
 
     OrdemDeServico buscarPorEntidadeId(Long id);
 
+    OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto);
+
+    OrdemDeServicoResponseDTO recalcularValorTotal(Long id, BigDecimal novoValorTotal);
+
     OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto);
 
     OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto);
@@ -34,4 +39,5 @@ public interface OrdemDeServicoService {
     OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
 
     void deletar(Long id);
+
 }

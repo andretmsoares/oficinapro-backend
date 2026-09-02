@@ -1,7 +1,11 @@
 package com.oficinapro.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "unidade")
 public class Unidade {
@@ -34,42 +38,6 @@ public class Unidade {
         this.oficina = oficina;
         this.nome = nome;
         this.endereco = endereco;
-        this.telefone = telefone;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Oficina getOficina() {
-        return oficina;
-    }
-
-    public void setOficina(Oficina oficina) {
-        this.oficina = oficina;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEndereco() {
-        return endereco;
-    }
-
-    public void setEndereco(String endereco) {
-        this.endereco = endereco;
-    }
-
-    public String getTelefone() {
-        return telefone;
-    }
-
-    public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
 }

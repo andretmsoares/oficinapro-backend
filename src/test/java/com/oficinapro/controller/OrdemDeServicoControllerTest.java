@@ -60,6 +60,7 @@ class OrdemDeServicoControllerTest {
                 null,
                 StatusOrdemDeServico.ABERTA,
                 "Revisão geral",
+                BigDecimal.ZERO,
                 BigDecimal.ZERO
         );
         requestDTO = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, 1L, "Revisão geral");
@@ -154,6 +155,7 @@ class OrdemDeServicoControllerTest {
                 null,
                 StatusOrdemDeServico.EM_EXECUCAO,
                 "Revisão geral",
+                BigDecimal.ZERO,
                 BigDecimal.ZERO
         );
         AtualizarStatusOSRequestDTO statusRequest = new AtualizarStatusOSRequestDTO(StatusOrdemDeServico.EM_EXECUCAO);

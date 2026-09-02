@@ -2,6 +2,7 @@ package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
@@ -37,7 +38,6 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     private final MecanicoService mecanicoService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
 
-
     private Long oficinaObrigatoriaDoLogado(Usuario logado) {
         Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
         if (oficinaId == null) {
@@ -69,8 +69,6 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
         }
     }
 
-    /** Filtra uma lista já obtida (buscas indiretas por veículo/mecânico/unidade/cliente),
-     *  mantendo só as OS da própria oficina — sem lançar exceção, já que é uma coleção. */
     private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
         if (logado.getRole() == Role.ADMIN) {
@@ -97,9 +95,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId) {
-        // valida que o veículo em si é acessível ao usuário logado (já aplica escopo)
         veiculoService.buscarPorEntidadeId(veiculoId);
-
         List<OrdemDeServico> lista = filtrarPorEscopo(ordemServicoRepository.findByVeiculoId(veiculoId));
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -108,7 +104,6 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId) {
         mecanicoService.buscarPorEntidadeId(mecanicoId);
-
         List<OrdemDeServico> lista = filtrarPorEscopo(ordemServicoRepository.findByMecanicoId(mecanicoId));
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -116,8 +111,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId) {
-        unidadeService.buscarPorId(unidadeId); // valida escopo da unidade
-
+        unidadeService.buscarPorId(unidadeId);
         List<OrdemDeServico> lista = filtrarPorEscopo(ordemServicoRepository.findByUnidadeId(unidadeId));
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -126,7 +120,6 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId) {
         clienteService.buscarPorEntidadeId(clienteId);
-
         List<OrdemDeServico> lista = filtrarPorEscopo(ordemServicoRepository.findByClienteId(clienteId));
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -135,7 +128,6 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId) {
         validarAcessoOficina(oficinaId);
-
         return ordemServicoRepository.findByOficinaId(oficinaId).stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -155,14 +147,54 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
         return os;
     }
 
-    // ---------------------------------------------------------
-    // Mutações
-    // ---------------------------------------------------------
+    @Override
+    @Transactional
+    public OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto) {
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
+
+        BigDecimal descontoValido = desconto == null ? BigDecimal.ZERO : desconto;
+
+        if (descontoValido.compareTo(BigDecimal.ZERO) < 0) {
+            throw new DescontoInvalidoException("Desconto não pode ser negativo");
+        }
+
+        if (descontoValido.compareTo(os.getValorTotal()) > 0) {
+            throw new DescontoInvalidoException("Desconto não pode ser maior que o valor total da OS");
+        }
+
+        os.setDesconto(descontoValido);
+        os.setValorComDesconto(os.getValorTotal().subtract(descontoValido));
+
+        return toResponseDTO(ordemServicoRepository.save(os));
+    }
+
+    @Override
+    @Transactional
+    public OrdemDeServicoResponseDTO recalcularValorTotal(Long id, BigDecimal novoValorTotal) {
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
+
+        os.setValorTotal(novoValorTotal);
+
+        BigDecimal descontoAtual = os.getDesconto() == null ? BigDecimal.ZERO : os.getDesconto();
+
+        // se os itens diminuíram e o desconto antigo agora é maior que o novo total,
+        // trava o desconto no valor total (nunca fica negativo)
+        if (descontoAtual.compareTo(novoValorTotal) > 0) {
+            descontoAtual = novoValorTotal;
+            os.setDesconto(descontoAtual);
+        }
+
+        os.setValorComDesconto(novoValorTotal.subtract(descontoAtual));
+
+        OrdemDeServico saved = ordemServicoRepository.save(os);
+
+        return toResponseDTO(saved);
+    }
 
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto) {
-        OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
 
         StatusOrdemDeServico statusAtual = os.getStatus();
         StatusOrdemDeServico novoStatus = dto.status();
@@ -189,25 +221,18 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto) {
-        OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso
-
-        // valida que o mecânico pertence à mesma oficina da OS
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
         Mecanico mecanico = mecanicoService.buscarPorEntidadeId(dto.mecanicoId());
-
         os.setMecanico(mecanico);
-
         return toResponseDTO(ordemServicoRepository.save(os));
     }
 
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO atribuirCliente(Long id, AtribuirClienteRequestDTO dto) {
-        OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso
-
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
         Cliente cliente = clienteService.buscarPorEntidadeId(dto.clienteId());
-
         os.setCliente(cliente);
-
         return toResponseDTO(ordemServicoRepository.save(os));
     }
 
@@ -239,6 +264,8 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
         os.setDataAbertura(LocalDateTime.now());
         os.setStatus(StatusOrdemDeServico.ABERTA);
         os.setValorTotal(BigDecimal.ZERO);
+        os.setDesconto(BigDecimal.ZERO);
+        os.setValorComDesconto(BigDecimal.ZERO);
 
         os = ordemServicoRepository.save(os);
 
@@ -248,7 +275,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request) {
-        OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
 
         if (!Objects.equals(os.getOficina().getId(), request.oficinaId())) {
             throw new OSIsNotPossibleSwapWorkshopException();
@@ -276,7 +303,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional
     public void deletar(Long id) {
-        OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso
+        OrdemDeServico os = this.buscarPorEntidadeId(id);
         ordemServicoRepository.delete(os);
     }
 
@@ -292,7 +319,8 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
                 os.getDataFechamento(),
                 os.getStatus(),
                 os.getObs(),
-                os.getValorTotal()
+                os.getValorTotal(),
+                os.getValorComDesconto()
         );
     }
 }
