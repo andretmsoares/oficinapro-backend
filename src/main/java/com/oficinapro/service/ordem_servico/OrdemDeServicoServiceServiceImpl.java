@@ -23,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -315,6 +318,58 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     public void deletar(Long id) {
         OrdemDeServico os = this.buscarPorEntidadeId(id);
         ordemServicoRepository.delete(os);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FluxoMensalOSResponseDTO> fluxoMensal(
+            Long oficinaId,
+            int mes,
+            int ano
+    ) {
+        validarAcessoOficina(oficinaId);
+
+        YearMonth periodo = YearMonth.of(ano, mes);
+
+        LocalDateTime inicio = periodo
+                .atDay(1)
+                .atStartOfDay();
+
+        LocalDateTime fim = periodo
+                .plusMonths(1)
+                .atDay(1)
+                .atStartOfDay();
+
+        List<OrdemDeServico> ordens = ordemServicoRepository.findFluxoMensal(
+                oficinaId,
+                inicio,
+                fim
+        );
+
+        return IntStream.rangeClosed(1, periodo.lengthOfMonth())
+                .mapToObj(dia -> {
+
+                    long abertas = ordens.stream()
+                            .filter(os -> os.getDataAbertura() != null)
+                            .filter(os -> os.getDataAbertura().getYear() == ano)
+                            .filter(os -> os.getDataAbertura().getMonthValue() == mes)
+                            .filter(os -> os.getDataAbertura().getDayOfMonth() == dia)
+                            .count();
+
+                    long finalizadas = ordens.stream()
+                            .filter(os -> os.getDataFechamento() != null)
+                            .filter(os -> os.getDataFechamento().getYear() == ano)
+                            .filter(os -> os.getDataFechamento().getMonthValue() == mes)
+                            .filter(os -> os.getDataFechamento().getDayOfMonth() == dia)
+                            .count();
+
+                    return new FluxoMensalOSResponseDTO(
+                            dia,
+                            abertas,
+                            finalizadas
+                    );
+                })
+                .toList();
     }
 
     private OrdemDeServicoResponseDTO toResponseDTO(OrdemDeServico os) {

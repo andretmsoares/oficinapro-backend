@@ -2,7 +2,6 @@ package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
-import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.model.OrdemDeServico;
 
 import java.math.BigDecimal;
@@ -41,6 +40,8 @@ public interface OrdemDeServicoService {
     OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request);
 
     OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
+
+    List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId,int mes,int ano);
 
     void deletar(Long id);
 

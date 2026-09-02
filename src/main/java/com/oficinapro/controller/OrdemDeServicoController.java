@@ -39,6 +39,18 @@ public class OrdemDeServicoController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @GetMapping("/oficina/{oficinaId}/fluxo-mensal")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
+            @PathVariable Long oficinaId,
+            @RequestParam int mes,
+            @RequestParam int ano
+    ) {
+        return ResponseEntity.ok(
+                service.fluxoMensal(oficinaId, mes, ano)
+        );
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
     public ResponseEntity<OrdemDeServicoResponseDTO> atualizar(
