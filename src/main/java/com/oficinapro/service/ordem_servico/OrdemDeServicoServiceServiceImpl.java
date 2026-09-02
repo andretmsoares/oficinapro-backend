@@ -135,6 +135,16 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status) {
+        List<OrdemDeServico> lista = ordemServicoRepository.findByStatus(status);
+
+        return filtrarPorEscopo(lista).stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public OrdemDeServicoResponseDTO buscarPorId(Long id) {
         return toResponseDTO(this.buscarPorEntidadeId(id));
     }

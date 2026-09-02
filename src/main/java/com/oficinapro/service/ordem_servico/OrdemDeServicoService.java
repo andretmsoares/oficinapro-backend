@@ -1,6 +1,7 @@
 package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 
 import java.math.BigDecimal;
@@ -19,6 +20,8 @@ public interface OrdemDeServicoService {
     List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
 
     List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId);
+
+    List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
 
     OrdemDeServicoResponseDTO buscarPorId(Long id);
 

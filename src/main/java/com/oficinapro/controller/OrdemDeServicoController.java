@@ -1,6 +1,7 @@
 package com.oficinapro.controller;
 
 import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -105,5 +106,11 @@ public class OrdemDeServicoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorCliente(@PathVariable Long clienteId) {
         return ResponseEntity.ok(service.listarPorCliente(clienteId));
+    }
+
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorStatus(@PathVariable StatusOrdemDeServico status) {
+        return ResponseEntity.ok(service.listarPorStatus(status));
     }
 }
