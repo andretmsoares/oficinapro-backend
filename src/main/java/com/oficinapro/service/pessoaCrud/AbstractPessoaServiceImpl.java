@@ -64,6 +64,26 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     }
 
     /**
+     * Resolve a oficina do registro validando o acesso do usuário logado.
+     *
+     * Registro sem oficina existe apenas para o ADMIN do SaaS (ver Usuario). Para as
+     * demais entidades o {@code oficinaId} é @NotNull no DTO, então o ramo do nulo
+     * nunca é alcançado por elas.
+     */
+    protected Oficina resolverOficina(Long oficinaId) {
+        if (oficinaId == null) {
+            Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+            if (logado.getRole() != Role.ADMIN) {
+                throw new AccessDeniedException(
+                        "Somente o ADMIN do SaaS pode manter registros sem oficina");
+            }
+            return null;
+        }
+        validarAcessoOficina(oficinaId);
+        return oficinaService.buscarPorEntidadeId(oficinaId);
+    }
+
+    /**
      * Valida se o usuário logado pode ver este registro específico.
      * Propositalmente lança "não encontrado" (não "acesso negado") para não revelar
      * a existência de registros de outras oficinas para quem não tem acesso a eles.
@@ -125,11 +145,13 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     @Override
     public RES criar(C request) {
         Long oficinaId = extractOficinaIdCreate(request);
-        validarAcessoOficina(oficinaId);
 
-        Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
+        Oficina oficina = resolverOficina(oficinaId);
 
-        if (pessoaService.existsByOficinaIdAndDocumento(oficinaId, extractDocumentoCreate(request))) {
+        // Sem oficina não há escopo de unicidade: a constraint do banco é
+        // (oficina_id, documento) e no Postgres NULL não colide com NULL.
+        if (oficinaId != null
+                && pessoaService.existsByOficinaIdAndDocumento(oficinaId, extractDocumentoCreate(request))) {
             throw alreadyExistsException();
         }
 
@@ -145,9 +167,12 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         T entity = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
         Long oficinaId = extractOficinaIdUpdate(request);
-        validarAcessoOficina(oficinaId); // valida também a oficina de destino (evita "mover" o registro pra outra oficina indevidamente)
+        // Valida também a oficina de destino (evita "mover" o registro pra outra oficina indevidamente).
+        // Quem eventualmente precisa reatribuir a oficina faz isso no próprio applyUpdate.
+        resolverOficina(oficinaId);
 
-        if (pessoaService.existsByOficinaIdAndDocumentoExcluindoId(oficinaId, extractDocumentoUpdate(request), id)) {
+        if (oficinaId != null
+                && pessoaService.existsByOficinaIdAndDocumentoExcluindoId(oficinaId, extractDocumentoUpdate(request), id)) {
             throw alreadyExistsException();
         }
 
