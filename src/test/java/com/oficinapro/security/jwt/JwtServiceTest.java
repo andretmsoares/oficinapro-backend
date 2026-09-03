@@ -61,7 +61,7 @@ class JwtServiceTest {
         assertThat(jwt.getSubject()).isEqualTo("ana.administrativo");
         assertThat(jwt.getClaimAsString("role")).isEqualTo("ADMINISTRATIVO");
         assertThat(jwt.getClaim("oficinaId").toString()).isEqualTo("7");
-        assertThat(jwt.getIssuer().toString()).isEqualTo(ISSUER);
+        assertThat(jwt.getClaimAsString("iss")).isEqualTo(ISSUER);
         assertThat(jwt.getExpiresAt()).isAfter(jwt.getIssuedAt());
     }
 
@@ -101,13 +101,15 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Token expirado deve ser rejeitado")
-    void tokenExpirado_rejeitado() {
-        JwtService emissorExpirado =
-                construir(SECRET, ISSUER, Duration.ofMinutes(-10));
+    void tokenExpirado_rejeitado() throws InterruptedException {
+        JwtService emissor =
+                construir(SECRET, ISSUER, Duration.ofMillis(100));
 
-        String tokenExpirado = emissorExpirado.gerarToken(administrativo);
+        String token = emissor.gerarToken(administrativo);
 
-        assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado))
+        Thread.sleep(200);
+
+        assertThatThrownBy(() -> jwtService.decodificar(token))
                 .isInstanceOf(JwtException.class);
     }
 
