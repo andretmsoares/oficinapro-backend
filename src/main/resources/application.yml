@@ -18,6 +18,22 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+oficinapro:
+  jwt:
+    # Default vazio apenas para que a falha venha do JwtConfig, com mensagem
+    # explicando o que fazer, em vez de um erro cru de placeholder não resolvido.
+    # Precisa ter no mínimo 32 caracteres (exigência do HS256).
+    secret: ${JWT_SECRET:}
+    issuer: oficinapro
+    expiration: 8h
+
+  # Cria o ADMIN do SaaS na primeira subida, caso ainda não exista nenhum.
+  # Se as variáveis não forem definidas, o seeder simplesmente não roda.
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+    nome: ${ADMIN_NOME:Administrador do SaaS}
+
 server:
   port: ${SERVER_PORT:8080}
 

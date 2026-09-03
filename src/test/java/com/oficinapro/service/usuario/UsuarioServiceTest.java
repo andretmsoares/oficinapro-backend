@@ -3,6 +3,7 @@ package com.oficinapro.service.usuario;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
+import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -316,6 +318,8 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
         when(usuarioRepository.existsByUsernameAndIdNot("usuario.original", 1L)).thenReturn(false);
         when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L)).thenReturn(false);
+        // applyUpdate reaplica a oficina para manter o vínculo coerente com a role
+        when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioAlvo);
 
         UsuarioResponseDTO resultado = service.atualizar(1L, updateRequest);
@@ -325,6 +329,7 @@ class UsuarioServiceTest {
         assertThat(resultado.nome()).isEqualTo("Usuario Atualizado");
         assertThat(resultado.username()).isEqualTo("usuario.original");
         assertThat(resultado.role()).isEqualTo(Role.ADMINISTRATIVO);
+        assertThat(resultado.oficinaId()).isEqualTo(1L);
 
         verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
@@ -417,5 +422,124 @@ class UsuarioServiceTest {
 
         assertThat(resultado.getContent()).hasSize(1);
         assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
+    }
+
+    // ────────────── ADMIN do SaaS: sem filiação com oficina ──────────────
+
+    @Test
+    @DisplayName("criar() ADMIN do SaaS sem oficina deve funcionar e gravar oficina nula")
+    void criar_adminSaasSemOficina_sucesso() {
+        UsuarioRequestDTO requestAdmin = new UsuarioRequestDTO(
+                "Admin SaaS", "83900000000", null,
+                null, "admin.saas", "senha1234", Role.ADMIN);
+
+        Usuario salvo = new Usuario();
+        salvo.setId(9L);
+        salvo.setNome("Admin SaaS");
+        salvo.setUsername("admin.saas");
+        salvo.setRole(Role.ADMIN);
+        salvo.setOficina(null);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+        when(usuarioRepository.existsByUsername("admin.saas")).thenReturn(false);
+        when(passwordEncoder.encode("senha1234")).thenReturn("$2a$10$hashAdmin");
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(salvo);
+
+        UsuarioResponseDTO resultado = service.criar(requestAdmin);
+
+        assertThat(resultado.oficinaId()).isNull();
+        assertThat(resultado.role()).isEqualTo(Role.ADMIN);
+
+        // Não deve tentar resolver oficina nenhuma
+        verify(oficinaService, never()).buscarPorEntidadeId(any());
+
+        ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).save(captor.capture());
+        assertThat(captor.getValue().getOficina()).isNull();
+    }
+
+    @Test
+    @DisplayName("criar() ADMIN com oficinaId preenchido deve falhar: ADMIN não pertence a oficina")
+    void criar_adminComOficina_lancaOficinaIncompativel() {
+        UsuarioRequestDTO requestAdminComOficina = new UsuarioRequestDTO(
+                "Admin SaaS", "83900000000", null,
+                1L, "admin.saas", "senha1234", Role.ADMIN);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+        when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+        when(usuarioRepository.existsByUsername("admin.saas")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.criar(requestAdminComOficina))
+                .isInstanceOf(OficinaIncompativelComRoleException.class);
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("criar() ADMINISTRATIVO sem oficinaId deve falhar: cargo exige oficina")
+    void criar_administrativoSemOficina_lancaOficinaIncompativel() {
+        UsuarioRequestDTO requestSemOficina = new UsuarioRequestDTO(
+                "Sem Oficina", "83900000000", null,
+                null, "sem.oficina", "senha1234", Role.ADMINISTRATIVO);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+        when(usuarioRepository.existsByUsername("sem.oficina")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.criar(requestSemOficina))
+                .isInstanceOf(OficinaIncompativelComRoleException.class);
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("criar() ADMINISTRATIVO não pode criar usuário sem oficina (privilégio do ADMIN do SaaS)")
+    void criar_comoAdministrativo_semOficina_lancaAccessDenied() {
+        UsuarioRequestDTO requestSemOficina = new UsuarioRequestDTO(
+                "Novo Admin", "83900000000", null,
+                null, "novo.admin", "senha1234", Role.ADMIN);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+
+        assertThatThrownBy(() -> service.criar(requestSemOficina))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("criar() MECANICO logado não pode criar nenhum usuário")
+    void criar_comoMecanico_lancaAccessDenied() {
+        Usuario mecanicoUser = new Usuario();
+        mecanicoUser.setRole(Role.MECANICO);
+        mecanicoUser.setOficina(oficina);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(mecanicoUser);
+        when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+        when(pessoaService.existsByOficinaIdAndDocumento(1L, "99988877766")).thenReturn(false);
+        when(usuarioRepository.existsByUsername("novo.usuario")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.criar(createRequest))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("atualizar() promovendo para ADMIN deve desligar o vínculo com a oficina")
+    void atualizar_promoveParaAdmin_removeOficina() {
+        UsuarioUpdateRequestDTO promocao = new UsuarioUpdateRequestDTO(
+                "Usuario Original", "83988887777", "12345678901",
+                null, "usuario.original", null, Role.ADMIN);
+
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+        when(usuarioRepository.existsByUsernameAndIdNot("usuario.original", 1L)).thenReturn(false);
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioAlvo);
+
+        UsuarioResponseDTO resultado = service.atualizar(1L, promocao);
+
+        assertThat(resultado.role()).isEqualTo(Role.ADMIN);
+        assertThat(resultado.oficinaId()).isNull();
+        assertThat(usuarioAlvo.getOficina()).isNull();
     }
 }
