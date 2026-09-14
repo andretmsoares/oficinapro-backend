@@ -10,9 +10,5 @@ public record PagamentoRequestDTO(
         @NotNull(message = "O ID da Ordem de Serviço é obrigatório")
         Long osId,
 
-        @NotNull(message = "O valor pago é obrigatório")
-        @DecimalMin(value = "0.0", inclusive = true, message = "O valor pago não pode ser negativo")
-        BigDecimal valorPago,
-
         String obs
 ) {}

@@ -33,7 +33,7 @@ public class PagamentoServiceImpl implements PagamentoService {
 
         Pagamento pagamento = new Pagamento();
         pagamento.setOrdemDeServico(os);
-        pagamento.setValorPago(request.valorPago());
+        pagamento.setValorPago(BigDecimal.ZERO);
         pagamento.setObs(request.obs());
         pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
 
@@ -45,7 +45,6 @@ public class PagamentoServiceImpl implements PagamentoService {
     public PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request) {
         Pagamento pagamento = buscarEntidadePorId(id);
 
-        pagamento.setValorPago(request.valorPago());
         pagamento.setObs(request.obs());
 
         return toResponseDTO(repository.save(pagamento));
