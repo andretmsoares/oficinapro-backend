@@ -1,6 +1,8 @@
 package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
+import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
@@ -14,6 +16,7 @@ import com.oficinapro.security.role.Role;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
+import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.unidade.UnidadeService;
 import com.oficinapro.service.veiculo.VeiculoService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     private final ClienteService clienteService;
     private final MecanicoService mecanicoService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PagamentoService pagamentoService;
 
     private Long oficinaObrigatoriaDoLogado(Usuario logado) {
         Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
@@ -281,6 +285,8 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
         os.setValorComDesconto(BigDecimal.ZERO);
 
         os = ordemServicoRepository.save(os);
+
+        pagamentoService.criar(new PagamentoRequestDTO(os.getId(), BigDecimal.ZERO, ""));
 
         return toResponseDTO(os);
     }

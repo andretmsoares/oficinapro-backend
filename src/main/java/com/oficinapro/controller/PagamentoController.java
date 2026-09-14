@@ -77,11 +77,4 @@ public class PagamentoController {
                                                           @Valid @RequestBody PagamentoRequestDTO request) {
         return ResponseEntity.ok(pagamentoService.atualizar(id, request));
     }
-
-    @PatchMapping("/{id}/desconto")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<PagamentoResponseDTO> aplicarDesconto(@PathVariable Long id,
-                                                                @RequestBody BigDecimal desconto) {
-        return ResponseEntity.ok(pagamentoService.aplicarDesconto(id, desconto));
-    }
 }

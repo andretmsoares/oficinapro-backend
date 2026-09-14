@@ -3,6 +3,7 @@ package com.oficinapro.service.item_os_peca;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaRequestDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaResponseDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
+import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
@@ -10,8 +11,9 @@ import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
-import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
+import com.oficinapro.service.pagamento.PagamentoService;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
     private final ItemOsPecaRepository itemOsPecaRepository;
     private final OrdemDeServicoService ordemDeServicoService;
+    private final PagamentoService pagamentoService;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,15 +46,6 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     public ItemOsPecaResponseDTO buscarPorId(Long id) {
         ItemOsPeca item = buscarPorEntidadeId(id);
         return toResponse(item);
-    }
-
-    private ItemOsPeca buscarPorEntidadeId(Long id) {
-        ItemOsPeca item = itemOsPecaRepository.findById(id)
-                .orElseThrow(() -> new ItemOsPecaNotFoundException(id));
-
-        ordemDeServicoService.buscarPorEntidadeId(item.getOrdemDeServico().getId());
-
-        return item;
     }
 
     @Override
@@ -102,8 +96,18 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
         OrdemDeServico os = item.getOrdemDeServico();
         validarOsEditavel(os);
+        PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
+
+        BigDecimal valorRestante = os.getValorComDesconto().subtract(item.getValorTotal());
+
+        int comparacao = valorRestante.compareTo(pagamento.valorPago());
+
+        if (comparacao < 0) {
+            throw new PagamentoValorExcedidoException(valorRestante, os.getValorTotal());
+        }
 
         itemOsPecaRepository.delete(item);
+        pagamentoService.recalcularStatus(os.getId());
 
         recalcularValorTotalOS(os);
     }
@@ -138,5 +142,14 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
                 item.getValorUnitario(),
                 item.getValorTotal()
         );
+    }
+
+    private ItemOsPeca buscarPorEntidadeId(Long id) {
+        ItemOsPeca item = itemOsPecaRepository.findById(id)
+                .orElseThrow(() -> new ItemOsPecaNotFoundException(id));
+
+        ordemDeServicoService.buscarPorEntidadeId(item.getOrdemDeServico().getId());
+
+        return item;
     }
 }

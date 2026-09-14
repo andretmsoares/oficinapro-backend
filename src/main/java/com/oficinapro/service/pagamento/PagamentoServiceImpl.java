@@ -14,7 +14,6 @@ import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.oficinapro.enums.StatusPagamento;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -61,12 +60,7 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public PagamentoResponseDTO buscarPorOsId(Long osId) {
-        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
-        if (pagamento == null) {
-            throw new PagamentoNotFoundForThisOsException(osId);
-        }
-
-        ordemDeServicoService.buscarPorEntidadeId(osId);
+        Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
         return toResponseDTO(pagamento);
     }
 
@@ -115,12 +109,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public Pagamento buscarEntidadePorId(Long id) {
-        Pagamento pagamento = repository.findById(id)
+
+        return repository.findById(id)
                 .orElseThrow(() -> new PagamentoNotFoundException(id));
-
-        ordemDeServicoService.buscarPorEntidadeId(pagamento.getOrdemDeServico().getId());
-
-        return pagamento;
     }
 
     @Override
@@ -133,6 +124,35 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     public PagamentoResponseDTO estornarValorPago(Long id, BigDecimal valor) {
         return ajustarValorPago(id, valor.negate());
+    }
+
+    @Transactional
+    @Override
+    public void recalcularStatus(Long osId) {
+        Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
+
+        BigDecimal valorPago = pagamento.getValorPago();
+        BigDecimal valorOS = pagamento.getOrdemDeServico().getValorComDesconto();
+
+        int comparacao = valorPago.compareTo(valorOS);
+
+        if (valorPago.compareTo(BigDecimal.ZERO) == 0) {
+            pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+
+        } else if (comparacao == 0) {
+            pagamento.setStatus(StatusPagamento.PAGA);
+
+        } else if (comparacao < 0) {
+            pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
+
+        } else {
+            throw new PagamentoValorExcedidoException(
+                    valorPago,
+                    valorOS
+            );
+        }
+
+        repository.save(pagamento);
     }
 
     /**
@@ -168,16 +188,6 @@ public class PagamentoServiceImpl implements PagamentoService {
         return toResponseDTO(repository.save(pagamento));
     }
 
-    @Override
-    @Transactional
-    public PagamentoResponseDTO aplicarDesconto(Long id, BigDecimal desconto) {
-        Pagamento pagamento = this.buscarEntidadePorId(id);
-
-        ordemDeServicoService.aplicarDesconto(pagamento.getOrdemDeServico().getId(), desconto);
-
-        return toResponseDTO(pagamento);
-    }
-
     private PagamentoResponseDTO toResponseDTO(Pagamento pagamento) {
         return new PagamentoResponseDTO(
                 pagamento.getId(),
@@ -187,5 +197,13 @@ public class PagamentoServiceImpl implements PagamentoService {
                 pagamento.getDataPagamentoTotal(),
                 pagamento.getStatus()
         );
+    }
+
+    public Pagamento buscarPorEntidadeOsId(Long osId) {
+        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
+        if (pagamento == null) {
+            throw new PagamentoNotFoundForThisOsException(osId);
+        }
+        return pagamento;
     }
 }
