@@ -10,6 +10,6 @@ public record LoginRequestDTO(
         String username,
 
         @NotBlank(message = "Password é obrigatório")
-        @Size(min = 5, max = 255, message = "Password deve ter entre 8 e 255 caracteres")
+        @Size(min = 8, max = 255, message = "Password deve ter entre 8 e 255 caracteres")
         String password
 ) {}
