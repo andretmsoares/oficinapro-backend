@@ -1,15 +1,18 @@
 package com.oficinapro.dto.unidade;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UnidadeRequestDTO(
 
         @NotBlank(message = "Nome é obrigatório")
+        @NotNull
         @Size(max = 255, message = "Nome deve ter no máximo 255 caracteres")
         String nome,
 
         @NotBlank(message = "Endereço é obrigatório")
+        @NotNull
         @Size(max = 255, message = "Endereço deve ter no máximo 255 caracteres")
         String endereco,
 
