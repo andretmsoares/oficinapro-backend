@@ -19,16 +19,23 @@ import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
+import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -128,6 +135,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
+    @ExceptionHandler(PlacaAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handlePlacaAlreadyExists(
+            PlacaAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
     @ExceptionHandler(PagamentoValorInvalidoException.class)
     public ResponseEntity<Map<String, Object>> handlePagamentoValorInvalid(
             PagamentoValorInvalidoException exception) {
@@ -192,6 +204,78 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleOSIsNotPossibleSwapWorkshop(
             OSIsNotPossibleSwapWorkshopException exception) {
         return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+
+        return buildResponse(HttpStatus.CONFLICT, "Conflito de dados. Não foi possível realizar a operação porque os dados violam uma regra de integridade.");
+    }
+
+
+    @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleIncorrectResultSize(
+            IncorrectResultSizeDataAccessException ex) {
+
+
+        return buildResponse(HttpStatus.CONFLICT,
+                        "Dados inconsistentes. A consulta retornou mais registros do que o esperado."
+                );
+    }
+
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(
+            IllegalStateException ex) {
+
+
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                        "Operação inválida"
+                );
+    }
+
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidDataAccessApiUsage(
+            InvalidDataAccessApiUsageException ex) {
+
+
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                        "Requisição inválida. Os dados informados não podem ser utilizados nesta operação."
+                );
+    }
+
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
+
+        String message = "Valor inválido para o parâmetro '%s'."
+                .formatted(ex.getName());
+
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                        "Parâmetro inválido"
+                );
+    }
+
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex) {
+
+
+        return buildResponse(HttpStatus.BAD_REQUEST,"Corpo da requisição inválido. Não foi possível interpretar o corpo da requisição.");
+    }
+
+
+    @ExceptionHandler(DateTimeException.class)
+    public ResponseEntity<Map<String, Object>> handleDateTimeException(
+            DateTimeException ex) {
+
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                        "Data ou hora inválida. A data ou hora informada é inválida."
+                );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
