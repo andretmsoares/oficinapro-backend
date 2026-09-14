@@ -45,7 +45,7 @@ public class OrdemDeServico {
     @Column(name = "data_abertura", nullable = false)
     private LocalDateTime dataAbertura;
 
-    @Column(name = "data_fechamento", nullable = false)
+    @Column(name = "data_fechamento")
     private LocalDateTime dataFechamento;
 
     @Enumerated(EnumType.STRING)
