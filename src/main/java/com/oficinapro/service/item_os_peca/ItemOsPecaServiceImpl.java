@@ -107,8 +107,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
         }
 
         itemOsPecaRepository.delete(item);
-        pagamentoService.recalcularStatus(os.getId());
-
+        this.recalcularValorTotalOS(os);
         recalcularValorTotalOS(os);
     }
 
@@ -131,6 +130,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         ordemDeServicoService.recalcularValorTotal(os.getId(), total);
+        pagamentoService.recalcularStatus(os.getId());
     }
 
     private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {
