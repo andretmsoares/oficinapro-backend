@@ -14,6 +14,7 @@ import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.oficinapro.enums.StatusPagamento;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,6 +36,7 @@ public class PagamentoServiceImpl implements PagamentoService {
         pagamento.setOrdemDeServico(os);
         pagamento.setValorPago(request.valorPago());
         pagamento.setObs(request.obs());
+        pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
 
         return toResponseDTO(repository.save(pagamento));
     }
