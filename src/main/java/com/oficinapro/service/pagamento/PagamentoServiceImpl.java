@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -130,12 +131,15 @@ public class PagamentoServiceImpl implements PagamentoService {
 
         if (valorPago.compareTo(BigDecimal.ZERO) == 0) {
             pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+            pagamento.setDataPagamentoTotal(null);
 
         } else if (comparacao == 0) {
             pagamento.setStatus(StatusPagamento.PAGA);
+            pagamento.setDataPagamentoTotal(LocalDateTime.now());
 
         } else if (comparacao < 0) {
             pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
+            pagamento.setDataPagamentoTotal(null);
 
         } else {
             throw new PagamentoValorExcedidoException(
