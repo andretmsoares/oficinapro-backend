@@ -16,7 +16,7 @@ public interface VeiculoService {
 
     VeiculoResponseDTO buscarPorId(Long id);
 
-    VeiculoResponseDTO buscarPorPlaca(String placa);
+    VeiculoResponseDTO buscarPorPlaca(Long oficinaId, String placa);
 
     VeiculoResponseDTO criar(VeiculoRequestDTO request);
 

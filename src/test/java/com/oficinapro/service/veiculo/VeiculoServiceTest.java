@@ -161,13 +161,13 @@ class VeiculoServiceTest {
     void deveBuscarVeiculoPorPlacaComNormalizacaoComoAdmin() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         // placa normalizada: "ABC-1234" -> "ABC1234"
-        when(veiculoRepository.findByPlaca("ABC1234")).thenReturn(Optional.of(veiculo));
+        when(veiculoRepository.findByPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
 
-        VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca("ABC-1234");
+        VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca(1L, "ABC-1234");
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.placa()).isEqualTo("ABC1234");
-        verify(veiculoRepository).findByPlaca("ABC1234");
+        verify(veiculoRepository).findByPlaca(1L, "ABC1234");
     }
 
     // ---------------------------------------------------------------

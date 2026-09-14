@@ -42,8 +42,8 @@ public class VeiculoController {
 
     @GetMapping("/placa/{placa}")
     @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
-    public ResponseEntity<VeiculoResponseDTO> buscarPorPlaca(@PathVariable String placa) {
-        return ResponseEntity.ok(veiculoService.buscarPorPlaca(placa));
+    public ResponseEntity<VeiculoResponseDTO> buscarPorPlaca(@PathVariable Long oficinaId, @PathVariable String placa) {
+        return ResponseEntity.ok(veiculoService.buscarPorPlaca(oficinaId, placa));
     }
 
     @GetMapping("/oficina/{oficinaId}")

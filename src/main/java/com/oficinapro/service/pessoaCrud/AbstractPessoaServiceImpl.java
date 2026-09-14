@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.util.List;
+
 public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         implements PessoaCrudService<C, U, RES, T> {
 
@@ -129,16 +131,31 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     }
 
     @Override
-    public RES buscarPorNome(String nome) {
-        T entity = repository.findByNome(nome).orElseThrow(this::notFoundException);
-        validarAcessoAoRegistro(entity);
-        return toResponse(entity);
+    public List<RES> buscarPorNome(String nome) {
+
+        Long oficinaId =
+                authenticatedUserProvider.getOficinaIdUsuarioLogado();
+
+        return repository
+                .findByOficinaIdAndNome(oficinaId, nome)
+                .stream()
+                .map(entity -> {
+                    validarAcessoAoRegistro(entity);
+                    return toResponse(entity);
+                })
+                .toList();
     }
 
     @Override
     public RES buscarPorDocumento(String documento) {
-        T entity = repository.findByDocumento(documento).orElseThrow(this::notFoundException);
-        validarAcessoAoRegistro(entity);
+
+        Long oficinaId =
+                authenticatedUserProvider.getOficinaIdUsuarioLogado();
+
+        T entity = repository
+                .findByOficinaIdAndDocumento(oficinaId, documento)
+                .orElseThrow(this::notFoundException);
+
         return toResponse(entity);
     }
 

@@ -17,4 +17,16 @@ public class AuthenticatedUserProvider {
 
         return usuario;
     }
+
+    public Long getOficinaIdUsuarioLogado() {
+        Usuario usuario = getUsuarioAutenticado();
+
+        if (usuario.getOficina() == null) {
+            throw new IllegalStateException(
+                    "Usuário não está vinculado a uma oficina"
+            );
+        }
+
+        return usuario.getOficina().getId();
+    }
 }

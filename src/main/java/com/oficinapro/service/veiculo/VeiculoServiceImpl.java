@@ -91,8 +91,8 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
-    public VeiculoResponseDTO buscarPorPlaca(String placa) {
-        Veiculo veiculo = veiculoRepository.findByPlaca(normalizarPlaca(placa))
+    public VeiculoResponseDTO buscarPorPlaca(Long oficinaId, String placa) {
+        Veiculo veiculo = veiculoRepository.findByPlaca(oficinaId, normalizarPlaca(placa))
                 .orElseThrow(() -> new VeiculoNotFoundException(null));
         validarAcessoAoRegistro(veiculo);
         return toResponse(veiculo);
