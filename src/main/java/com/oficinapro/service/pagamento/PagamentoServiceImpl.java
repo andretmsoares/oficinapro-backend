@@ -7,6 +7,7 @@ import com.oficinapro.exception.pagamento.*;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.repository.PagamentoRepository;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class PagamentoServiceImpl implements PagamentoService {
 
     private final PagamentoRepository repository;
     private final OrdemDeServicoService ordemDeServicoService;
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     @Override
     @Transactional
@@ -67,6 +69,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public List<PagamentoResponseDTO> buscarPorOficina(Long oficinaId) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository
                 .findByOrdemDeServicoOficinaId(oficinaId)
                 .stream()
@@ -80,6 +85,9 @@ public class PagamentoServiceImpl implements PagamentoService {
             Long oficinaId,
             StatusPagamento status
     ) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository
                 .findByOrdemDeServicoOficinaIdAndStatus(oficinaId, status)
                 .stream()
@@ -90,6 +98,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal calcularValorParaReceber(Long oficinaId) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository.calcularValorParaReceber(
                 oficinaId,
                 List.of(
@@ -103,8 +114,19 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Transactional(readOnly = true)
     public Pagamento buscarEntidadePorId(Long id) {
 
-        return repository.findById(id)
+        Pagamento pagamento = repository.findById(id)
                 .orElseThrow(() -> new PagamentoNotFoundException(id));
+
+        Long oficinaDoPagamento = pagamento.getOrdemDeServico()
+                .getOficina()
+                .getId();
+
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                oficinaDoPagamento,
+                new PagamentoNotFoundException(id)
+        );
+
+        return pagamento;
     }
 
     @Override
@@ -195,11 +217,16 @@ public class PagamentoServiceImpl implements PagamentoService {
         );
     }
 
-    public Pagamento buscarPorEntidadeOsId(Long osId) {
+    private Pagamento buscarPorEntidadeOsId(Long osId) {
+
+        OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(osId);
+
         Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
+
         if (pagamento == null) {
             throw new PagamentoNotFoundForThisOsException(osId);
         }
+
         return pagamento;
     }
 }

@@ -105,6 +105,23 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    protected Oficina resolverOficina(Long oficinaId) {
+        if (oficinaId == null) {
+            Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+
+            if (logado.getRole() != Role.ADMIN) {
+                throw new AccessDeniedException(
+                        "Somente o ADMIN do SaaS pode criar ou manter um usuário sem oficina");
+            }
+
+            return null;
+        }
+
+        validarAcessoOficina(oficinaId);
+        return oficinaService.buscarPorEntidadeId(oficinaId);
+    }
+
+    @Override
     protected UsuarioResponseDTO toResponse(Usuario u) {
         return UsuarioResponseDTO.de(u);
     }

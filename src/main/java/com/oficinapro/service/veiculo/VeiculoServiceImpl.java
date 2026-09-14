@@ -2,6 +2,7 @@ package com.oficinapro.service.veiculo;
 
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import com.oficinapro.model.Oficina;
@@ -9,6 +10,7 @@ import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.security.role.Role;
 import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
@@ -24,37 +26,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     private final VeiculoRepository veiculoRepository;
     private final OficinaService oficinaService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
-
-    private Long oficinaObrigatoriaDoLogado(Usuario logado) {
-        Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-        if (oficinaId == null) {
-            throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-        }
-        return oficinaId;
-    }
-
-    private void validarAcessoOficina(Long oficinaId) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        if (!oficinaDoLogado.equals(oficinaId)) {
-            throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
-        }
-    }
-
-    private void validarAcessoAoRegistro(Veiculo veiculo) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        Long oficinaDoVeiculo = veiculo.getOficina() != null ? veiculo.getOficina().getId() : null;
-        if (!oficinaDoLogado.equals(oficinaDoVeiculo)) {
-            throw new VeiculoNotFoundException(veiculo.getId());
-        }
-    }
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     private String normalizarPlaca(String placa) {
         return placa == null ? null : placa.toUpperCase().replace("-", "").trim();
@@ -66,14 +38,14 @@ public class VeiculoServiceImpl implements VeiculoService {
 
         Page<Veiculo> page = logado.getRole() == Role.ADMIN
                 ? veiculoRepository.findAll(pageable)
-                : veiculoRepository.findByOficinaId(oficinaObrigatoriaDoLogado(logado), pageable);
+                : veiculoRepository.findByOficinaId(oficinaAccessValidator.getOficinaIdUsuarioLogado(), pageable);
 
         return page.map(this::toResponse);
     }
 
     @Override
     public Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
@@ -81,7 +53,12 @@ public class VeiculoServiceImpl implements VeiculoService {
     public Veiculo buscarPorEntidadeId(Long id) {
         Veiculo veiculo = veiculoRepository.findById(id)
                 .orElseThrow(() -> new VeiculoNotFoundException(id));
-        validarAcessoAoRegistro(veiculo);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                veiculo.getOficina() != null
+                        ? veiculo.getOficina().getId()
+                        : null,
+                new VeiculoNotFoundException(id)
+        );
         return veiculo;
     }
 
@@ -98,13 +75,19 @@ public class VeiculoServiceImpl implements VeiculoService {
 
         Veiculo veiculo = veiculoRepository.findByPlaca(oficinaId, normalizarPlaca(placa))
                 .orElseThrow(() -> new VeiculoNotFoundException(null));
-        validarAcessoAoRegistro(veiculo);
+
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                veiculo.getOficina() != null
+                        ? veiculo.getOficina().getId()
+                        : null,
+                new VeiculoNotFoundException(veiculo.getId())
+        );
         return toResponse(veiculo);
     }
 
     @Override
     public VeiculoResponseDTO criar(VeiculoRequestDTO request) {
-        validarAcessoOficina(request.oficinaId());
+        oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
 
         Oficina oficina = oficinaService.buscarPorEntidadeId(request.oficinaId());
 
@@ -129,7 +112,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     public VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request) {
         Veiculo veiculo = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
-        validarAcessoOficina(request.oficinaId()); // valida também a oficina de destino
+        oficinaAccessValidator.validarAcessoOficina(request.oficinaId()); // valida também a oficina de destino
 
         String placa = normalizarPlaca(request.placa());
         if (!veiculo.getPlaca().equals(placa)

@@ -4,11 +4,13 @@ import com.oficinapro.dto.unidade.UnidadeRequestDTO;
 import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
+import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.security.role.Role;
 import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
@@ -24,49 +26,22 @@ public class UnidadeServiceImpl implements UnidadeService {
     private final UnidadeRepository unidadeRepository;
     private final OficinaService oficinaService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
-
-    private Long oficinaObrigatoriaDoLogado(Usuario logado) {
-        Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-        if (oficinaId == null) {
-            throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-        }
-        return oficinaId;
-    }
-
-    /** Usado quando o oficinaId vem explícito na requisição (criar, listarPorOficina). */
-    private void validarAcessoOficina(Long oficinaId) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        if (!oficinaDoLogado.equals(oficinaId)) {
-            throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
-        }
-    }
-
-    /** Usado quando se acessa um registro específico (buscarPorId, atualizar, deletar). */
-    private void validarAcessoAoRegistro(Unidade unidade) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        Long oficinaDaUnidade = unidade.getOficina() != null ? unidade.getOficina().getId() : null;
-        if (!oficinaDoLogado.equals(oficinaDaUnidade)) {
-            throw new UnidadeNotFoundException(unidade.getId());
-        }
-    }
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     @Override
     public List<UnidadeResponseDTO> listar() {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+        Usuario logado =
+                authenticatedUserProvider.getUsuarioAutenticado();
 
         List<Unidade> unidades = logado.getRole() == Role.ADMIN
                 ? unidadeRepository.findAll()
-                : unidadeRepository.findByOficinaId(oficinaObrigatoriaDoLogado(logado));
+                : unidadeRepository.findByOficinaId(
+                oficinaAccessValidator.getOficinaIdUsuarioLogado()
+        );
 
-        return unidades.stream().map(this::toResponse).toList();
+        return unidades.stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
@@ -76,17 +51,23 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     @Override
     public Unidade buscarPorEntidadeId(Long id) {
-        Unidade unidade = unidadeRepository.findById(id)
+        Unidade unidade = unidadeRepository
+                .findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));
 
-        validarAcessoAoRegistro(unidade);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                unidade.getOficina() != null
+                        ? unidade.getOficina().getId()
+                        : null,
+                new UnidadeNotFoundException(id)
+        );
 
         return unidade;
     }
 
     @Override
     public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
         oficinaService.buscarPorEntidadeId(oficinaId);
 
@@ -98,7 +79,7 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     @Override
     public UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
         Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
@@ -122,7 +103,12 @@ public class UnidadeServiceImpl implements UnidadeService {
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));
 
-        validarAcessoAoRegistro(unidade);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                unidade.getOficina() != null
+                        ? unidade.getOficina().getId()
+                        : null,
+                new UnidadeNotFoundException(id)
+        );
 
         if (!unidade.getEndereco().equals(request.endereco())
                 && unidadeRepository.existsByEndereco(request.endereco())) {
@@ -143,7 +129,12 @@ public class UnidadeServiceImpl implements UnidadeService {
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));
 
-        validarAcessoAoRegistro(unidade);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                unidade.getOficina() != null
+                        ? unidade.getOficina().getId()
+                        : null,
+                new UnidadeNotFoundException(id)
+        );
 
         unidadeRepository.delete(unidade);
     }

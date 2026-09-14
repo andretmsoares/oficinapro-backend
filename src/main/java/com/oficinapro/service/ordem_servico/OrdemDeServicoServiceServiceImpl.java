@@ -9,9 +9,11 @@ import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.security.role.Role;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
@@ -44,46 +46,21 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     private final MecanicoService mecanicoService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final PagamentoService pagamentoService;
-
-    private Long oficinaObrigatoriaDoLogado(Usuario logado) {
-        Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-        if (oficinaId == null) {
-            throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-        }
-        return oficinaId;
-    }
-
-    private void validarAcessoOficina(Long oficinaId) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        if (!oficinaDoLogado.equals(oficinaId)) {
-            throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
-        }
-    }
-
-    private void validarAcessoAoRegistro(OrdemDeServico os) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        Long oficinaDaOS = os.getOficina() != null ? os.getOficina().getId() : null;
-        if (!oficinaDoLogado.equals(oficinaDaOS)) {
-            throw new OrdemDeServicoNotFoundException(os.getId());
-        }
-    }
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
         if (logado.getRole() == Role.ADMIN) {
             return lista;
         }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
+        Long oficinaId =
+                oficinaAccessValidator.getOficinaIdUsuarioLogado();
+
         return lista.stream()
-                .filter(os -> os.getOficina() != null && oficinaDoLogado.equals(os.getOficina().getId()))
+                .filter(os ->
+                        os.getOficina() != null
+                                && oficinaId.equals(os.getOficina().getId())
+                )
                 .toList();
     }
 
@@ -94,7 +71,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
         List<OrdemDeServico> lista = logado.getRole() == Role.ADMIN
                 ? ordemServicoRepository.findAll()
-                : ordemServicoRepository.findByOficinaId(oficinaObrigatoriaDoLogado(logado));
+                : ordemServicoRepository.findByOficinaId(oficinaAccessValidator.getOficinaIdUsuarioLogado());
 
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -134,7 +111,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return ordemServicoRepository.findByOficinaId(oficinaId).stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -160,7 +137,12 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     public OrdemDeServico buscarPorEntidadeId(Long id) {
         OrdemDeServico os = ordemServicoRepository.findById(id)
                 .orElseThrow(() -> new OrdemDeServicoNotFoundException(id));
-        validarAcessoAoRegistro(os);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                os.getOficina() != null
+                        ? os.getOficina().getId()
+                        : null,
+                new OrdemDeServicoNotFoundException(id)
+        );
         return os;
     }
 
@@ -260,7 +242,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request) {
-        validarAcessoOficina(request.oficinaId());
+        oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
 
         Oficina oficina = oficinaService.buscarPorEntidadeId(request.oficinaId());
         Unidade unidade = unidadeService.buscarPorEntidadeId(request.unidadeId());
@@ -337,7 +319,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
             int mes,
             int ano
     ) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
         YearMonth periodo = YearMonth.of(ano, mes);
 
