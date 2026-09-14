@@ -1,6 +1,7 @@
 package com.oficinapro.controller;
 
 import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,18 @@ public class OrdemDeServicoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
     public ResponseEntity<OrdemDeServicoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    @GetMapping("/oficina/{oficinaId}/fluxo-mensal")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
+            @PathVariable Long oficinaId,
+            @RequestParam int mes,
+            @RequestParam int ano
+    ) {
+        return ResponseEntity.ok(
+                service.fluxoMensal(oficinaId, mes, ano)
+        );
     }
 
     @PutMapping("/{id}")
@@ -105,5 +118,11 @@ public class OrdemDeServicoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorCliente(@PathVariable Long clienteId) {
         return ResponseEntity.ok(service.listarPorCliente(clienteId));
+    }
+
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorStatus(@PathVariable StatusOrdemDeServico status) {
+        return ResponseEntity.ok(service.listarPorStatus(status));
     }
 }

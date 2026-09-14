@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -65,6 +66,41 @@ public class PagamentoServiceImpl implements PagamentoService {
 
         ordemDeServicoService.buscarPorEntidadeId(osId);
         return toResponseDTO(pagamento);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PagamentoResponseDTO> buscarPorOficina(Long oficinaId) {
+        return repository
+                .findByOrdemDeServicoOficinaId(oficinaId)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PagamentoResponseDTO> buscarPorStatus(
+            Long oficinaId,
+            StatusPagamento status
+    ) {
+        return repository
+                .findByOrdemDeServicoOficinaIdAndStatus(oficinaId, status)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal calcularValorParaReceber(Long oficinaId) {
+        return repository.calcularValorParaReceber(
+                oficinaId,
+                List.of(
+                        StatusPagamento.PAGAMENTO_PENDENTE,
+                        StatusPagamento.PAGO_PARCIALMENTE
+                )
+        );
     }
 
     @Override
