@@ -41,6 +41,7 @@ public class PagamentoController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<List<PagamentoResponseDTO>> buscarPorOficina(
             @PathVariable Long oficinaId
     ) {
@@ -49,6 +50,7 @@ public class PagamentoController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
     @GetMapping("/oficina/{oficinaId}/status/{status}")
     public ResponseEntity<List<PagamentoResponseDTO>> buscarPorStatus(
             @PathVariable Long oficinaId,
@@ -59,6 +61,7 @@ public class PagamentoController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('GERENTE')")
     @GetMapping("/oficina/{oficinaId}/a-receber")
     public ResponseEntity<BigDecimal> calcularValorParaReceber(
             @PathVariable Long oficinaId
