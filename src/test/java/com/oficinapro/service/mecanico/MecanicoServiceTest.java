@@ -74,9 +74,9 @@ class MecanicoServiceTest {
         adminUser = new Usuario();
         adminUser.setRole(Role.ADMIN);
 
-        // Usuário ADMINISTRATIVO – vinculado à oficina 1
+        // Usuário GERENTE – vinculado à oficina 1
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
 
         // Mecânico pertencente à oficina 1
@@ -119,7 +119,7 @@ class MecanicoServiceTest {
     }
 
     @Test
-    @DisplayName("listar() como ADMINISTRATIVO deve retornar apenas mecânicos da sua oficina")
+    @DisplayName("listar() como GERENTE deve retornar apenas mecânicos da sua oficina")
     void listar_comoAdministrativo_retornaMecanicosDaSuaOficina() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
@@ -234,7 +234,7 @@ class MecanicoServiceTest {
     }
 
     @Test
-    @DisplayName("criar() como ADMINISTRATIVO tentando criar em outra oficina deve lançar AccessDeniedException")
+    @DisplayName("criar() como GERENTE tentando criar em outra oficina deve lançar AccessDeniedException")
     void criar_comoAdministrativo_outraOficina_lancaAccessDeniedException() {
         // Request aponta para oficina 2, mas normalUser pertence à oficina 1
         MecanicoRequestDTO requestOutraOficina = new MecanicoRequestDTO(

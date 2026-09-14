@@ -123,7 +123,7 @@ class OrdemDeServicoServiceTest {
         adminUser.setRole(Role.ADMIN);
 
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
     }
 
@@ -147,7 +147,7 @@ class OrdemDeServicoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
+    @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
     void deveListarOSDaPropriaOficinaComoAdministrativo() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
         when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));

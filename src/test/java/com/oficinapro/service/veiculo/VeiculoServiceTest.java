@@ -72,7 +72,7 @@ class VeiculoServiceTest {
         adminUser.setRole(Role.ADMIN);
 
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
 
         pageable = PageRequest.of(0, 10);
@@ -98,7 +98,7 @@ class VeiculoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
+    @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
     void deveListarVeiculosDaPropriaOficinaComoAdministrativo() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
         when(veiculoRepository.findByOficinaId(1L, pageable))
@@ -132,7 +132,7 @@ class VeiculoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
+    @DisplayName("GERENTE: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
     void deveLancarExcecaoAoBuscarVeiculoDeOutraOficinaComoAdministrativo() {
         Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
 

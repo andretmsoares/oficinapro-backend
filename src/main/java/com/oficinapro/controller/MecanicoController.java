@@ -34,7 +34,7 @@ public class MecanicoController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<Page<MecanicoResponseDTO>> listarPorOficina(
             @PathVariable Long oficinaId,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
@@ -42,39 +42,39 @@ public class MecanicoController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<MecanicoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(mecanicoService.buscarPorId(id));
     }
 
     @GetMapping("/nome/{nome}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<MecanicoResponseDTO> buscarPorNome(@PathVariable String nome) {
         return ResponseEntity.ok(mecanicoService.buscarPorNome(nome));
     }
 
     @GetMapping("/documento/{documento}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<MecanicoResponseDTO> buscarPorDocumento(@PathVariable String documento) {
         return ResponseEntity.ok(mecanicoService.buscarPorDocumento(documento));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<MecanicoResponseDTO> criar(@Valid @RequestBody MecanicoRequestDTO request) {
         MecanicoResponseDTO response = mecanicoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<MecanicoResponseDTO> atualizar(@PathVariable Long id,
                                                          @Valid @RequestBody MecanicoRequestDTO request) {
         return ResponseEntity.ok(mecanicoService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         mecanicoService.deletar(id);
         return ResponseEntity.noContent().build();

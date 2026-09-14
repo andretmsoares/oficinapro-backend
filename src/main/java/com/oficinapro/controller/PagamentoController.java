@@ -22,20 +22,20 @@ public class PagamentoController {
     private final PagamentoService pagamentoService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<PagamentoResponseDTO> criar(@Valid @RequestBody PagamentoRequestDTO request) {
         PagamentoResponseDTO response = pagamentoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<PagamentoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(pagamentoService.buscarPorId(id));
     }
 
     @GetMapping("/os/{osId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<PagamentoResponseDTO> buscarPorOsId(@PathVariable Long osId) {
         return ResponseEntity.ok(pagamentoService.buscarPorOsId(osId));
     }
@@ -69,14 +69,14 @@ public class PagamentoController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<PagamentoResponseDTO> atualizar(@PathVariable Long id,
                                                           @Valid @RequestBody PagamentoRequestDTO request) {
         return ResponseEntity.ok(pagamentoService.atualizar(id, request));
     }
 
     @PatchMapping("/{id}/desconto")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<PagamentoResponseDTO> aplicarDesconto(@PathVariable Long id,
                                                                 @RequestBody BigDecimal desconto) {
         return ResponseEntity.ok(pagamentoService.aplicarDesconto(id, desconto));
