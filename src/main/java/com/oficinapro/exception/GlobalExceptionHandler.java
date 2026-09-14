@@ -15,6 +15,7 @@ import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
 import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundException;
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
+import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,6 +39,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
     public ResponseEntity<Map<String, Object>> handleAccessDenied(Exception exception) {
         return buildResponse(HttpStatus.FORBIDDEN, "Acesso negado: Você não tem permissão para acessar este recurso.");
+    }
+
+    /**
+     * Falha de login. A mensagem é sempre genérica, mesmo quando o username não existe,
+     * para não permitir descobrir quais usuários estão cadastrados.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationFailure(
+            AuthenticationException exception) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
     }
 
     @ExceptionHandler(OficinaNotFoundException.class)
@@ -144,6 +156,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExists(
             UsernameAlreadyExistsException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(OficinaIncompativelComRoleException.class)
+    public ResponseEntity<Map<String, Object>> handleOficinaIncompativelComRole(
+            OficinaIncompativelComRoleException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(UsuarioAlreadyExistsException.class)

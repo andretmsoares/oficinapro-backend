@@ -3,6 +3,7 @@ package com.oficinapro.service.usuario;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
+import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
@@ -43,7 +44,10 @@ public class UsuarioServiceImpl
         if (usuarioRepository.existsByUsername(request.username())) {
             throw new UsernameAlreadyExistsException();
         }
+        // Permissão antes de coerência: quem não pode atribuir a role recebe 403,
+        // sem pistas sobre o formato correto do payload.
         validarPermissaoParaAtribuirRole(request.role());
+        validarCoerenciaRoleOficina(request.role(), request.oficinaId());
     }
 
     @Override
@@ -60,12 +64,29 @@ public class UsuarioServiceImpl
         }
 
         validarPermissaoParaAtribuirRole(request.role());
+        validarCoerenciaRoleOficina(request.role(), request.oficinaId());
     }
 
     /**
-     * Regras 1 e 2:
-     * - ADMIN pode atribuir qualquer role, inclusive ADMIN.
-     * - ADMINISTRATIVO pode atribuir qualquer role, EXCETO ADMIN.
+     * ADMIN é o administrador do SaaS: não tem filiação com nenhuma oficina.
+     * ADMINISTRATIVO e MECANICO existem sempre dentro de uma oficina.
+     */
+    private void validarCoerenciaRoleOficina(Role role, Long oficinaId) {
+        if (role == Role.ADMIN && oficinaId != null) {
+            throw new OficinaIncompativelComRoleException(
+                    "ADMIN é o administrador do SaaS e não pode ser vinculado a uma oficina");
+        }
+        if (role != Role.ADMIN && oficinaId == null) {
+            throw new OficinaIncompativelComRoleException(
+                    "O ID da oficina é obrigatório para o cargo " + role);
+        }
+    }
+
+    /**
+     * Hierarquia de criação/promoção de usuários:
+     * - ADMIN (do SaaS) pode atribuir qualquer role, inclusive ADMIN.
+     * - ADMINISTRATIVO (da oficina) pode criar ADMINISTRATIVO e MECANICO, nunca ADMIN.
+     *   O isolamento por oficina é garantido em AbstractPessoaServiceImpl.resolverOficina.
      * - MECANICO não gerencia usuários (já bloqueado no @PreAuthorize do controller,
      *   replicado aqui como defesa em profundidade).
      */
@@ -85,9 +106,7 @@ public class UsuarioServiceImpl
 
     @Override
     protected UsuarioResponseDTO toResponse(Usuario u) {
-        return new UsuarioResponseDTO(
-                u.getId(), u.getNome(), u.getTelefone(), u.getDocumento(),
-                u.getOficina().getId(), u.getUsername(), u.getRole());
+        return UsuarioResponseDTO.de(u);
     }
 
     @Override
@@ -96,7 +115,7 @@ public class UsuarioServiceImpl
         usuario.setNome(request.nome());
         usuario.setDocumento(request.documento());
         usuario.setTelefone(request.telefone());
-        usuario.setOficina(oficina);
+        usuario.setOficina(oficina); // nulo quando role == ADMIN
         usuario.setUsername(request.username());
         usuario.setPassword(passwordEncoder.encode(request.password()));
         usuario.setRole(request.role());
@@ -110,6 +129,12 @@ public class UsuarioServiceImpl
         usuario.setTelefone(request.telefone());
         usuario.setUsername(request.username());
         usuario.setRole(request.role());
+
+        // Mantém o vínculo coerente com a role: promover para ADMIN desliga a oficina,
+        // rebaixar para ADMINISTRATIVO/MECANICO exige (e aplica) uma oficina.
+        usuario.setOficina(request.oficinaId() == null
+                ? null
+                : oficinaService.buscarPorEntidadeId(request.oficinaId()));
 
         if (request.password() != null && !request.password().isBlank()) {
             usuario.setPassword(passwordEncoder.encode(request.password()));

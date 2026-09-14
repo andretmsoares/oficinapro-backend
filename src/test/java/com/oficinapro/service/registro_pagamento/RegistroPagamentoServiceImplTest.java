@@ -3,6 +3,7 @@ package com.oficinapro.service.registro_pagamento;
 import com.oficinapro.dto.registro_pagamento.RegistroPagamentoRequestDTO;
 import com.oficinapro.dto.registro_pagamento.RegistroPagamentoResponseDTO;
 import com.oficinapro.enums.MeioPagamento;
+import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
 import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundException;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
@@ -126,6 +127,19 @@ class RegistroPagamentoServiceImplTest {
 
         assertThat(response.id()).isEqualTo(100L);
         assertThat(response.meioPagamento()).isEqualTo(MeioPagamento.PIX);
+
+        // Isolamento por oficina: o acesso é delegado ao pagamento
+        verify(pagamentoService).buscarEntidadePorId(10L);
+    }
+
+    @Test
+    void buscarPorId_registroDeOutraOficina_naoVazaOsDados() {
+        when(registroPagamentoRepository.findById(100L)).thenReturn(Optional.of(registro));
+        when(pagamentoService.buscarEntidadePorId(10L))
+                .thenThrow(new PagamentoNotFoundException(10L));
+
+        assertThatThrownBy(() -> registroPagamentoService.buscarPorId(100L))
+                .isInstanceOf(PagamentoNotFoundException.class);
     }
 
     // ---------------------------------------------------------
