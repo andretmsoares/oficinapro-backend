@@ -210,26 +210,30 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
     @Override
     @Transactional
-    public OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto) {
+    public OrdemDeServicoResponseDTO atualizarStatus(
+            Long id,
+            AtualizarStatusOSRequestDTO dto
+    ) {
         OrdemDeServico os = this.buscarPorEntidadeId(id);
 
-        StatusOrdemDeServico statusAtual = os.getStatus();
         StatusOrdemDeServico novoStatus = dto.status();
 
-        if (statusAtual == StatusOrdemDeServico.CANCELADA) {
+        if (os.getStatus() == StatusOrdemDeServico.CANCELADA) {
             throw new OSCanceledException();
-        }
-
-        if (statusAtual == StatusOrdemDeServico.ENTREGUE && novoStatus == StatusOrdemDeServico.ABERTA) {
-            throw new OSFinishedException();
         }
 
         os.setStatus(novoStatus);
 
-        if (novoStatus == StatusOrdemDeServico.FINALIZADA || novoStatus == StatusOrdemDeServico.ENTREGUE) {
+        if (novoStatus == StatusOrdemDeServico.FINALIZADA
+                || novoStatus == StatusOrdemDeServico.ENTREGUE) {
+
             if (os.getDataFechamento() == null) {
                 os.setDataFechamento(LocalDateTime.now());
             }
+
+        } else {
+            // Se a OS foi reaberta/regrediu, remove a data de fechamento
+            os.setDataFechamento(null);
         }
 
         return toResponseDTO(ordemServicoRepository.save(os));
@@ -286,7 +290,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
         os = ordemServicoRepository.save(os);
 
-        pagamentoService.criar(new PagamentoRequestDTO(os.getId(), BigDecimal.ZERO, ""));
+        pagamentoService.criar(new PagamentoRequestDTO(os.getId(), ""));
 
         return toResponseDTO(os);
     }
