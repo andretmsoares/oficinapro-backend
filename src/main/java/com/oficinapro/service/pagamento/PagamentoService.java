@@ -21,7 +21,6 @@ public interface PagamentoService {
     PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request);
     PagamentoResponseDTO atualizarValorPago(Long id, BigDecimal valor);
     PagamentoResponseDTO estornarValorPago(Long id, BigDecimal valor);
-    Optional<PagamentoResponseDTO> buscarPorOsIdSeExistir(Long osId);
 
     @Transactional
     void recalcularStatus(Long pagamentoId);

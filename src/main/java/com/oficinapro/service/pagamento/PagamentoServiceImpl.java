@@ -3,10 +3,7 @@ package com.oficinapro.service.pagamento;
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusPagamento;
-import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
-import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
-import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
-import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
+import com.oficinapro.exception.pagamento.*;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.repository.PagamentoRepository;
@@ -14,10 +11,8 @@ import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,11 +26,16 @@ public class PagamentoServiceImpl implements PagamentoService {
     public PagamentoResponseDTO criar(PagamentoRequestDTO request) {
         OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
 
+
         Pagamento pagamento = new Pagamento();
         pagamento.setOrdemDeServico(os);
         pagamento.setValorPago(BigDecimal.ZERO);
         pagamento.setObs(request.obs());
         pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+
+        if (repository.findByOrdemDeServicoId(pagamento.getOrdemDeServico().getId()) != null) {
+            throw new PagamentoAlreadyExistsException();
+        }
 
         return toResponseDTO(repository.save(pagamento));
     }
@@ -96,13 +96,6 @@ public class PagamentoServiceImpl implements PagamentoService {
                         StatusPagamento.PAGO_PARCIALMENTE
                 )
         );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<PagamentoResponseDTO> buscarPorOsIdSeExistir(Long osId) {
-        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
-        return pagamento == null ? Optional.empty() : Optional.of(toResponseDTO(pagamento));
     }
 
     @Override
