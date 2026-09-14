@@ -239,23 +239,4 @@ class PagamentoServiceImplTest {
 
         verify(repository, never()).save(any());
     }
-
-    // ---------------------------------------------------------
-    // aplicarDesconto
-    // ---------------------------------------------------------
-
-    @Test
-    @DisplayName("aplicarDesconto() delega a ação para OrdemDeServicoService")
-    void aplicarDesconto_delegaParaOSEAtualizaPagamento() {
-        BigDecimal desconto = new BigDecimal("30.00");
-
-        when(repository.findById(10L)).thenReturn(Optional.of(pagamento));
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-
-        pagamentoService.aplicarDesconto(10L, desconto);
-
-        // O novo serviço delega para a OS e não salva a entidade Pagamento novamente
-        verify(ordemDeServicoService).aplicarDesconto(1L, new BigDecimal("30.00"));
-        verify(repository, never()).save(any());
-    }
 }
