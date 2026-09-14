@@ -106,12 +106,12 @@ class UsuarioServiceTest {
         // DTO de criação (ADMIN cria um usuário  na oficina 1)
         createRequest = new UsuarioRequestDTO(
                 "Novo Usuario", "83977776666", "99988877766",
-                1L, "novo.usuario", "senha1234", Role.);
+                1L, "novo.usuario", "senha1234", Role.GERENTE);
 
         // DTO de atualização (mantém username e documento, apenas muda o nome e telefone)
         updateRequest = new UsuarioUpdateRequestDTO(
                 "Usuario Atualizado", "83966665555", "12345678901",
-                1L, "usuario.original", null, Role.);
+                1L, "usuario.original", null, Role.GERENTE);
     }
 
     // ─────────────────────────── listar ───────────────────────────
@@ -129,9 +129,9 @@ class UsuarioServiceTest {
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
-        assertThat(resultado.getContent().get(0).username()).isEqualTo("usuario.original");
-        assertThat(resultado.getContent().get(0).role()).isEqualTo(Role.);
+        assertThat(resultado.getContent().getFirst().id()).isEqualTo(1L);
+        assertThat(resultado.getContent().getFirst().username()).isEqualTo("usuario.original");
+        assertThat(resultado.getContent().getFirst().role()).isEqualTo(Role.GERENTE);
 
         verify(usuarioRepository, times(1)).findAll(pageable);
         verify(usuarioRepository, never()).findByOficinaId(anyLong(), any(Pageable.class));
@@ -139,7 +139,7 @@ class UsuarioServiceTest {
 
     @Test
     @DisplayName("listar() como  deve retornar apenas usuários da sua oficina")
-    void listar_comoAdministrativo_retornaUsuariosDaSuaOficina() {
+    void listar_comoGerente_retornaUsuariosDaSuaOficina() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
 
@@ -150,7 +150,7 @@ class UsuarioServiceTest {
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
+        assertThat(resultado.getContent().getFirst().id()).isEqualTo(1L);
 
         verify(usuarioRepository, times(1)).findByOficinaId(1L, pageable);
         verify(usuarioRepository, never()).findAll(any(Pageable.class));
@@ -170,7 +170,7 @@ class UsuarioServiceTest {
         assertThat(resultado.id()).isEqualTo(1L);
         assertThat(resultado.nome()).isEqualTo("Usuario Original");
         assertThat(resultado.username()).isEqualTo("usuario.original");
-        assertThat(resultado.role()).isEqualTo(Role.);
+        assertThat(resultado.role()).isEqualTo(Role.GERENTE);
         assertThat(resultado.oficinaId()).isEqualTo(1L);
     }
 
@@ -199,7 +199,7 @@ class UsuarioServiceTest {
         usuarioAlheio.setDocumento("98765432100");
         usuarioAlheio.setOficina(outraOficina);
         usuarioAlheio.setUsername("alheio.user");
-        usuarioAlheio.setRole(Role.);
+        usuarioAlheio.setRole(Role.GERENTE);
 
         // administrativoUser pertence à oficina 1; usuarioAlheio à oficina 2
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
@@ -223,7 +223,7 @@ class UsuarioServiceTest {
         salvo.setOficina(oficina);
         salvo.setUsername("novo.usuario");
         salvo.setPassword("$2a$10$hashNovo");
-        salvo.setRole(Role.);
+        salvo.setRole(Role.GERENTE);
 
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -238,7 +238,7 @@ class UsuarioServiceTest {
         assertThat(resultado.id()).isEqualTo(2L);
         assertThat(resultado.nome()).isEqualTo("Novo Usuario");
         assertThat(resultado.username()).isEqualTo("novo.usuario");
-        assertThat(resultado.role()).isEqualTo(Role.);
+        assertThat(resultado.role()).isEqualTo(Role.GERENTE);
         assertThat(resultado.oficinaId()).isEqualTo(1L);
 
         verify(usuarioRepository, times(1)).save(any(Usuario.class));
@@ -273,7 +273,7 @@ class UsuarioServiceTest {
 
     @Test
     @DisplayName("criar() como  tentando criar usuário com role ADMIN deve lançar AccessDeniedException")
-    void criar_comoAdministrativo_roleAdmin_lancaAccessDeniedException() {
+    void criar_comoGerente_roleAdmin_lancaAccessDeniedException() {
         // Request pedindo criação de um usuário ADMIN
         UsuarioRequestDTO requestAdminRole = new UsuarioRequestDTO(
                 "Novo Admin", "83977776666", "55544433322",
@@ -292,10 +292,10 @@ class UsuarioServiceTest {
 
     @Test
     @DisplayName("criar() como  tentando criar em outra oficina deve lançar AccessDeniedException")
-    void criar_comoAdministrativo_outraOficina_lancaAccessDeniedException() {
+    void criar_comoGerente_outraOficina_lancaAccessDeniedException() {
         UsuarioRequestDTO requestOutraOficina = new UsuarioRequestDTO(
                 "Novo Usuario", "83977776666", "55544433322",
-                2L, "novo.usuario", "senha1234", Role.);
+                2L, "novo.usuario", "senha1234", Role.GERENTE);
 
         // administrativoUser pertence à oficina 1; request aponta para oficina 2
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
@@ -328,7 +328,7 @@ class UsuarioServiceTest {
         // applyUpdate modifica usuarioAlvo em lugar; nome e telefone devem refletir o updateRequest
         assertThat(resultado.nome()).isEqualTo("Usuario Atualizado");
         assertThat(resultado.username()).isEqualTo("usuario.original");
-        assertThat(resultado.role()).isEqualTo(Role.);
+        assertThat(resultado.role()).isEqualTo(Role.GERENTE);
         assertThat(resultado.oficinaId()).isEqualTo(1L);
 
         verify(usuarioRepository, times(1)).save(any(Usuario.class));
@@ -351,7 +351,7 @@ class UsuarioServiceTest {
     void atualizar_usernameDuplicadoOutroUsuario_lancaUsernameAlreadyExistsException() {
         UsuarioUpdateRequestDTO requestNovoUsername = new UsuarioUpdateRequestDTO(
                 "Usuario Atualizado", "83966665555", "12345678901",
-                1L, "outro.usuario.existente", null, Role.);
+                1L, "outro.usuario.existente", null, Role.GERENTE);
 
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
@@ -370,7 +370,7 @@ class UsuarioServiceTest {
     void atualizar_documentoDuplicadoOutroUsuario_lancaUsuarioAlreadyExistsException() {
         UsuarioUpdateRequestDTO requestNovoDoc = new UsuarioUpdateRequestDTO(
                 "Usuario Atualizado", "83966665555", "99988877766",
-                1L, "usuario.original", null, Role.);
+                1L, "usuario.original", null, Role.GERENTE);
 
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
@@ -421,7 +421,7 @@ class UsuarioServiceTest {
         Page<UsuarioResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);
 
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
+        assertThat(resultado.getContent().getFirst().oficinaId()).isEqualTo(1L);
     }
 
     // ────────────── ADMIN do SaaS: sem filiação com oficina ──────────────
@@ -480,7 +480,7 @@ class UsuarioServiceTest {
     void criar_administrativoSemOficina_lancaOficinaIncompativel() {
         UsuarioRequestDTO requestSemOficina = new UsuarioRequestDTO(
                 "Sem Oficina", "83900000000", null,
-                null, "sem.oficina", "senha1234", Role.);
+                null, "sem.oficina", "senha1234", Role.GERENTE);
 
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         when(usuarioRepository.existsByUsername("sem.oficina")).thenReturn(false);
@@ -493,7 +493,7 @@ class UsuarioServiceTest {
 
     @Test
     @DisplayName("criar()  não pode criar usuário sem oficina (privilégio do ADMIN do SaaS)")
-    void criar_comoAdministrativo_semOficina_lancaAccessDenied() {
+    void criar_comoGerente_semOficina_lancaAccessDenied() {
         UsuarioRequestDTO requestSemOficina = new UsuarioRequestDTO(
                 "Novo Admin", "83900000000", null,
                 null, "novo.admin", "senha1234", Role.ADMIN);
