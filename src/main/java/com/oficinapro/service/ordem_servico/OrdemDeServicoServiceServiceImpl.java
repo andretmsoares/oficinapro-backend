@@ -405,14 +405,14 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
             );
         }
 
-        if (novo == StatusOrdemDeServico.FINALIZADA) {
+        if (novo == StatusOrdemDeServico.FECHADA) {
 
             PagamentoResponseDTO pagamento =
                     pagamentoService.buscarPorOsId(os.getId());
 
             if (pagamento.status() != StatusPagamento.PAGA) {
                 throw new IllegalStateException(
-                        "A Ordem de Serviço só pode ser finalizada após o pagamento integral"
+                        "A Ordem de Serviço só pode ser fechada após o pagamento integral"
                 );
             }
         }
