@@ -4,7 +4,7 @@ import com.oficinapro.dto.auth.LoginRequestDTO;
 import com.oficinapro.dto.auth.LoginResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.exception.GlobalExceptionHandler;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.auth.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

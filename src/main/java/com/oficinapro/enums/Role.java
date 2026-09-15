@@ -1,4 +1,4 @@
-package com.oficinapro.security.role;
+package com.oficinapro.enums;
 
 public enum Role {
 

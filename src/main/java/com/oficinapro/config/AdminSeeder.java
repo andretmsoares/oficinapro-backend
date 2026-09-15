@@ -2,7 +2,7 @@ package com.oficinapro.config;
 
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,6 +1,6 @@
 package com.oficinapro.dto.usuario;
 
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
