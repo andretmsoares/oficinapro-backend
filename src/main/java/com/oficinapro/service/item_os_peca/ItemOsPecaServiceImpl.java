@@ -12,6 +12,7 @@ import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
+import com.oficinapro.service.ordem_servico.OrdemDeServicoValorRecalculator;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     private final ItemOsPecaRepository itemOsPecaRepository;
     private final OrdemDeServicoService ordemDeServicoService;
     private final PagamentoService pagamentoService;
+    private final OrdemDeServicoValorRecalculator valorRecalculator;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,7 +66,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
         item = itemOsPecaRepository.save(item);
 
-        recalcularValorTotalOS(os);
+        valorRecalculator.recalcular(os);
 
         return toResponse(item);
     }
@@ -84,7 +86,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
         item = itemOsPecaRepository.save(item);
 
-        recalcularValorTotalOS(os);
+        valorRecalculator.recalcular(os);
 
         return toResponse(item);
     }
@@ -107,8 +109,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
         }
 
         itemOsPecaRepository.delete(item);
-        this.recalcularValorTotalOS(os);
-        recalcularValorTotalOS(os);
+        valorRecalculator.recalcular(os);
     }
 
     private void validarOsEditavel(OrdemDeServico os) {
@@ -122,15 +123,6 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
     private BigDecimal calcularValorTotal(BigDecimal quantidade, BigDecimal valorUnitario) {
         return quantidade.multiply(valorUnitario).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private void recalcularValorTotalOS(OrdemDeServico os) {
-        BigDecimal total = itemOsPecaRepository.findByOrdemDeServicoId(os.getId()).stream()
-                .map(ItemOsPeca::getValorTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        ordemDeServicoService.recalcularValorTotal(os.getId(), total);
-        pagamentoService.recalcularStatus(os.getId());
     }
 
     private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {
