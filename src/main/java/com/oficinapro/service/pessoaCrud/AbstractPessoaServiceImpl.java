@@ -7,12 +7,11 @@ import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.PessoaCrudRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;

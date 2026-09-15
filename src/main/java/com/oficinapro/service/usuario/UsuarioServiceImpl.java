@@ -12,7 +12,7 @@ import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;

@@ -7,15 +7,13 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
-import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
-import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
@@ -30,14 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
+public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
     private final OrdemDeServicoRepository ordemServicoRepository;
     private final OficinaService oficinaService;

@@ -7,7 +7,7 @@ import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

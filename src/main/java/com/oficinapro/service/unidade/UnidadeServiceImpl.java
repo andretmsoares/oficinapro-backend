@@ -4,17 +4,15 @@ import com.oficinapro.dto.unidade.UnidadeRequestDTO;
 import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
-import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

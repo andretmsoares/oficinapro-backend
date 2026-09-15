@@ -8,7 +8,7 @@ import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.repository.PagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
