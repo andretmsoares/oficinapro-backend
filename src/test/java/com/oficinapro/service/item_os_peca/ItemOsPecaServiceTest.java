@@ -1,222 +1,376 @@
 package com.oficinapro.service.item_os_peca;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaRequestDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaResponseDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
+import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSFinishedException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
-import org.junit.jupiter.api.BeforeEach;
+import com.oficinapro.service.ordem_servico.OrdemDeServicoValorRecalculator;
+import com.oficinapro.service.pagamento.PagamentoService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
+/**
+ * Peças lançadas em uma Ordem de Serviço.
+ *
+ * <p>O que mudou no refactor e está travado aqui: o service não recalcula mais o total da OS por
+ * conta própria — ele delega ao {@link OrdemDeServicoValorRecalculator}, que soma peças e mão de
+ * obra. E a exclusão passou a recusar deixar a OS valer menos do que já foi pago.
+ */
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles("test")
 class ItemOsPecaServiceTest {
 
-    @Mock
-    private ItemOsPecaRepository itemOsPecaRepository;
+  private static final Long OS_ID = 100L;
+  private static final Long ITEM_ID = 9L;
 
+  @Mock private ItemOsPecaRepository itemOsPecaRepository;
+  @Mock private OrdemDeServicoService ordemDeServicoService;
+  @Mock private PagamentoService pagamentoService;
+  @Mock private OrdemDeServicoValorRecalculator valorRecalculator;
 
-    @Mock
-    private OrdemDeServicoService ordemDeServicoService;
+  @InjectMocks private ItemOsPecaServiceImpl service;
 
-    @InjectMocks
-    private ItemOsPecaServiceImpl itemOsPecaService;
+  private OrdemDeServico os(StatusOrdemDeServico status, String valorComDesconto) {
+    Oficina oficina = new Oficina();
+    oficina.setId(1L);
 
-    private Oficina oficina;
-    private OrdemDeServico os;
-    private ItemOsPeca item;
+    OrdemDeServico os = new OrdemDeServico();
+    os.setId(OS_ID);
+    os.setOficina(oficina);
+    os.setStatus(status);
+    os.setValorTotal(new BigDecimal(valorComDesconto));
+    os.setDesconto(BigDecimal.ZERO);
+    os.setValorComDesconto(new BigDecimal(valorComDesconto));
+    return os;
+  }
 
-    @BeforeEach
-    void setUp() {
-        oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+  private ItemOsPeca item(OrdemDeServico os, String quantidade, String valorUnitario) {
+    ItemOsPeca item = new ItemOsPeca();
+    item.setId(ITEM_ID);
+    item.setOrdemDeServico(os);
+    item.setNome("Pastilha de freio");
+    item.setQuantidade(new BigDecimal(quantidade));
+    item.setValorUnitario(new BigDecimal(valorUnitario));
+    item.setValorTotal(new BigDecimal(quantidade).multiply(new BigDecimal(valorUnitario)));
+    return item;
+  }
 
-        // OrdemDeServico.id é long (primitivo) → ReflectionTestUtils
-        os = new OrdemDeServico();
-        ReflectionTestUtils.setField(os, "id", 1L);
-        os.setStatus(StatusOrdemDeServico.ABERTA);
-        os.setOficina(oficina);
-        os.setValorTotal(BigDecimal.ZERO);
+  private PagamentoResponseDTO pagamentoComValorPago(String valorPago) {
+    return new PagamentoResponseDTO(
+        50L,
+        OS_ID,
+        new BigDecimal(valorPago),
+        "",
+        LocalDateTime.now(),
+        StatusPagamento.PAGO_PARCIALMENTE);
+  }
 
-        // ItemOsPeca tem @AllArgsConstructor; id usa @GeneratedValue → ReflectionTestUtils
-        item = new ItemOsPeca();
-        ReflectionTestUtils.setField(item, "id", 1L);
-        item.setOrdemDeServico(os);
-        item.setNome("Pastilha de Freio");
-        item.setQuantidade(new BigDecimal("2"));
-        item.setValorUnitario(new BigDecimal("50.00"));
-        item.setValorTotal(new BigDecimal("100.00"));
-    }
+  @Nested
+  @DisplayName("criar")
+  class Criar {
 
-    // ---------------------------------------------------------------
-    // listarPorOrdemServico()
-    // ---------------------------------------------------------------
+    @ParameterizedTest(name = "{0} x {1} = {2}")
+    @CsvSource({
+      "2,     120.00, 240.00",
+      "1,     35.50,  35.50",
+      "0.500, 100.00, 50.00",
+      "3,     33.333, 100.00"
+    })
+    @DisplayName("deve calcular valorTotal = quantidade x valorUnitario com 2 casas decimais")
+    void deveCalcularValorTotalDoItem(
+        String quantidade, String valorUnitario, String valorTotalEsperado) {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "0.00");
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(itemOsPecaRepository.save(any(ItemOsPeca.class)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    @DisplayName("deve listar itens de uma OS com sucesso, validando acesso à OS antes")
-    void deveListarItensPorOrdemServicoComSucesso() {
-        // buscarPorEntidadeId valida o acesso; o retorno não é usado no método
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-        when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of(item));
+      ItemOsPecaResponseDTO resposta =
+          service.criar(
+              new ItemOsPecaRequestDTO(
+                  OS_ID, "Peça", new BigDecimal(quantidade), new BigDecimal(valorUnitario)));
 
-        List<ItemOsPecaResponseDTO> resultado = itemOsPecaService.listarPorOrdemServico(1L);
-
-        assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).nome()).isEqualTo("Pastilha de Freio");
-        assertThat(resultado.get(0).osId()).isEqualTo(1L);
-        verify(ordemDeServicoService).buscarPorEntidadeId(1L);
-        verify(itemOsPecaRepository).findByOrdemDeServicoId(1L);
-    }
-
-    // ---------------------------------------------------------------
-    // buscarPorId()
-    // ---------------------------------------------------------------
-
-    @Test
-    @DisplayName("deve buscar item por ID com sucesso, validando acesso à OS")
-    void deveBuscarItemPorIdComSucesso() {
-        when(itemOsPecaRepository.findById(1L)).thenReturn(Optional.of(item));
-        // item.getOrdemDeServico().getId() retorna long (1L) → autoboxed para Long
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-
-        ItemOsPecaResponseDTO resultado = itemOsPecaService.buscarPorId(1L);
-
-        assertThat(resultado).isNotNull();
-        assertThat(resultado.id()).isEqualTo(1L);
-        assertThat(resultado.nome()).isEqualTo("Pastilha de Freio");
-        assertThat(resultado.valorTotal()).isEqualByComparingTo(new BigDecimal("100.00"));
-    }
-
-    @Test
-    @DisplayName("deve lançar ItemOsPecaNotFoundException ao buscar item inexistente")
-    void deveLancarExcecaoAoBuscarItemInexistente() {
-        when(itemOsPecaRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> itemOsPecaService.buscarPorId(99L))
-                .isInstanceOf(ItemOsPecaNotFoundException.class);
-
-        verify(ordemDeServicoService, never()).buscarPorEntidadeId(anyLong());
-    }
-
-    // ---------------------------------------------------------------
-    // criar()
-    // ---------------------------------------------------------------
-
-    @Test
-    @DisplayName("deve criar item com sucesso: valorTotal = qtd × valorUnitario e OS é recalculada")
-    void deveCriarItemComSucessoERecalcularValorTotalDaOS() {
-        ItemOsPecaRequestDTO request = new ItemOsPecaRequestDTO(
-                1L, "Pastilha de Freio", new BigDecimal("2"), new BigDecimal("50.00")
-        );
-
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-        when(itemOsPecaRepository.save(any(ItemOsPeca.class))).thenReturn(item);
-        when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of(item));
-
-        ItemOsPecaResponseDTO resultado = itemOsPecaService.criar(request);
-
-        assertThat(resultado).isNotNull();
-        assertThat(resultado.nome()).isEqualTo("Pastilha de Freio");
-        assertThat(resultado.valorTotal()).isEqualByComparingTo(new BigDecimal("100.00"));
-        verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
-        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(new BigDecimal("100.00")));
+      assertThat(resposta.valorTotal()).isEqualByComparingTo(valorTotalEsperado);
     }
 
     @Test
-    @DisplayName("deve lançar OSCanceledException ao criar item em OS cancelada")
-    void deveLancarExcecaoAoCriarItemEmOSCancelada() {
-        os.setStatus(StatusOrdemDeServico.CANCELADA);
-        ItemOsPecaRequestDTO request = new ItemOsPecaRequestDTO(
-                1L, "Amortecedor", new BigDecimal("1"), new BigDecimal("300.00")
-        );
+    @DisplayName("deve persistir o item e então delegar o recálculo do total da OS")
+    void devePersistirEDelegarRecalculo() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "0.00");
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(itemOsPecaRepository.save(any(ItemOsPeca.class)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
+      service.criar(
+          new ItemOsPecaRequestDTO(
+              OS_ID, "Peça", new BigDecimal("2"), new BigDecimal("50.00")));
 
-        assertThatThrownBy(() -> itemOsPecaService.criar(request))
-                .isInstanceOf(OSCanceledException.class);
-
-        verify(itemOsPecaRepository, never()).save(any());
-        verify(ordemDeServicoService, never()).recalcularValorTotal(any(), any());
+      InOrder ordem = inOrder(itemOsPecaRepository, valorRecalculator);
+      ordem.verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
+      ordem.verify(valorRecalculator).recalcular(os);
     }
 
     @Test
-    @DisplayName("deve lançar OSFinishedException ao criar item em OS entregue")
-    void deveLancarExcecaoAoCriarItemEmOSEntregue() {
-        os.setStatus(StatusOrdemDeServico.ENTREGUE);
-        ItemOsPecaRequestDTO request = new ItemOsPecaRequestDTO(
-                1L, "Filtro de Ar", new BigDecimal("1"), new BigDecimal("45.00")
-        );
+    @DisplayName("não deve lançar peça em OS cancelada")
+    void naoDeveLancarPecaEmOsCancelada() {
+      OrdemDeServico os = os(StatusOrdemDeServico.CANCELADA, "0.00");
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      doThrow(new OSCanceledException()).when(valorRecalculator).validarOsEditavel(os);
 
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
+      assertThatThrownBy(
+              () ->
+                  service.criar(
+                      new ItemOsPecaRequestDTO(
+                          OS_ID, "Peça", BigDecimal.ONE, new BigDecimal("10.00"))))
+          .isInstanceOf(OSCanceledException.class);
 
-        assertThatThrownBy(() -> itemOsPecaService.criar(request))
-                .isInstanceOf(OSFinishedException.class);
-
-        verify(itemOsPecaRepository, never()).save(any());
-        verify(ordemDeServicoService, never()).recalcularValorTotal(any(), any());
+      verify(itemOsPecaRepository, never()).save(any());
+      verify(valorRecalculator, never()).recalcular(any());
     }
 
     @Test
-    @DisplayName("deve atualizar item com sucesso e recalcular valor total da OS")
-    void deveAtualizarItemComSucessoERecalcularValorTotalDaOS() {
-        ItemOsPecaUpdateRequestDTO request = new ItemOsPecaUpdateRequestDTO(
-                "Óleo Motor 5W30", new BigDecimal("3"), new BigDecimal("30.00")
-        );
+    @DisplayName("não deve lançar peça em OS fechada")
+    void naoDeveLancarPecaEmOsFechada() {
+      OrdemDeServico os = os(StatusOrdemDeServico.FECHADA, "0.00");
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      doThrow(new OSFinishedException()).when(valorRecalculator).validarOsEditavel(os);
 
-        ItemOsPeca itemAtualizado = new ItemOsPeca();
-        ReflectionTestUtils.setField(itemAtualizado, "id", 1L);
-        itemAtualizado.setOrdemDeServico(os);
-        itemAtualizado.setNome("Óleo Motor 5W30");
-        itemAtualizado.setQuantidade(new BigDecimal("3"));
-        itemAtualizado.setValorUnitario(new BigDecimal("30.00"));
-        itemAtualizado.setValorTotal(new BigDecimal("90.00"));
+      assertThatThrownBy(
+              () ->
+                  service.criar(
+                      new ItemOsPecaRequestDTO(
+                          OS_ID, "Peça", BigDecimal.ONE, new BigDecimal("10.00"))))
+          .isInstanceOf(OSFinishedException.class);
 
-        when(itemOsPecaRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-        when(itemOsPecaRepository.save(any(ItemOsPeca.class))).thenReturn(itemAtualizado);
-        when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of(itemAtualizado));
-
-        ItemOsPecaResponseDTO resultado = itemOsPecaService.atualizar(1L, request);
-
-        assertThat(resultado).isNotNull();
-        assertThat(resultado.nome()).isEqualTo("Óleo Motor 5W30");
-        assertThat(resultado.valorTotal()).isEqualByComparingTo(new BigDecimal("90.00"));
-        verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
-        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(new BigDecimal("90.00")));
+      verify(itemOsPecaRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("deve deletar item e recalcular valorTotal da OS como zero (lista vazia após deleção)")
-    void deveDeletarItemERecalcularValorTotalDaOSComoZero() {
-        when(itemOsPecaRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(ordemDeServicoService.buscarPorEntidadeId(1L)).thenReturn(os);
-        when(itemOsPecaRepository.findByOrdemDeServicoId(1L)).thenReturn(List.of());
+    @DisplayName("deve propagar 'OS não encontrada' quando a OS não existe ou é de outra oficina")
+    void devePropagarOsInexistente() {
+      when(ordemDeServicoService.buscarPorEntidadeId(999L))
+          .thenThrow(new OrdemDeServicoNotFoundException(999L));
 
-        itemOsPecaService.deletar(1L);
+      assertThatThrownBy(
+              () ->
+                  service.criar(
+                      new ItemOsPecaRequestDTO(
+                          999L, "Peça", BigDecimal.ONE, new BigDecimal("10.00"))))
+          .isInstanceOf(OrdemDeServicoNotFoundException.class);
 
-        verify(itemOsPecaRepository).delete(item);
-        verify(ordemDeServicoService).recalcularValorTotal(eq(1L), eq(BigDecimal.ZERO));
+      verify(itemOsPecaRepository, never()).save(any());
     }
+  }
+
+  @Nested
+  @DisplayName("atualizar")
+  class Atualizar {
+
+    @Test
+    @DisplayName("deve recalcular o valorTotal do item ao alterar quantidade e preço")
+    void deveRecalcularValorTotalDoItem() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      when(itemOsPecaRepository.findById(ITEM_ID))
+          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(itemOsPecaRepository.save(any(ItemOsPeca.class)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
+
+      ItemOsPecaResponseDTO resposta =
+          service.atualizar(
+              ITEM_ID,
+              new ItemOsPecaUpdateRequestDTO(
+                  "Pastilha premium", new BigDecimal("4"), new BigDecimal("150.00")));
+
+      assertThat(resposta.nome()).isEqualTo("Pastilha premium");
+      assertThat(resposta.valorTotal()).isEqualByComparingTo("600.00");
+      verify(valorRecalculator).recalcular(os);
+    }
+
+    @Test
+    @DisplayName("deve lançar ItemOsPecaNotFoundException ao atualizar item inexistente")
+    void deveLancarAoAtualizarItemInexistente() {
+      when(itemOsPecaRepository.findById(404L)).thenReturn(Optional.empty());
+
+      assertThatThrownBy(
+              () ->
+                  service.atualizar(
+                      404L,
+                      new ItemOsPecaUpdateRequestDTO(
+                          "x", BigDecimal.ONE, new BigDecimal("1.00"))))
+          .isInstanceOf(ItemOsPecaNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("não deve atualizar peça de OS cancelada")
+    void naoDeveAtualizarPecaDeOsCancelada() {
+      OrdemDeServico os = os(StatusOrdemDeServico.CANCELADA, "240.00");
+      when(itemOsPecaRepository.findById(ITEM_ID))
+          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      doThrow(new OSCanceledException()).when(valorRecalculator).validarOsEditavel(os);
+
+      assertThatThrownBy(
+              () ->
+                  service.atualizar(
+                      ITEM_ID,
+                      new ItemOsPecaUpdateRequestDTO(
+                          "x", BigDecimal.ONE, new BigDecimal("1.00"))))
+          .isInstanceOf(OSCanceledException.class);
+
+      verify(itemOsPecaRepository, never()).save(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("deletar")
+  class Deletar {
+
+    @Test
+    @DisplayName("deve excluir a peça e recalcular o total da OS")
+    void deveExcluirPecaERecalcular() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      ItemOsPeca existente = item(os, "2", "120.00");
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(existente));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(pagamentoService.buscarPorOsId(OS_ID)).thenReturn(pagamentoComValorPago("0.00"));
+
+      service.deletar(ITEM_ID);
+
+      verify(itemOsPecaRepository).delete(existente);
+      verify(valorRecalculator).recalcular(os);
+    }
+
+    @Test
+    @DisplayName("não deve excluir peça se a OS passaria a valer menos do que já foi pago")
+    void naoDeveExcluirSeOsFicariaAbaixoDoValorPago() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      ItemOsPeca existente = item(os, "2", "120.00");
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(existente));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      // Restante seria 0,00 mas o cliente já pagou 100,00.
+      when(pagamentoService.buscarPorOsId(OS_ID)).thenReturn(pagamentoComValorPago("100.00"));
+
+      assertThatThrownBy(() -> service.deletar(ITEM_ID))
+          .isInstanceOf(PagamentoValorExcedidoException.class);
+
+      verify(itemOsPecaRepository, never()).delete(any());
+      verify(valorRecalculator, never()).recalcular(any());
+    }
+
+    @Test
+    @DisplayName("deve excluir quando o valor restante fica exatamente igual ao já pago")
+    void deveExcluirQuandoRestanteIgualAoPago() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      ItemOsPeca existente = item(os, "1", "40.00");
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(existente));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(pagamentoService.buscarPorOsId(OS_ID)).thenReturn(pagamentoComValorPago("200.00"));
+
+      service.deletar(ITEM_ID);
+
+      verify(itemOsPecaRepository).delete(existente);
+    }
+
+    @Test
+    @DisplayName("não deve excluir peça de OS fechada")
+    void naoDeveExcluirPecaDeOsFechada() {
+      OrdemDeServico os = os(StatusOrdemDeServico.FECHADA, "240.00");
+      ItemOsPeca existente = item(os, "2", "120.00");
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(existente));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      doThrow(new OSFinishedException()).when(valorRecalculator).validarOsEditavel(os);
+
+      assertThatThrownBy(() -> service.deletar(ITEM_ID))
+          .isInstanceOf(OSFinishedException.class);
+
+      verify(itemOsPecaRepository, never()).delete(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("consultas e isolamento por oficina")
+  class Consultas {
+
+    @Test
+    @DisplayName("deve validar o acesso à OS antes de listar as peças")
+    void deveValidarAcessoAntesDeListar() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID))
+          .thenReturn(List.of(item(os, "2", "120.00")));
+
+      List<ItemOsPecaResponseDTO> resultado = service.listarPorOrdemServico(OS_ID);
+
+      assertThat(resultado).hasSize(1);
+      assertThat(resultado.get(0).valorTotal()).isEqualByComparingTo("240.00");
+      verify(ordemDeServicoService).buscarPorEntidadeId(OS_ID);
+    }
+
+    @Test
+    @DisplayName("não deve listar peças de OS de outra oficina")
+    void naoDeveListarPecasDeOutraOficina() {
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID))
+          .thenThrow(new OrdemDeServicoNotFoundException(OS_ID));
+
+      assertThatThrownBy(() -> service.listarPorOrdemServico(OS_ID))
+          .isInstanceOf(OrdemDeServicoNotFoundException.class);
+
+      verify(itemOsPecaRepository, never()).findByOrdemDeServicoId(any());
+    }
+
+    @Test
+    @DisplayName("deve revalidar o acesso à OS ao buscar uma peça por id")
+    void deveRevalidarAcessoAoBuscarPorId() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      when(itemOsPecaRepository.findById(ITEM_ID))
+          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+
+      ItemOsPecaResponseDTO resposta = service.buscarPorId(ITEM_ID);
+
+      assertThat(resposta.id()).isEqualTo(ITEM_ID);
+      verify(ordemDeServicoService).buscarPorEntidadeId(OS_ID);
+    }
+
+    @Test
+    @DisplayName("deve lançar ItemOsPecaNotFoundException ao buscar peça inexistente")
+    void deveLancarAoBuscarPecaInexistente() {
+      when(itemOsPecaRepository.findById(404L)).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> service.buscarPorId(404L))
+          .isInstanceOf(ItemOsPecaNotFoundException.class);
+    }
+  }
 }
