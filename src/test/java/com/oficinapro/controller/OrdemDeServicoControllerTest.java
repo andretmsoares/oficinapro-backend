@@ -154,7 +154,8 @@ class OrdemDeServicoControllerTest {
   // ─── PATCH /api/ordens-servico/{id}/status ────────────────────────────────────
 
   @Test
-  @DisplayName("PATCH /api/ordens-servico/{id}/status - GERENTE deve atualizar status e retornar 200")
+  @DisplayName(
+      "PATCH /api/ordens-servico/{id}/status - GERENTE deve atualizar status e retornar 200")
   @WithMockUser(roles = "GERENTE")
   void deveAtualizarStatusOs() throws Exception {
     OrdemDeServicoResponseDTO osEmExecucao =

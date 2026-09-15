@@ -45,16 +45,17 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final OficinaAccessValidator oficinaAccessValidator;
 
   /**
-   * Construtor escrito à mão (em vez de {@code @RequiredArgsConstructor}) porque
-   * {@code pagamentoService} precisa do {@code @Lazy} no parâmetro.
+   * Construtor escrito à mão (em vez de {@code @RequiredArgsConstructor}) porque {@code
+   * pagamentoService} precisa do {@code @Lazy} no parâmetro.
    *
    * <p>Existe uma dependência circular real entre este service e o de pagamento: a OS abre o
    * pagamento ao ser criada e consulta o pagamento para permitir a transição para FECHADA, enquanto
    * o pagamento resolve e valida a OS. Como o Spring Boot proíbe referências circulares por padrão,
    * sem o {@code @Lazy} o contexto não sobe — a aplicação inteira falha na inicialização.
    *
-   * <p>O {@code @Lazy} precisa estar no ponto de injeção: anotar a classe {@code PagamentoServiceImpl}
-   * apenas adiaria a instanciação do bean, sem criar o proxy que efetivamente rompe o ciclo.
+   * <p>O {@code @Lazy} precisa estar no ponto de injeção: anotar a classe {@code
+   * PagamentoServiceImpl} apenas adiaria a instanciação do bean, sem criar o proxy que efetivamente
+   * rompe o ciclo.
    */
   public OrdemDeServicoServiceImpl(
       OrdemDeServicoRepository ordemServicoRepository,
