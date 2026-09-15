@@ -198,27 +198,30 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     ) {
         OrdemDeServico os = this.buscarPorEntidadeId(id);
 
-        StatusOrdemDeServico novoStatus = dto.status();
+        StatusOrdemDeServico atual = os.getStatus();
+        StatusOrdemDeServico novo = dto.status();
 
-        if (os.getStatus() == StatusOrdemDeServico.CANCELADA) {
-            throw new OSCanceledException();
-        }
+        Usuario usuario =
+                authenticatedUserProvider.getUsuarioAutenticado();
 
-        os.setStatus(novoStatus);
+        validarTransicaoStatus(atual, novo, usuario);
 
-        if (novoStatus == StatusOrdemDeServico.FINALIZADA
-                || novoStatus == StatusOrdemDeServico.ENTREGUE) {
+        os.setStatus(novo);
+
+        if (novo == StatusOrdemDeServico.FINALIZADA
+                || novo == StatusOrdemDeServico.ENTREGUE) {
 
             if (os.getDataFechamento() == null) {
                 os.setDataFechamento(LocalDateTime.now());
             }
 
         } else {
-            // Se a OS foi reaberta/regrediu, remove a data de fechamento
             os.setDataFechamento(null);
         }
 
-        return toResponseDTO(ordemServicoRepository.save(os));
+        return toResponseDTO(
+                ordemServicoRepository.save(os)
+        );
     }
 
     @Override
@@ -379,5 +382,82 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
                 os.getValorTotal(),
                 os.getValorComDesconto()
         );
+    }
+
+    private void validarTransicaoStatus(
+            StatusOrdemDeServico atual,
+            StatusOrdemDeServico novo,
+            Usuario usuario
+    ) {
+        if (atual == StatusOrdemDeServico.CANCELADA) {
+            throw new OSCanceledException();
+        }
+
+        if (usuario.getRole() == Role.MECANICO
+                && (novo == StatusOrdemDeServico.FINALIZADA
+                || novo == StatusOrdemDeServico.ENTREGUE
+                || novo == StatusOrdemDeServico.CANCELADA)) {
+
+            throw new AccessDeniedException(
+                    "O mecânico não possui permissão para realizar esta alteração de status"
+            );
+        }
+
+        if (atual == novo) {
+            return;
+        }
+
+        if (!transicaoPermitida(atual, novo)) {
+            throw new IllegalStateException(
+                    "Transição de status não permitida: "
+                            + atual + " → " + novo
+            );
+        }
+    }
+
+    private boolean transicaoPermitida(
+            StatusOrdemDeServico atual,
+            StatusOrdemDeServico novo
+    ) {
+        return switch (atual) {
+
+            case ABERTA ->
+                    novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case DIAGNOSTICO ->
+                    novo == StatusOrdemDeServico.AGUARDANDO_APROVACAO
+                            || novo == StatusOrdemDeServico.ABERTA
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case AGUARDANDO_APROVACAO ->
+                    novo == StatusOrdemDeServico.AGUARDANDO_PECAS
+                            || novo == StatusOrdemDeServico.EM_EXECUCAO
+                            || novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case AGUARDANDO_PECAS ->
+                    novo == StatusOrdemDeServico.EM_EXECUCAO
+                            || novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case EM_EXECUCAO ->
+                    novo == StatusOrdemDeServico.FINALIZADA
+                            || novo == StatusOrdemDeServico.AGUARDANDO_PECAS
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case FINALIZADA ->
+                    novo == StatusOrdemDeServico.ENTREGUE
+                            || novo == StatusOrdemDeServico.EM_EXECUCAO
+                            || novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.ABERTA;
+
+            case ENTREGUE ->
+                    novo == StatusOrdemDeServico.EM_EXECUCAO
+                            || novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.ABERTA;
+
+            case CANCELADA -> false;
+        };
     }
 }
