@@ -53,7 +53,7 @@ class ClienteControllerTest {
   // ─── GET /api/clientes ───────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/clientes - ADMIN deve retornar 200 com página de clientes")
+  @DisplayName("GET /api/clientes - GERENTE deve retornar 200 com página de clientes")
   @WithMockUser(roles = "ADMIN")
   void deveListarClientesComoAdmin() throws Exception {
     when(clienteService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
@@ -75,8 +75,8 @@ class ClienteControllerTest {
   // ─── GET /api/clientes/{id} ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/clientes/{id} - ADMIN deve retornar 200 com o cliente correto")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/clientes/{id} - GERENTE deve retornar 200 com o cliente correto")
+  @WithMockUser(roles = "GERENTE")
   void deveBuscarClientePorId() throws Exception {
     when(clienteService.buscarPorId(1L)).thenReturn(responseDTO);
 
@@ -90,7 +90,7 @@ class ClienteControllerTest {
 
   @Test
   @DisplayName("GET /api/clientes/{id} - Deve retornar 404 quando cliente não existir")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar404AoBuscarClienteInexistente() throws Exception {
     when(clienteService.buscarPorId(99L)).thenThrow(new ClienteNotFoundException());
 
@@ -100,8 +100,8 @@ class ClienteControllerTest {
   // ─── POST /api/clientes ──────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/clientes - ADMIN deve criar cliente e retornar 201")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("POST /api/clientes - GERENTE deve criar cliente e retornar 201")
+  @WithMockUser(roles = "GERENTE")
   void deveCriarCliente() throws Exception {
     when(clienteService.criar(any(ClienteRequestDTO.class))).thenReturn(responseDTO);
 
@@ -118,7 +118,7 @@ class ClienteControllerTest {
 
   @Test
   @DisplayName("POST /api/clientes - Deve retornar 400 com nome em branco (validação)")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar400ComNomeEmBranco() throws Exception {
     ClienteRequestDTO requestInvalido = new ClienteRequestDTO("", "83999998888", "12345678901", 1L);
 
@@ -134,8 +134,8 @@ class ClienteControllerTest {
   // ─── PUT /api/clientes/{id} ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("PUT /api/clientes/{id} - ADMIN deve atualizar cliente e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PUT /api/clientes/{id} - GERENTE deve atualizar cliente e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtualizarCliente() throws Exception {
     when(clienteService.atualizar(eq(1L), any(ClienteRequestDTO.class))).thenReturn(responseDTO);
 
@@ -153,8 +153,8 @@ class ClienteControllerTest {
   // ─── DELETE /api/clientes/{id} ───────────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/clientes/{id} - ADMIN deve excluir cliente e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/clientes/{id} - GERENTE deve excluir cliente e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarCliente() throws Exception {
     doNothing().when(clienteService).deletar(1L);
 

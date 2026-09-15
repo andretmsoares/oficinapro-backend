@@ -53,9 +53,9 @@ class UnidadeControllerTest {
   // ─── GET /api/unidades ────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/unidades - ADMIN deve retornar 200 com lista de unidades")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarUnidadesComoAdmin() throws Exception {
+  @DisplayName("GET /api/unidades - GERENTE deve retornar 200 com lista de unidades")
+  @WithMockUser(roles = "GERENTE")
+  void deveListarUnidadesComoGerente() throws Exception {
     when(unidadeService.listar()).thenReturn(List.of(responseDTO));
 
     mockMvc
@@ -75,8 +75,8 @@ class UnidadeControllerTest {
   // ─── GET /api/unidades/{id} ───────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/unidades/{id} - ADMIN deve retornar 200 com a unidade correta")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/unidades/{id} - GERENTE deve retornar 200 com a unidade correta")
+  @WithMockUser(roles = "GERENTE")
   void deveBuscarUnidadePorId() throws Exception {
     when(unidadeService.buscarPorId(1L)).thenReturn(responseDTO);
 
@@ -90,7 +90,7 @@ class UnidadeControllerTest {
 
   @Test
   @DisplayName("GET /api/unidades/{id} - Deve retornar 404 quando unidade não existir")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar404AoBuscarUnidadeInexistente() throws Exception {
     when(unidadeService.buscarPorId(99L)).thenThrow(new UnidadeNotFoundException(99L));
 
@@ -100,8 +100,8 @@ class UnidadeControllerTest {
   // ─── POST /api/unidades/oficina/{oficinaId} ───────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/unidades/oficina/1 - ADMIN deve criar unidade e retornar 201")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("POST /api/unidades/oficina/1 - GERENTE deve criar unidade e retornar 201")
+  @WithMockUser(roles = "GERENTE")
   void deveCriarUnidade() throws Exception {
     when(unidadeService.criar(eq(1L), any(UnidadeRequestDTO.class))).thenReturn(responseDTO);
 
@@ -119,8 +119,8 @@ class UnidadeControllerTest {
   // ─── PUT /api/unidades/{id} ───────────────────────────────────────────────────
 
   @Test
-  @DisplayName("PUT /api/unidades/{id} - ADMIN deve atualizar unidade e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PUT /api/unidades/{id} - GERENTE deve atualizar unidade e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtualizarUnidade() throws Exception {
     when(unidadeService.atualizar(eq(1L), any(UnidadeRequestDTO.class))).thenReturn(responseDTO);
 
@@ -138,8 +138,8 @@ class UnidadeControllerTest {
   // ─── DELETE /api/unidades/{id} ────────────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/unidades/{id} - ADMIN deve excluir unidade e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/unidades/{id} - GERENTE deve excluir unidade e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarUnidade() throws Exception {
     doNothing().when(unidadeService).deletar(1L);
 

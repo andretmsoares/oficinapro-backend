@@ -63,6 +63,7 @@ class OrdemDeServicoControllerTest {
             StatusOrdemDeServico.ABERTA,
             "Revisão geral",
             BigDecimal.ZERO,
+            BigDecimal.ZERO,
             BigDecimal.ZERO);
     requestDTO = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, 1L, "Revisão geral");
   }
@@ -70,9 +71,9 @@ class OrdemDeServicoControllerTest {
   // ─── POST /api/ordens-servico ─────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/ordens-servico - ADMIN deve criar OS e retornar 201")
-  @WithMockUser(roles = "ADMIN")
-  void deveCriarOrdemDeServicoComoAdmin() throws Exception {
+  @DisplayName("POST /api/ordens-servico - GERENTE deve criar OS e retornar 201")
+  @WithMockUser(roles = "GERENTE")
+  void deveCriarOrdemDeServicoComoGerente() throws Exception {
     when(service.criar(any(OrdemDeServicoRequestDTO.class))).thenReturn(responseDTO);
 
     mockMvc
@@ -102,9 +103,9 @@ class OrdemDeServicoControllerTest {
   // ─── GET /api/ordens-servico ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/ordens-servico - ADMIN deve retornar 200 com lista de OS")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarOrdensDeServicoComoAdmin() throws Exception {
+  @DisplayName("GET /api/ordens-servico - GERENTE deve retornar 200 com lista de OS")
+  @WithMockUser(roles = "GERENTE")
+  void deveListarOrdensDeServicoComoGerente() throws Exception {
     when(service.listar()).thenReturn(List.of(responseDTO));
 
     mockMvc
@@ -129,8 +130,8 @@ class OrdemDeServicoControllerTest {
   // ─── GET /api/ordens-servico/{id} ────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/ordens-servico/{id} - ADMIN deve retornar 200 com a OS correta")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/ordens-servico/{id} - GERENTE deve retornar 200 com a OS correta")
+  @WithMockUser(roles = "GERENTE")
   void deveBuscarOsPorId() throws Exception {
     when(service.buscarPorId(1L)).thenReturn(responseDTO);
 
@@ -143,7 +144,7 @@ class OrdemDeServicoControllerTest {
 
   @Test
   @DisplayName("GET /api/ordens-servico/{id} - Deve retornar 404 quando OS não existir")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar404AoBuscarOsInexistente() throws Exception {
     when(service.buscarPorId(99L)).thenThrow(new OrdemDeServicoNotFoundException(99L));
 
@@ -153,8 +154,8 @@ class OrdemDeServicoControllerTest {
   // ─── PATCH /api/ordens-servico/{id}/status ────────────────────────────────────
 
   @Test
-  @DisplayName("PATCH /api/ordens-servico/{id}/status - ADMIN deve atualizar status e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PATCH /api/ordens-servico/{id}/status - GERENTE deve atualizar status e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtualizarStatusOs() throws Exception {
     OrdemDeServicoResponseDTO osEmExecucao =
         new OrdemDeServicoResponseDTO(
@@ -168,6 +169,7 @@ class OrdemDeServicoControllerTest {
             null,
             StatusOrdemDeServico.EM_EXECUCAO,
             "Revisão geral",
+            BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);
     AtualizarStatusOSRequestDTO statusRequest =
@@ -191,8 +193,8 @@ class OrdemDeServicoControllerTest {
 
   @Test
   @DisplayName(
-      "PATCH /api/ordens-servico/{id}/mecanico - ADMIN deve atribuir mecânico e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+      "PATCH /api/ordens-servico/{id}/mecanico - GERENTE deve atribuir mecânico e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtribuirMecanicoNaOs() throws Exception {
     AtribuirMecanicoRequestDTO mecanicoRequest = new AtribuirMecanicoRequestDTO(2L);
 
@@ -212,8 +214,8 @@ class OrdemDeServicoControllerTest {
   // ─── DELETE /api/ordens-servico/{id} ─────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/ordens-servico/{id} - ADMIN deve excluir OS e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/ordens-servico/{id} - GERENTE deve excluir OS e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarOs() throws Exception {
     doNothing().when(service).deletar(1L);
 

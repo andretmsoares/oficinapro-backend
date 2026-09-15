@@ -53,9 +53,9 @@ class VeiculoControllerTest {
   // ─── GET /api/veiculos ────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/veiculos - ADMIN deve retornar 200 com página de veículos")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarVeiculosComoAdmin() throws Exception {
+  @DisplayName("GET /api/veiculos - GERENTE deve retornar 200 com página de veículos")
+  @WithMockUser(roles = "GERENTE")
+  void deveListarVeiculosComoGerente() throws Exception {
     when(veiculoService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
@@ -83,7 +83,7 @@ class VeiculoControllerTest {
 
   @Test
   @DisplayName("GET /api/veiculos/{id} - Deve retornar 404 quando veículo não existir")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar404AoBuscarVeiculoInexistente() throws Exception {
     when(veiculoService.buscarPorId(99L)).thenThrow(new VeiculoNotFoundException(99L));
 
@@ -93,8 +93,8 @@ class VeiculoControllerTest {
   // ─── POST /api/veiculos ───────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/veiculos - ADMIN deve criar veículo e retornar 201")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("POST /api/veiculos - GERENTE deve criar veículo e retornar 201")
+  @WithMockUser(roles = "GERENTE")
   void deveCriarVeiculo() throws Exception {
     when(veiculoService.criar(any(VeiculoRequestDTO.class))).thenReturn(responseDTO);
 
@@ -125,8 +125,8 @@ class VeiculoControllerTest {
   // ─── PUT /api/veiculos/{id} ───────────────────────────────────────────────────
 
   @Test
-  @DisplayName("PUT /api/veiculos/{id} - ADMIN deve atualizar veículo e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PUT /api/veiculos/{id} - GERENTE deve atualizar veículo e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtualizarVeiculo() throws Exception {
     when(veiculoService.atualizar(eq(1L), any(VeiculoRequestDTO.class))).thenReturn(responseDTO);
 
@@ -144,8 +144,8 @@ class VeiculoControllerTest {
   // ─── DELETE /api/veiculos/{id} ────────────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/veiculos/{id} - ADMIN deve excluir veículo e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/veiculos/{id} - GERENTE deve excluir veículo e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarVeiculo() throws Exception {
     doNothing().when(veiculoService).deletar(1L);
 

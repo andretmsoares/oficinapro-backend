@@ -48,8 +48,8 @@ class RegistroPagamentoControllerTest {
   // ---------------------------------------------------------
 
   @Test
-  @WithMockUser(roles = "ADMIN")
-  void criar_admin_retorna201() throws Exception {
+  @WithMockUser(roles = "GERENTE")
+  void criar_gerente_retorna201() throws Exception {
     RegistroPagamentoRequestDTO request =
         new RegistroPagamentoRequestDTO(10L, new BigDecimal("150.00"), MeioPagamento.PIX);
     when(registroPagamentoService.criar(any())).thenReturn(responseDTO());
@@ -96,7 +96,7 @@ class RegistroPagamentoControllerTest {
   }
 
   @Test
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void buscarPorId_naoEncontrado_retorna404() throws Exception {
     when(registroPagamentoService.buscarPorId(999L))
         .thenThrow(new RegistroPagamentoNotFoundException(999L));
@@ -109,7 +109,7 @@ class RegistroPagamentoControllerTest {
   // ---------------------------------------------------------
 
   @Test
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void listarPorPagamento_retornaLista() throws Exception {
     when(registroPagamentoService.listarPorPagamento(10L)).thenReturn(List.of(responseDTO()));
 
@@ -124,8 +124,8 @@ class RegistroPagamentoControllerTest {
   // ---------------------------------------------------------
 
   @Test
-  @WithMockUser(roles = "ADMIN")
-  void deletar_admin_retorna204() throws Exception {
+  @WithMockUser(roles = "GERENTE")
+  void deletar_gerente_retorna204() throws Exception {
     doNothing().when(registroPagamentoService).deletar(100L);
 
     mockMvc

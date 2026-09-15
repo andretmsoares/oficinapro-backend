@@ -69,7 +69,7 @@ class MecanicoControllerTest {
   // ─── GET /api/mecanicos ───────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/mecanicos - ADMIN deve retornar 200 com página de mecânicos")
+  @DisplayName("GET /api/mecanicos - GERENTE deve retornar 200 com página de mecânicos")
   @WithMockUser(roles = "ADMIN")
   void deveListarMecanicosComoAdmin() throws Exception {
     when(mecanicoService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
@@ -91,8 +91,8 @@ class MecanicoControllerTest {
   // ─── GET /api/mecanicos/{id} ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/mecanicos/{id} - ADMIN deve retornar 200 com o mecânico correto")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/mecanicos/{id} - GERENTE deve retornar 200 com o mecânico correto")
+  @WithMockUser(roles = "GERENTE")
   void deveBuscarMecanicoPorId() throws Exception {
     when(mecanicoService.buscarPorId(1L)).thenReturn(responseDTO);
 
@@ -106,7 +106,7 @@ class MecanicoControllerTest {
 
   @Test
   @DisplayName("GET /api/mecanicos/{id} - Deve retornar 404 quando mecânico não existir")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar404AoBuscarMecanicoInexistente() throws Exception {
     when(mecanicoService.buscarPorId(99L)).thenThrow(new MecanicoNotFoundException());
 
@@ -116,8 +116,8 @@ class MecanicoControllerTest {
   // ─── POST /api/mecanicos ──────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/mecanicos - ADMIN deve criar mecânico e retornar 201")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("POST /api/mecanicos - GERENTE deve criar mecânico e retornar 201")
+  @WithMockUser(roles = "GERENTE")
   void deveCriarMecanico() throws Exception {
     when(mecanicoService.criar(any(MecanicoRequestDTO.class))).thenReturn(responseDTO);
 
@@ -135,8 +135,8 @@ class MecanicoControllerTest {
   // ─── PUT /api/mecanicos/{id} ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("PUT /api/mecanicos/{id} - ADMIN deve atualizar mecânico e retornar 200")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PUT /api/mecanicos/{id} - GERENTE deve atualizar mecânico e retornar 200")
+  @WithMockUser(roles = "GERENTE")
   void deveAtualizarMecanico() throws Exception {
     when(mecanicoService.atualizar(eq(1L), any(MecanicoRequestDTO.class))).thenReturn(responseDTO);
 
@@ -154,8 +154,8 @@ class MecanicoControllerTest {
   // ─── DELETE /api/mecanicos/{id} ───────────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/mecanicos/{id} - ADMIN deve excluir mecânico e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/mecanicos/{id} - GERENTE deve excluir mecânico e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarMecanico() throws Exception {
     doNothing().when(mecanicoService).deletar(1L);
 

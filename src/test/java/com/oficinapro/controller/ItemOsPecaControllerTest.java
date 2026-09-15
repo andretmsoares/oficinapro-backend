@@ -66,9 +66,9 @@ class ItemOsPecaControllerTest {
   // ─── GET /api/itens-os-peca/os/{osId} ────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/itens-os-peca/os/1 - ADMIN deve retornar 200 com lista de itens da OS")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarItensPorOsComoAdmin() throws Exception {
+  @DisplayName("GET /api/itens-os-peca/os/1 - GERENTE deve retornar 200 com lista de itens da OS")
+  @WithMockUser(roles = "GERENTE")
+  void deveListarItensPorOsComoGerente() throws Exception {
     when(itemOsPecaService.listarPorOrdemServico(1L)).thenReturn(List.of(responseDTO));
 
     mockMvc
@@ -97,8 +97,8 @@ class ItemOsPecaControllerTest {
   // ─── POST /api/itens-os-peca ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/itens-os-peca - ADMIN deve criar item e retornar 201")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("POST /api/itens-os-peca - GERENTE deve criar item e retornar 201")
+  @WithMockUser(roles = "GERENTE")
   void deveCriarItem() throws Exception {
     when(itemOsPecaService.criar(any(ItemOsPecaRequestDTO.class))).thenReturn(responseDTO);
 
@@ -115,7 +115,7 @@ class ItemOsPecaControllerTest {
 
   @Test
   @DisplayName("POST /api/itens-os-peca - Deve retornar 400 com osId nulo (validação)")
-  @WithMockUser(roles = "ADMIN")
+  @WithMockUser(roles = "GERENTE")
   void deveRetornar400ComOsIdNulo() throws Exception {
     ItemOsPecaRequestDTO requestInvalido =
         new ItemOsPecaRequestDTO(
@@ -153,8 +153,8 @@ class ItemOsPecaControllerTest {
   // ─── DELETE /api/itens-os-peca/{id} ──────────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /api/itens-os-peca/{id} - ADMIN deve excluir item e retornar 204")
-  @WithMockUser(roles = "ADMIN")
+  @DisplayName("DELETE /api/itens-os-peca/{id} - GERENTE deve excluir item e retornar 204")
+  @WithMockUser(roles = "GERENTE")
   void deveDeletarItem() throws Exception {
     doNothing().when(itemOsPecaService).deletar(1L);
 
