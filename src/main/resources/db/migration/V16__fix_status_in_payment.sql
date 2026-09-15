@@ -1,4 +1,7 @@
 ALTER TABLE pagamento
+    DROP COLUMN status;
+
+ALTER TABLE pagamento
     ADD COLUMN status VARCHAR(30);
 
 UPDATE pagamento
