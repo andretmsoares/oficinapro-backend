@@ -1,16 +1,20 @@
 package com.oficinapro.service.pessoaCrud;
 
+import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Pessoa;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.PessoaCrudRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         implements PessoaCrudService<C, U, RES, T> {
@@ -19,15 +23,18 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     protected final OficinaServiceImpl oficinaService;
     protected final PessoaService pessoaService;
     protected final AuthenticatedUserProvider authenticatedUserProvider;
+    protected final OficinaAccessValidator oficinaAccessValidator;
 
     protected AbstractPessoaServiceImpl(PessoaCrudRepository<T> repository,
                                         OficinaServiceImpl oficinaService,
                                         PessoaService pessoaService,
-                                        AuthenticatedUserProvider authenticatedUserProvider) {
+                                        AuthenticatedUserProvider authenticatedUserProvider,
+                                        OficinaAccessValidator oficinaAccessValidator) {
         this.repository = repository;
         this.oficinaService = oficinaService;
         this.pessoaService = pessoaService;
         this.authenticatedUserProvider = authenticatedUserProvider;
+        this.oficinaAccessValidator = oficinaAccessValidator;
     }
 
     protected abstract RES toResponse(T entity);
@@ -43,110 +50,76 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     protected void validateBeforeCreate(C request) {}
     protected void validateBeforeUpdate(Long id, U request) {}
 
-    private Long oficinaObrigatoriaDoLogado(Usuario logado) {
-        Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-        if (oficinaId == null) {
-            throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-        }
-        return oficinaId;
-    }
-
-    /** Valida se o usuário logado pode operar sobre a oficina informada (usado em criar/atualizar). */
-    protected void validarAcessoOficina(Long oficinaId) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        if (!oficinaDoLogado.equals(oficinaId)) {
-            throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
-        }
-    }
-
-    /**
-     * Resolve a oficina do registro validando o acesso do usuário logado.
-     *
-     * Registro sem oficina existe apenas para o ADMIN do SaaS (ver Usuario). Para as
-     * demais entidades o {@code oficinaId} é @NotNull no DTO, então o ramo do nulo
-     * nunca é alcançado por elas.
-     */
-    protected Oficina resolverOficina(Long oficinaId) {
-        if (oficinaId == null) {
-            Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-            if (logado.getRole() != Role.ADMIN) {
-                throw new AccessDeniedException(
-                        "Somente o ADMIN do SaaS pode manter registros sem oficina");
-            }
-            return null;
-        }
-        validarAcessoOficina(oficinaId);
-        return oficinaService.buscarPorEntidadeId(oficinaId);
-    }
-
-    /**
-     * Valida se o usuário logado pode ver este registro específico.
-     * Propositalmente lança "não encontrado" (não "acesso negado") para não revelar
-     * a existência de registros de outras oficinas para quem não tem acesso a eles.
-     */
-    private void validarAcessoAoRegistro(T entity) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        Long oficinaDoRegistro = entity.getOficina() != null ? entity.getOficina().getId() : null;
-        if (!oficinaDoLogado.equals(oficinaDoRegistro)) {
-            throw notFoundException();
-        }
-    }
-
     @Override
     public Page<RES> listar(Pageable pageable) {
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
         if (logado.getRole() == Role.ADMIN) {
             return repository.findAll(pageable).map(this::toResponse);
         }
-        Long oficinaId = oficinaObrigatoriaDoLogado(logado);
+        Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
         return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Page<RES> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public T buscarPorEntidadeId(Long id) {
         T entity = repository.findById(id).orElseThrow(this::notFoundException);
-        validarAcessoAoRegistro(entity);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                entity.getOficina() != null
+                        ? entity.getOficina().getId()
+                        : null,
+                new UsuarioNotFoundException()
+        );
         return entity;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public RES buscarPorId(Long id) {
         return toResponse(buscarPorEntidadeId(id));
     }
 
+    @Transactional(readOnly = true)
     @Override
-    public RES buscarPorNome(String nome) {
-        T entity = repository.findByNome(nome).orElseThrow(this::notFoundException);
-        validarAcessoAoRegistro(entity);
-        return toResponse(entity);
+    public List<RES> buscarPorNome(String nome) {
+
+        Long oficinaId =
+                oficinaAccessValidator.getOficinaIdUsuarioLogado();
+
+        return repository
+                .findByOficinaIdAndNome(oficinaId, nome)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public RES buscarPorDocumento(String documento) {
-        T entity = repository.findByDocumento(documento).orElseThrow(this::notFoundException);
-        validarAcessoAoRegistro(entity);
+
+        Long oficinaId =
+                authenticatedUserProvider.getOficinaIdUsuarioLogado();
+
+        T entity = repository
+                .findByOficinaIdAndDocumento(oficinaId, documento)
+                .orElseThrow(this::notFoundException);
+
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public RES criar(C request) {
         Long oficinaId = extractOficinaIdCreate(request);
 
-        Oficina oficina = resolverOficina(oficinaId);
+        Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
         // Sem oficina não há escopo de unicidade: a constraint do banco é
         // (oficina_id, documento) e no Postgres NULL não colide com NULL.
@@ -162,6 +135,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public RES atualizar(Long id, U request) {
         T entity = buscarPorEntidadeId(id); // já valida acesso ao registro atual
@@ -169,7 +143,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         Long oficinaId = extractOficinaIdUpdate(request);
         // Valida também a oficina de destino (evita "mover" o registro pra outra oficina indevidamente).
         // Quem eventualmente precisa reatribuir a oficina faz isso no próprio applyUpdate.
-        resolverOficina(oficinaId);
+        Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
         if (oficinaId != null
                 && pessoaService.existsByOficinaIdAndDocumentoExcluindoId(oficinaId, extractDocumentoUpdate(request), id)) {
@@ -183,6 +157,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public void deletar(Long id) {
         T entity = buscarPorEntidadeId(id); // já valida acesso

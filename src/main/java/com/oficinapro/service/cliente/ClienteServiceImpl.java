@@ -8,10 +8,12 @@ import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.ClienteRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ClienteServiceImpl
@@ -21,8 +23,9 @@ public class ClienteServiceImpl
     public ClienteServiceImpl(ClienteRepository repository,
                               OficinaServiceImpl oficinaService,
                               PessoaService pessoaService,
-                              AuthenticatedUserProvider authenticatedUserProvider) {
-        super(repository, oficinaService, pessoaService, authenticatedUserProvider);
+                              AuthenticatedUserProvider authenticatedUserProvider,
+                              OficinaAccessValidator oficinaAccessValidator) {
+        super(repository, oficinaService, pessoaService, authenticatedUserProvider, oficinaAccessValidator);
     }
 
     @Override
@@ -33,6 +36,7 @@ public class ClienteServiceImpl
     }
 
     @Override
+    @Transactional
     protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
         Cliente cliente = new Cliente();
         cliente.setNome(request.nome());
@@ -43,17 +47,23 @@ public class ClienteServiceImpl
     }
 
     @Override
+    @Transactional
     protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
         cliente.setNome(request.nome());
         cliente.setDocumento(request.documento());
         cliente.setTelefone(request.telefone());
     }
 
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoCreate(ClienteRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdCreate(ClienteRequestDTO r) { return r.oficinaId(); }
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoUpdate(ClienteRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdUpdate(ClienteRequestDTO r) { return r.oficinaId(); }
-
+    @Transactional(readOnly = true)
     @Override protected RuntimeException notFoundException() { return new ClienteNotFoundException(); }
+    @Transactional(readOnly = true)
     @Override protected RuntimeException alreadyExistsException() { return new ClienteAlreadyExistsException(); }
 }

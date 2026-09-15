@@ -1,19 +1,23 @@
 package com.oficinapro.service.ordem_servico;
 
 import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
+import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
-import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
+import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.unidade.UnidadeService;
 import com.oficinapro.service.veiculo.VeiculoService;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
+public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
     private final OrdemDeServicoRepository ordemServicoRepository;
     private final OficinaService oficinaService;
@@ -40,46 +43,22 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     private final ClienteService clienteService;
     private final MecanicoService mecanicoService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
-
-    private Long oficinaObrigatoriaDoLogado(Usuario logado) {
-        Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-        if (oficinaId == null) {
-            throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-        }
-        return oficinaId;
-    }
-
-    private void validarAcessoOficina(Long oficinaId) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        if (!oficinaDoLogado.equals(oficinaId)) {
-            throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
-        }
-    }
-
-    private void validarAcessoAoRegistro(OrdemDeServico os) {
-        Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-        if (logado.getRole() == Role.ADMIN) {
-            return;
-        }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
-        Long oficinaDaOS = os.getOficina() != null ? os.getOficina().getId() : null;
-        if (!oficinaDoLogado.equals(oficinaDaOS)) {
-            throw new OrdemDeServicoNotFoundException(os.getId());
-        }
-    }
+    private final PagamentoService pagamentoService;
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
         if (logado.getRole() == Role.ADMIN) {
             return lista;
         }
-        Long oficinaDoLogado = oficinaObrigatoriaDoLogado(logado);
+        Long oficinaId =
+                oficinaAccessValidator.getOficinaIdUsuarioLogado();
+
         return lista.stream()
-                .filter(os -> os.getOficina() != null && oficinaDoLogado.equals(os.getOficina().getId()))
+                .filter(os ->
+                        os.getOficina() != null
+                                && oficinaId.equals(os.getOficina().getId())
+                )
                 .toList();
     }
 
@@ -90,7 +69,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
         List<OrdemDeServico> lista = logado.getRole() == Role.ADMIN
                 ? ordemServicoRepository.findAll()
-                : ordemServicoRepository.findByOficinaId(oficinaObrigatoriaDoLogado(logado));
+                : ordemServicoRepository.findByOficinaId(oficinaAccessValidator.getOficinaIdUsuarioLogado());
 
         return lista.stream().map(this::toResponseDTO).toList();
     }
@@ -130,7 +109,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return ordemServicoRepository.findByOficinaId(oficinaId).stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -156,7 +135,12 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     public OrdemDeServico buscarPorEntidadeId(Long id) {
         OrdemDeServico os = ordemServicoRepository.findById(id)
                 .orElseThrow(() -> new OrdemDeServicoNotFoundException(id));
-        validarAcessoAoRegistro(os);
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                os.getOficina() != null
+                        ? os.getOficina().getId()
+                        : null,
+                new OrdemDeServicoNotFoundException(id)
+        );
         return os;
     }
 
@@ -206,29 +190,35 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
     @Override
     @Transactional
-    public OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto) {
+    public OrdemDeServicoResponseDTO atualizarStatus(
+            Long id,
+            AtualizarStatusOSRequestDTO dto
+    ) {
         OrdemDeServico os = this.buscarPorEntidadeId(id);
 
-        StatusOrdemDeServico statusAtual = os.getStatus();
-        StatusOrdemDeServico novoStatus = dto.status();
+        StatusOrdemDeServico novo = dto.status();
 
-        if (statusAtual == StatusOrdemDeServico.CANCELADA) {
-            throw new OSCanceledException();
-        }
+        Usuario usuario =
+                authenticatedUserProvider.getUsuarioAutenticado();
 
-        if (statusAtual == StatusOrdemDeServico.ENTREGUE && novoStatus == StatusOrdemDeServico.ABERTA) {
-            throw new OSFinishedException();
-        }
+        validarTransicaoStatus(os, novo, usuario);
 
-        os.setStatus(novoStatus);
+        os.setStatus(novo);
 
-        if (novoStatus == StatusOrdemDeServico.FINALIZADA || novoStatus == StatusOrdemDeServico.ENTREGUE) {
+        if (novo == StatusOrdemDeServico.FINALIZADA
+                || novo == StatusOrdemDeServico.ENTREGUE) {
+
             if (os.getDataFechamento() == null) {
                 os.setDataFechamento(LocalDateTime.now());
             }
+
+        } else {
+            os.setDataFechamento(null);
         }
 
-        return toResponseDTO(ordemServicoRepository.save(os));
+        return toResponseDTO(
+                ordemServicoRepository.save(os)
+        );
     }
 
     @Override
@@ -252,7 +242,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     @Override
     @Transactional
     public OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request) {
-        validarAcessoOficina(request.oficinaId());
+        oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
 
         Oficina oficina = oficinaService.buscarPorEntidadeId(request.oficinaId());
         Unidade unidade = unidadeService.buscarPorEntidadeId(request.unidadeId());
@@ -281,6 +271,8 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
         os.setValorComDesconto(BigDecimal.ZERO);
 
         os = ordemServicoRepository.save(os);
+
+        pagamentoService.criar(new PagamentoRequestDTO(os.getId(), ""));
 
         return toResponseDTO(os);
     }
@@ -327,7 +319,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
             int mes,
             int ano
     ) {
-        validarAcessoOficina(oficinaId);
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
         YearMonth periodo = YearMonth.of(ano, mes);
 
@@ -385,7 +377,94 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
                 os.getStatus(),
                 os.getObs(),
                 os.getValorTotal(),
+                os.getDesconto(),
                 os.getValorComDesconto()
         );
+    }
+
+    private void validarTransicaoStatus(
+            OrdemDeServico os,
+            StatusOrdemDeServico novo,
+            Usuario usuario
+    ) {
+        StatusOrdemDeServico atual = os.getStatus();
+
+        if (atual == StatusOrdemDeServico.CANCELADA) {
+            throw new OSCanceledException();
+        }
+
+        if (usuario.getRole() == Role.MECANICO
+                && (novo == StatusOrdemDeServico.FINALIZADA
+                || novo == StatusOrdemDeServico.ENTREGUE
+                || novo == StatusOrdemDeServico.CANCELADA)) {
+
+            throw new AccessDeniedException(
+                    "O mecânico não possui permissão para realizar esta alteração de status"
+            );
+        }
+
+        if (novo == StatusOrdemDeServico.FECHADA) {
+
+            PagamentoResponseDTO pagamento =
+                    pagamentoService.buscarPorOsId(os.getId());
+
+            if (pagamento.status() != StatusPagamento.PAGA) {
+                throw new IllegalStateException(
+                        "A Ordem de Serviço só pode ser fechada após o pagamento integral"
+                );
+            }
+        }
+
+        if (atual == novo) {
+            return;
+        }
+
+        if (!transicaoPermitida(atual, novo)) {
+            throw new IllegalStateException(
+                    "Transição de status não permitida: "
+                            + atual + " → " + novo
+            );
+        }
+    }
+
+    private boolean transicaoPermitida(
+            StatusOrdemDeServico atual,
+            StatusOrdemDeServico novo
+    ) {
+        return switch (atual) {
+
+            case ABERTA ->
+                    novo == StatusOrdemDeServico.DIAGNOSTICO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case DIAGNOSTICO ->
+                    novo == StatusOrdemDeServico.AGUARDANDO_APROVACAO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case AGUARDANDO_APROVACAO ->
+                    novo == StatusOrdemDeServico.AGUARDANDO_PECAS
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case AGUARDANDO_PECAS ->
+                    novo == StatusOrdemDeServico.EM_EXECUCAO
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case EM_EXECUCAO ->
+                        novo == StatusOrdemDeServico.FINALIZADA
+                            || novo == StatusOrdemDeServico.CANCELADA;
+
+            case FINALIZADA ->
+                    novo == StatusOrdemDeServico.ENTREGUE
+                            || novo == StatusOrdemDeServico.ABERTA;
+
+            case ENTREGUE ->
+                    novo == StatusOrdemDeServico.FECHADA
+                            || novo == StatusOrdemDeServico.ABERTA;
+
+            case FECHADA ->
+                    novo == StatusOrdemDeServico.ABERTA;
+
+            case CANCELADA -> false;
+        };
     }
 }

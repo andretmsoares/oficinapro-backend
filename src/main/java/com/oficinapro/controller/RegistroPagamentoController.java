@@ -20,26 +20,26 @@ public class RegistroPagamentoController {
     private final RegistroPagamentoService registroPagamentoService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<RegistroPagamentoResponseDTO> criar(@Valid @RequestBody RegistroPagamentoRequestDTO request) {
         RegistroPagamentoResponseDTO response = registroPagamentoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<RegistroPagamentoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(registroPagamentoService.buscarPorId(id));
     }
 
     @GetMapping("/pagamento/{pagamentoId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<List<RegistroPagamentoResponseDTO>> listarPorPagamento(@PathVariable Long pagamentoId) {
         return ResponseEntity.ok(registroPagamentoService.listarPorPagamento(pagamentoId));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         registroPagamentoService.deletar(id);
         return ResponseEntity.noContent().build();

@@ -1,7 +1,7 @@
 package com.oficinapro.repository;
 
 import com.oficinapro.model.Usuario;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 

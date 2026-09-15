@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -20,7 +21,7 @@ public class OrdemDeServicoController {
     private final OrdemDeServicoService service;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
     public ResponseEntity<OrdemDeServicoResponseDTO> criar(
             @RequestBody @Valid OrdemDeServicoRequestDTO request) {
         OrdemDeServicoResponseDTO response = service.criar(request);
@@ -28,19 +29,19 @@ public class OrdemDeServicoController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listar() {
         return ResponseEntity.ok(service.listar());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<OrdemDeServicoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
     @GetMapping("/oficina/{oficinaId}/fluxo-mensal")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
             @PathVariable Long oficinaId,
             @RequestParam int mes,
@@ -52,7 +53,7 @@ public class OrdemDeServicoController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
     public ResponseEntity<OrdemDeServicoResponseDTO> atualizar(
             @PathVariable Long id,
             @RequestBody @Valid OrdemDeServicoRequestDTO request) {
@@ -60,14 +61,14 @@ public class OrdemDeServicoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<OrdemDeServicoResponseDTO> atualizarStatus(
             @PathVariable Long id,
             @RequestBody @Valid AtualizarStatusOSRequestDTO request) {
@@ -75,7 +76,7 @@ public class OrdemDeServicoController {
     }
 
     @PatchMapping("/{id}/mecanico")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
     public ResponseEntity<OrdemDeServicoResponseDTO> atribuirMecanico(
             @PathVariable Long id,
             @RequestBody @Valid AtribuirMecanicoRequestDTO request) {
@@ -83,45 +84,53 @@ public class OrdemDeServicoController {
     }
 
     @PatchMapping("/{id}/cliente")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
     public ResponseEntity<OrdemDeServicoResponseDTO> atribuirCliente(
             @PathVariable Long id,
             @RequestBody @Valid AtribuirClienteRequestDTO request) {
         return ResponseEntity.ok(service.atribuirCliente(id, request));
     }
 
+    @PatchMapping("/{id}/desconto")
+    @PreAuthorize("hasAnyRole( 'GERENTE')")
+    public ResponseEntity<OrdemDeServicoResponseDTO> aplicarDesconto(
+            @PathVariable Long id,
+            @RequestBody @Valid BigDecimal desconto) {
+        return ResponseEntity.ok(service.aplicarDesconto(id, desconto));
+    }
+
     @GetMapping("/veiculo/{veiculoId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorVeiculo(@PathVariable Long veiculoId) {
         return ResponseEntity.ok(service.listarPorVeiculo(veiculoId));
     }
 
     @GetMapping("/mecanico/{mecanicoId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorMecanico(@PathVariable Long mecanicoId) {
         return ResponseEntity.ok(service.listarPorMecanico(mecanicoId));
     }
 
     @GetMapping("/unidade/{unidadeId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorUnidade(@PathVariable Long unidadeId) {
         return ResponseEntity.ok(service.listarPorUnidade(unidadeId));
     }
 
     @GetMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorOficina(@PathVariable Long oficinaId) {
         return ResponseEntity.ok(service.listarPorOficina(oficinaId));
     }
 
     @GetMapping("/cliente/{clienteId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorCliente(@PathVariable Long clienteId) {
         return ResponseEntity.ok(service.listarPorCliente(clienteId));
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO', 'MECANICO')")
+    @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
     public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorStatus(@PathVariable StatusOrdemDeServico status) {
         return ResponseEntity.ok(service.listarPorStatus(status));
     }

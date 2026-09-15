@@ -19,8 +19,7 @@ public class OrdemDeServico {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
-    private long id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oficina_id", nullable = false, foreignKey = @ForeignKey(name = "fk_os_oficina"))
@@ -45,7 +44,7 @@ public class OrdemDeServico {
     @Column(name = "data_abertura", nullable = false)
     private LocalDateTime dataAbertura;
 
-    @Column(name = "data_fechamento", nullable = false)
+    @Column(name = "data_fechamento")
     private LocalDateTime dataFechamento;
 
     @Enumerated(EnumType.STRING)

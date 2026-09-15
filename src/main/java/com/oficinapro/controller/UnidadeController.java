@@ -27,7 +27,7 @@ public class UnidadeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<List<UnidadeResponseDTO>> listar() {
         return ResponseEntity.ok(
                 unidadeService.listar()
@@ -35,7 +35,7 @@ public class UnidadeController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<UnidadeResponseDTO> buscarPorId(
             @PathVariable Long id) {
 
@@ -45,7 +45,7 @@ public class UnidadeController {
     }
 
     @GetMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
             @PathVariable Long oficinaId) {
 
@@ -55,7 +55,7 @@ public class UnidadeController {
     }
 
     @PostMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<UnidadeResponseDTO> criar(
             @PathVariable Long oficinaId,
             @Valid @RequestBody UnidadeRequestDTO request) {
@@ -71,7 +71,7 @@ public class UnidadeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<UnidadeResponseDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody UnidadeRequestDTO request) {
@@ -82,7 +82,7 @@ public class UnidadeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('GERENTE')")
     public ResponseEntity<Void> deletar(
             @PathVariable Long id) {
 

@@ -82,7 +82,7 @@ class RegistroPagamentoControllerTest {
     // ---------------------------------------------------------
 
     @Test
-    @WithMockUser(roles = "ADMINISTRATIVO")
+    @WithMockUser(roles = "GERENTE")
     void buscarPorId_encontrado_retorna200() throws Exception {
         when(registroPagamentoService.buscarPorId(100L)).thenReturn(responseDTO());
 

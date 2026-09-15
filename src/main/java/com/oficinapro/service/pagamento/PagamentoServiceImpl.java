@@ -3,21 +3,19 @@ package com.oficinapro.service.pagamento;
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusPagamento;
-import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
-import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
-import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
-import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
+import com.oficinapro.exception.pagamento.*;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.repository.PagamentoRepository;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,16 +23,26 @@ public class PagamentoServiceImpl implements PagamentoService {
 
     private final PagamentoRepository repository;
     private final OrdemDeServicoService ordemDeServicoService;
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     @Override
     @Transactional
     public PagamentoResponseDTO criar(PagamentoRequestDTO request) {
+
+        oficinaAccessValidator.validarRole(Role.GERENTE);
+
         OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
+
 
         Pagamento pagamento = new Pagamento();
         pagamento.setOrdemDeServico(os);
-        pagamento.setValorPago(request.valorPago());
+        pagamento.setValorPago(BigDecimal.ZERO);
         pagamento.setObs(request.obs());
+        pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+
+        if (repository.findByOrdemDeServicoId(pagamento.getOrdemDeServico().getId()) != null) {
+            throw new PagamentoAlreadyExistsException();
+        }
 
         return toResponseDTO(repository.save(pagamento));
     }
@@ -42,9 +50,11 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional
     public PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request) {
+
+        oficinaAccessValidator.validarRole(Role.GERENTE);
+
         Pagamento pagamento = buscarEntidadePorId(id);
 
-        pagamento.setValorPago(request.valorPago());
         pagamento.setObs(request.obs());
 
         return toResponseDTO(repository.save(pagamento));
@@ -59,18 +69,16 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public PagamentoResponseDTO buscarPorOsId(Long osId) {
-        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
-        if (pagamento == null) {
-            throw new PagamentoNotFoundForThisOsException(osId);
-        }
-
-        ordemDeServicoService.buscarPorEntidadeId(osId);
+        Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
         return toResponseDTO(pagamento);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PagamentoResponseDTO> buscarPorOficina(Long oficinaId) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository
                 .findByOrdemDeServicoOficinaId(oficinaId)
                 .stream()
@@ -84,6 +92,9 @@ public class PagamentoServiceImpl implements PagamentoService {
             Long oficinaId,
             StatusPagamento status
     ) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository
                 .findByOrdemDeServicoOficinaIdAndStatus(oficinaId, status)
                 .stream()
@@ -94,6 +105,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal calcularValorParaReceber(Long oficinaId) {
+
+        oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
         return repository.calcularValorParaReceber(
                 oficinaId,
                 List.of(
@@ -105,18 +119,19 @@ public class PagamentoServiceImpl implements PagamentoService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PagamentoResponseDTO> buscarPorOsIdSeExistir(Long osId) {
-        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
-        return pagamento == null ? Optional.empty() : Optional.of(toResponseDTO(pagamento));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Pagamento buscarEntidadePorId(Long id) {
+
         Pagamento pagamento = repository.findById(id)
                 .orElseThrow(() -> new PagamentoNotFoundException(id));
 
-        ordemDeServicoService.buscarPorEntidadeId(pagamento.getOrdemDeServico().getId());
+        Long oficinaDoPagamento = pagamento.getOrdemDeServico()
+                .getOficina()
+                .getId();
+
+        oficinaAccessValidator.validarAcessoAoRegistro(
+                oficinaDoPagamento,
+                new PagamentoNotFoundException(id)
+        );
 
         return pagamento;
     }
@@ -124,13 +139,47 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional
     public PagamentoResponseDTO atualizarValorPago(Long id, BigDecimal valor) {
+        oficinaAccessValidator.validarRole(Role.GERENTE);
         return ajustarValorPago(id, valor);
     }
 
     @Transactional
     @Override
     public PagamentoResponseDTO estornarValorPago(Long id, BigDecimal valor) {
+        oficinaAccessValidator.validarRole(Role.GERENTE);
         return ajustarValorPago(id, valor.negate());
+    }
+
+    @Transactional
+    @Override
+    public void recalcularStatus(Long osId) {
+        Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
+
+        BigDecimal valorPago = pagamento.getValorPago();
+        BigDecimal valorOS = pagamento.getOrdemDeServico().getValorComDesconto();
+
+        int comparacao = valorPago.compareTo(valorOS);
+
+        if (valorPago.compareTo(BigDecimal.ZERO) == 0) {
+            pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+            pagamento.setDataPagamentoTotal(null);
+
+        } else if (comparacao == 0) {
+            pagamento.setStatus(StatusPagamento.PAGA);
+            pagamento.setDataPagamentoTotal(LocalDateTime.now());
+
+        } else if (comparacao < 0) {
+            pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
+            pagamento.setDataPagamentoTotal(null);
+
+        } else {
+            throw new PagamentoValorExcedidoException(
+                    valorPago,
+                    valorOS
+            );
+        }
+
+        repository.save(pagamento);
     }
 
     /**
@@ -166,16 +215,6 @@ public class PagamentoServiceImpl implements PagamentoService {
         return toResponseDTO(repository.save(pagamento));
     }
 
-    @Override
-    @Transactional
-    public PagamentoResponseDTO aplicarDesconto(Long id, BigDecimal desconto) {
-        Pagamento pagamento = this.buscarEntidadePorId(id);
-
-        ordemDeServicoService.aplicarDesconto(pagamento.getOrdemDeServico().getId(), desconto);
-
-        return toResponseDTO(pagamento);
-    }
-
     private PagamentoResponseDTO toResponseDTO(Pagamento pagamento) {
         return new PagamentoResponseDTO(
                 pagamento.getId(),
@@ -185,5 +224,18 @@ public class PagamentoServiceImpl implements PagamentoService {
                 pagamento.getDataPagamentoTotal(),
                 pagamento.getStatus()
         );
+    }
+
+    private Pagamento buscarPorEntidadeOsId(Long osId) {
+
+        OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(osId);
+
+        Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
+
+        if (pagamento == null) {
+            throw new PagamentoNotFoundForThisOsException(osId);
+        }
+
+        return pagamento;
     }
 }

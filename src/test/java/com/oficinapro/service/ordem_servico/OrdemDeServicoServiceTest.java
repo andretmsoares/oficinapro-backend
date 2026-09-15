@@ -18,7 +18,7 @@ import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
@@ -73,7 +73,7 @@ class OrdemDeServicoServiceTest {
 
     // Atenção: a impl tem double "Service" no nome
     @InjectMocks
-    private OrdemDeServicoServiceServiceImpl ordemDeServicoService;
+    private OrdemDeServicoServiceImpl ordemDeServicoService;
 
     private Oficina oficina;
     private Unidade unidade;
@@ -123,7 +123,7 @@ class OrdemDeServicoServiceTest {
         adminUser.setRole(Role.ADMIN);
 
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
     }
 
@@ -147,7 +147,7 @@ class OrdemDeServicoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
+    @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
     void deveListarOSDaPropriaOficinaComoAdministrativo() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
         when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));

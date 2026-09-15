@@ -11,13 +11,15 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UsuarioServiceImpl
@@ -32,14 +34,16 @@ public class UsuarioServiceImpl
                               OficinaServiceImpl oficinaService,
                               PessoaService pessoaService,
                               PasswordEncoder passwordEncoder,
-                              AuthenticatedUserProvider authenticatedUserProvider) {
-        super(usuarioRepository, oficinaService, pessoaService, authenticatedUserProvider);
+                              AuthenticatedUserProvider authenticatedUserProvider,
+                              OficinaAccessValidator oficinaAccessValidator) {
+        super(usuarioRepository, oficinaService, pessoaService, authenticatedUserProvider, oficinaAccessValidator);
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     @Override
+    @Transactional(readOnly = true)
     protected void validateBeforeCreate(UsuarioRequestDTO request) {
         if (usuarioRepository.existsByUsername(request.username())) {
             throw new UsernameAlreadyExistsException();
@@ -51,6 +55,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     protected void validateBeforeUpdate(Long id, UsuarioUpdateRequestDTO request) {
         if (usuarioRepository.existsByUsernameAndIdNot(request.username(), id)) {
             throw new UsernameAlreadyExistsException();
@@ -69,7 +74,7 @@ public class UsuarioServiceImpl
 
     /**
      * ADMIN é o administrador do SaaS: não tem filiação com nenhuma oficina.
-     * ADMINISTRATIVO e MECANICO existem sempre dentro de uma oficina.
+     * GERENTE e MECANICO existem sempre dentro de uma oficina.
      */
     private void validarCoerenciaRoleOficina(Role role, Long oficinaId) {
         if (role == Role.ADMIN && oficinaId != null) {
@@ -85,7 +90,7 @@ public class UsuarioServiceImpl
     /**
      * Hierarquia de criação/promoção de usuários:
      * - ADMIN (do SaaS) pode atribuir qualquer role, inclusive ADMIN.
-     * - ADMINISTRATIVO (da oficina) pode criar ADMINISTRATIVO e MECANICO, nunca ADMIN.
+     * - GERENTE (da oficina) pode criar GERENTE e MECANICO, nunca ADMIN.
      *   O isolamento por oficina é garantido em AbstractPessoaServiceImpl.resolverOficina.
      * - MECANICO não gerencia usuários (já bloqueado no @PreAuthorize do controller,
      *   replicado aqui como defesa em profundidade).
@@ -94,7 +99,7 @@ public class UsuarioServiceImpl
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
         Role roleLogado = logado.getRole();
 
-        boolean podeGerenciarUsuarios = roleLogado == Role.ADMIN || roleLogado == Role.ADMINISTRATIVO;
+        boolean podeGerenciarUsuarios = roleLogado == Role.ADMIN || roleLogado == Role.GERENTE;
         if (!podeGerenciarUsuarios) {
             throw new AccessDeniedException("Seu perfil não tem permissão para gerenciar usuários");
         }
@@ -110,6 +115,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional
     protected Usuario toEntity(UsuarioRequestDTO request, Oficina oficina) {
         Usuario usuario = new Usuario();
         usuario.setNome(request.nome());
@@ -123,6 +129,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional
     protected void applyUpdate(Usuario usuario, UsuarioUpdateRequestDTO request) {
         usuario.setNome(request.nome());
         usuario.setDocumento(request.documento());
@@ -131,7 +138,7 @@ public class UsuarioServiceImpl
         usuario.setRole(request.role());
 
         // Mantém o vínculo coerente com a role: promover para ADMIN desliga a oficina,
-        // rebaixar para ADMINISTRATIVO/MECANICO exige (e aplica) uma oficina.
+        // rebaixar para GERENTE/MECANICO exige (e aplica) uma oficina.
         usuario.setOficina(request.oficinaId() == null
                 ? null
                 : oficinaService.buscarPorEntidadeId(request.oficinaId()));
@@ -141,11 +148,16 @@ public class UsuarioServiceImpl
         }
     }
 
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoCreate(UsuarioRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdCreate(UsuarioRequestDTO r) { return r.oficinaId(); }
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoUpdate(UsuarioUpdateRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdUpdate(UsuarioUpdateRequestDTO r) { return r.oficinaId(); }
-
+    @Transactional(readOnly = true)
     @Override protected RuntimeException notFoundException() { return new UsuarioNotFoundException(); }
+    @Transactional(readOnly = true)
     @Override protected RuntimeException alreadyExistsException() { return new UsuarioAlreadyExistsException(); }
 }

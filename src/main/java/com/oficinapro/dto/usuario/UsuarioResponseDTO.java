@@ -1,7 +1,7 @@
 package com.oficinapro.dto.usuario;
 
 import com.oficinapro.model.Usuario;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 
 public record UsuarioResponseDTO(
         Long id,

@@ -85,7 +85,7 @@ class PagamentoControllerTest {
     // ---------------------------------------------------------
 
     @Test
-    @WithMockUser(roles = "ADMINISTRATIVO")
+    @WithMockUser(roles = "GERENTE")
     void buscarPorId_encontrado_retorna200() throws Exception {
         when(pagamentoService.buscarPorId(10L)).thenReturn(responseDTO());
 
@@ -134,32 +134,4 @@ class PagamentoControllerTest {
                 .andExpect(status().isOk());
     }
 
-    // ---------------------------------------------------------
-    // PATCH /api/pagamentos/{id}/desconto
-    // ---------------------------------------------------------
-
-    @Test
-    @WithMockUser(roles = "ADMINISTRATIVO")
-    void aplicarDesconto_retorna200() throws Exception {
-        BigDecimal desconto = new BigDecimal("20.00");
-        when(pagamentoService.aplicarDesconto(eq(10L), any())).thenReturn(responseDTO());
-
-        mockMvc.perform(patch("/api/pagamentos/10/desconto")
-                        .with(csrf())
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(desconto)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(roles = "MECANICO")
-    void aplicarDesconto_mecanico_retorna403() throws Exception {
-        BigDecimal desconto = new BigDecimal("20.00");
-
-        mockMvc.perform(patch("/api/pagamentos/10/desconto")
-                        .with(csrf())
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(desconto)))
-                .andExpect(status().isForbidden());
-    }
 }

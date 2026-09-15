@@ -9,7 +9,7 @@ import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +72,7 @@ class VeiculoServiceTest {
         adminUser.setRole(Role.ADMIN);
 
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
 
         pageable = PageRequest.of(0, 10);
@@ -98,7 +98,7 @@ class VeiculoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
+    @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
     void deveListarVeiculosDaPropriaOficinaComoAdministrativo() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
         when(veiculoRepository.findByOficinaId(1L, pageable))
@@ -132,7 +132,7 @@ class VeiculoServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
+    @DisplayName("GERENTE: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
     void deveLancarExcecaoAoBuscarVeiculoDeOutraOficinaComoAdministrativo() {
         Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
 
@@ -161,13 +161,13 @@ class VeiculoServiceTest {
     void deveBuscarVeiculoPorPlacaComNormalizacaoComoAdmin() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
         // placa normalizada: "ABC-1234" -> "ABC1234"
-        when(veiculoRepository.findByPlaca("ABC1234")).thenReturn(Optional.of(veiculo));
+        when(veiculoRepository.findByPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
 
         VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca("ABC-1234");
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.placa()).isEqualTo("ABC1234");
-        verify(veiculoRepository).findByPlaca("ABC1234");
+        verify(veiculoRepository).findByPlaca(1L, "ABC1234");
     }
 
     // ---------------------------------------------------------------

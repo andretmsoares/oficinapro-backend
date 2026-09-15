@@ -15,7 +15,6 @@ import java.util.Optional;
 public interface PagamentoRepository extends JpaRepository<Pagamento, Long> {
 
     Pagamento findByOrdemDeServicoId(Long osId);
-    Optional<Pagamento> findById(Long id);
     List<Pagamento> findByOrdemDeServicoOficinaId(Long oficinaId);
     List<Pagamento> findByOrdemDeServicoOficinaIdAndStatus(
             Long oficinaId,

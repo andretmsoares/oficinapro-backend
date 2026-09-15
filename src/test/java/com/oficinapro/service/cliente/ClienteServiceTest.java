@@ -9,7 +9,7 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.ClienteRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,9 +73,9 @@ class ClienteServiceTest {
         adminUser = new Usuario();
         adminUser.setRole(Role.ADMIN);
 
-        // Usuário ADMINISTRATIVO – vinculado à oficina 1
+        // Usuário GERENTE – vinculado à oficina 1
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
 
         // Cliente pertencente à oficina 1
@@ -113,7 +113,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    @DisplayName("listar() como ADMINISTRATIVO deve retornar apenas clientes da sua oficina")
+    @DisplayName("listar() como GERENTE deve retornar apenas clientes da sua oficina")
     void listar_comoAdministrativo_retornaClientesDaSuaOficina() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Cliente> page = new PageImpl<>(List.of(cliente));
@@ -223,7 +223,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    @DisplayName("criar() como ADMINISTRATIVO tentando criar em outra oficina deve lançar AccessDeniedException")
+    @DisplayName("criar() como GERENTE tentando criar em outra oficina deve lançar AccessDeniedException")
     void criar_comoAdministrativo_outraOficina_lancaAccessDeniedException() {
         // Request aponta para oficina 2, mas normalUser pertence à oficina 1
         ClienteRequestDTO requestOutraOficina =

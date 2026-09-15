@@ -9,7 +9,7 @@ import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import com.oficinapro.service.oficina.OficinaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,7 +64,7 @@ class UnidadeServiceTest {
         adminUser.setRole(Role.ADMIN);
 
         normalUser = new Usuario();
-        normalUser.setRole(Role.ADMINISTRATIVO);
+        normalUser.setRole(Role.GERENTE);
         normalUser.setOficina(oficina);
     }
 
@@ -88,7 +88,7 @@ class UnidadeServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve chamar findByOficinaId e retornar apenas unidades da sua oficina")
+    @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas unidades da sua oficina")
     void deveListarUnidadesDaPropriaOficinaComoAdministrativo() {
         when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
         when(unidadeRepository.findByOficinaId(1L)).thenReturn(List.of(unidade));
@@ -121,7 +121,7 @@ class UnidadeServiceTest {
     }
 
     @Test
-    @DisplayName("ADMINISTRATIVO: deve lançar UnidadeNotFoundException ao acessar unidade de outra oficina")
+    @DisplayName("GERENTE: deve lançar UnidadeNotFoundException ao acessar unidade de outra oficina")
     void deveLancarExcecaoAoBuscarUnidadeDeOutraOficinaComoAdministrativo() {
         Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
         Unidade unidadeOutraOficina = new Unidade(outraOficina, "Unidade Remota", "Av. Distante, 999", "83922223333");

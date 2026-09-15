@@ -1,0 +1,9 @@
+ALTER TABLE pagamento
+    ADD COLUMN status VARCHAR(30);
+
+UPDATE pagamento
+SET status = 'PAGAMENTO_PENDENTE'
+WHERE status IS NULL;
+
+ALTER TABLE pagamento
+    ALTER COLUMN status SET NOT NULL;
