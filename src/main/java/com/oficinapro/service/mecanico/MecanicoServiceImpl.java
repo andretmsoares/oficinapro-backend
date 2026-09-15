@@ -8,6 +8,7 @@ import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.MecanicoRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -21,8 +22,9 @@ public class MecanicoServiceImpl
     public MecanicoServiceImpl(MecanicoRepository repository,
                                OficinaServiceImpl oficinaService,
                                PessoaService pessoaService,
-                               AuthenticatedUserProvider authenticatedUserProvider) {
-        super(repository, oficinaService, pessoaService, authenticatedUserProvider);
+                               AuthenticatedUserProvider authenticatedUserProvider,
+                               OficinaAccessValidator oficinaAccessValidator) {
+        super(repository, oficinaService, pessoaService, authenticatedUserProvider, oficinaAccessValidator);
     }
 
     @Override

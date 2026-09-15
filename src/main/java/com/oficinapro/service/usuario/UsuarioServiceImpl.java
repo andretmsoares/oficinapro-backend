@@ -11,6 +11,7 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
+import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.security.role.Role;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
@@ -32,8 +33,9 @@ public class UsuarioServiceImpl
                               OficinaServiceImpl oficinaService,
                               PessoaService pessoaService,
                               PasswordEncoder passwordEncoder,
-                              AuthenticatedUserProvider authenticatedUserProvider) {
-        super(usuarioRepository, oficinaService, pessoaService, authenticatedUserProvider);
+                              AuthenticatedUserProvider authenticatedUserProvider,
+                              OficinaAccessValidator oficinaAccessValidator) {
+        super(usuarioRepository, oficinaService, pessoaService, authenticatedUserProvider, oficinaAccessValidator);
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticatedUserProvider = authenticatedUserProvider;
@@ -102,23 +104,6 @@ public class UsuarioServiceImpl
         if (roleAlvo == Role.ADMIN && roleLogado != Role.ADMIN) {
             throw new AccessDeniedException("Apenas um usuário ADMIN pode criar ou promover outro ADMIN");
         }
-    }
-
-    @Override
-    protected Oficina resolverOficina(Long oficinaId) {
-        if (oficinaId == null) {
-            Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-            if (logado.getRole() != Role.ADMIN) {
-                throw new AccessDeniedException(
-                        "Somente o ADMIN do SaaS pode criar ou manter um usuário sem oficina");
-            }
-
-            return null;
-        }
-
-        validarAcessoOficina(oficinaId);
-        return oficinaService.buscarPorEntidadeId(oficinaId);
     }
 
     @Override
