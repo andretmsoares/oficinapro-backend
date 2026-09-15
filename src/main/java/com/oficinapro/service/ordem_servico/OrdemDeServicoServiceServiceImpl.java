@@ -380,6 +380,7 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
                 os.getStatus(),
                 os.getObs(),
                 os.getValorTotal(),
+                os.getDesconto(),
                 os.getValorComDesconto()
         );
     }

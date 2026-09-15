@@ -17,5 +17,6 @@ public record OrdemDeServicoResponseDTO(
         StatusOrdemDeServico status,
         String obs,
         BigDecimal valorTotal,
+        BigDecimal desconto,
         BigDecimal valorComDesconto
 ) {}
