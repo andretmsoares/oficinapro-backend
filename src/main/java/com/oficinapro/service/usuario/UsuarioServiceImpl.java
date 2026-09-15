@@ -19,6 +19,7 @@ import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UsuarioServiceImpl
@@ -42,6 +43,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     protected void validateBeforeCreate(UsuarioRequestDTO request) {
         if (usuarioRepository.existsByUsername(request.username())) {
             throw new UsernameAlreadyExistsException();
@@ -53,6 +55,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     protected void validateBeforeUpdate(Long id, UsuarioUpdateRequestDTO request) {
         if (usuarioRepository.existsByUsernameAndIdNot(request.username(), id)) {
             throw new UsernameAlreadyExistsException();
@@ -112,6 +115,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional
     protected Usuario toEntity(UsuarioRequestDTO request, Oficina oficina) {
         Usuario usuario = new Usuario();
         usuario.setNome(request.nome());
@@ -125,6 +129,7 @@ public class UsuarioServiceImpl
     }
 
     @Override
+    @Transactional
     protected void applyUpdate(Usuario usuario, UsuarioUpdateRequestDTO request) {
         usuario.setNome(request.nome());
         usuario.setDocumento(request.documento());
@@ -143,11 +148,16 @@ public class UsuarioServiceImpl
         }
     }
 
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoCreate(UsuarioRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdCreate(UsuarioRequestDTO r) { return r.oficinaId(); }
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoUpdate(UsuarioUpdateRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdUpdate(UsuarioUpdateRequestDTO r) { return r.oficinaId(); }
-
+    @Transactional(readOnly = true)
     @Override protected RuntimeException notFoundException() { return new UsuarioNotFoundException(); }
+    @Transactional(readOnly = true)
     @Override protected RuntimeException alreadyExistsException() { return new UsuarioAlreadyExistsException(); }
 }

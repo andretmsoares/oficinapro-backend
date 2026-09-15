@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<VeiculoResponseDTO> listar(Pageable pageable) {
         Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
 
@@ -44,12 +46,14 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable) {
         oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Veiculo buscarPorEntidadeId(Long id) {
         Veiculo veiculo = veiculoRepository.findById(id)
                 .orElseThrow(() -> new VeiculoNotFoundException(id));
@@ -63,11 +67,13 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public VeiculoResponseDTO buscarPorId(Long id) {
         return toResponse(buscarPorEntidadeId(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public VeiculoResponseDTO buscarPorPlaca( String placa) {
 
         Long oficinaId =
@@ -86,6 +92,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
+    @Transactional
     public VeiculoResponseDTO criar(VeiculoRequestDTO request) {
         oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
 
@@ -109,6 +116,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     }
 
     @Override
+    @Transactional
     public VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request) {
         Veiculo veiculo = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
@@ -130,6 +138,7 @@ public class VeiculoServiceImpl implements VeiculoService {
         return toResponse(updated);
     }
 
+    @Transactional
     @Override
     public void deletar(Long id) {
         Veiculo veiculo = buscarPorEntidadeId(id); // já valida acesso

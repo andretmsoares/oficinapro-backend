@@ -13,6 +13,7 @@ import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -60,12 +61,14 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Page<RES> listarPorOficinaId(Long oficinaId, Pageable pageable) {
         oficinaAccessValidator.validarAcessoOficina(oficinaId);
         return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public T buscarPorEntidadeId(Long id) {
         T entity = repository.findById(id).orElseThrow(this::notFoundException);
@@ -78,11 +81,13 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return entity;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public RES buscarPorId(Long id) {
         return toResponse(buscarPorEntidadeId(id));
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<RES> buscarPorNome(String nome) {
 
@@ -96,6 +101,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public RES buscarPorDocumento(String documento) {
 
@@ -109,6 +115,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public RES criar(C request) {
         Long oficinaId = extractOficinaIdCreate(request);
@@ -129,6 +136,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public RES atualizar(Long id, U request) {
         T entity = buscarPorEntidadeId(id); // já valida acesso ao registro atual
@@ -150,6 +158,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
         return toResponse(entity);
     }
 
+    @Transactional
     @Override
     public void deletar(Long id) {
         T entity = buscarPorEntidadeId(id); // já valida acesso

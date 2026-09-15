@@ -16,6 +16,7 @@ import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     private final OficinaAccessValidator oficinaAccessValidator;
 
     @Override
+    @Transactional(readOnly = true)
     public List<UnidadeResponseDTO> listar() {
         Usuario logado =
                 authenticatedUserProvider.getUsuarioAutenticado();
@@ -45,11 +47,13 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UnidadeResponseDTO buscarPorId(Long id) {
         return toResponse(this.buscarPorEntidadeId(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Unidade buscarPorEntidadeId(Long id) {
         Unidade unidade = unidadeRepository
                 .findById(id)
@@ -66,6 +70,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
         oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
@@ -78,6 +83,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
+    @Transactional
     public UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request) {
         oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
@@ -99,6 +105,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
+    @Transactional
     public UnidadeResponseDTO atualizar(Long id, UnidadeRequestDTO request) {
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));
@@ -125,6 +132,7 @@ public class UnidadeServiceImpl implements UnidadeService {
     }
 
     @Override
+    @Transactional
     public void deletar(Long id) {
         Unidade unidade = unidadeRepository.findById(id)
                 .orElseThrow(() -> new UnidadeNotFoundException(id));

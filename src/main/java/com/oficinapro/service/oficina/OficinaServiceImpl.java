@@ -8,6 +8,7 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class OficinaServiceImpl implements OficinaService {
 
     private final OficinaRepository oficinaRepository;
 
+    @Transactional(readOnly = true)
     @Override
     public List<OficinaResponseDTO> listar() {
         return oficinaRepository.findAll()
@@ -25,6 +27,7 @@ public class OficinaServiceImpl implements OficinaService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public OficinaResponseDTO buscarPorId(Long id) {
 
@@ -33,6 +36,7 @@ public class OficinaServiceImpl implements OficinaService {
         return toResponse(oficina);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Oficina buscarPorEntidadeId(Long id) {
 
@@ -41,11 +45,13 @@ public class OficinaServiceImpl implements OficinaService {
                         new OficinaNotFoundException(id));
     }
 
+    @Transactional(readOnly = true)
     @Override
     public boolean existsById(Long id) {
         return oficinaRepository.existsById(id);
     }
 
+    @Transactional
     @Override
     public OficinaResponseDTO criar(OficinaRequestDTO request) {
 
@@ -64,6 +70,7 @@ public class OficinaServiceImpl implements OficinaService {
         return toResponse(saved);
     }
 
+    @Transactional
     @Override
     public OficinaResponseDTO atualizar(
             Long id,
@@ -88,6 +95,7 @@ public class OficinaServiceImpl implements OficinaService {
         return toResponse(updated);
     }
 
+    @Transactional
     @Override
     public void deletar(Long id) {
 

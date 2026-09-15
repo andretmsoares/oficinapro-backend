@@ -13,6 +13,7 @@ import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MecanicoServiceImpl
@@ -34,6 +35,7 @@ public class MecanicoServiceImpl
                 m.getOficina().getId(), m.getSalario(), m.getObs());
     }
 
+    @Transactional
     @Override
     protected Mecanico toEntity(MecanicoRequestDTO request, Oficina oficina) {
         Mecanico m = new Mecanico();
@@ -47,6 +49,7 @@ public class MecanicoServiceImpl
     }
 
     @Override
+    @Transactional
     protected void applyUpdate(Mecanico m, MecanicoRequestDTO request) {
         m.setNome(request.nome());
         m.setDocumento(request.documento());
@@ -55,11 +58,16 @@ public class MecanicoServiceImpl
         m.setObs(request.obs());
     }
 
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoCreate(MecanicoRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdCreate(MecanicoRequestDTO r) { return r.oficinaId(); }
+    @Transactional(readOnly = true)
     @Override protected String extractDocumentoUpdate(MecanicoRequestDTO r) { return r.documento(); }
+    @Transactional(readOnly = true)
     @Override protected Long extractOficinaIdUpdate(MecanicoRequestDTO r) { return r.oficinaId(); }
-
+    @Transactional(readOnly = true)
     @Override protected RuntimeException notFoundException() { return new MecanicoNotFoundException(); }
+    @Transactional(readOnly = true)
     @Override protected RuntimeException alreadyExistsException() { return new MecanicoAlreadyExistsException(); }
 }
