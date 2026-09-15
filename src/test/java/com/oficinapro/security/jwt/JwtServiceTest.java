@@ -2,7 +2,7 @@ package com.oficinapro.security.jwt;
 
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
-import com.oficinapro.security.role.Role;
+import com.oficinapro.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class JwtServiceTest {
 
     private JwtService jwtService;
 
-    private Usuario administrativo;
+    private Usuario gerente;
     private Usuario adminSaas;
 
     private static JwtService construir(String secret, String issuer, Duration expiration) {
@@ -42,10 +42,10 @@ class JwtServiceTest {
         Oficina oficina = new Oficina();
         oficina.setId(7L);
 
-        administrativo = new Usuario();
-        administrativo.setUsername("ana.administrativo");
-        administrativo.setRole(Role.ADMINISTRATIVO);
-        administrativo.setOficina(oficina);
+        gerente = new Usuario();
+        gerente.setUsername("ana.gerente");
+        gerente.setRole(Role.GERENTE);
+        gerente.setOficina(oficina);
 
         adminSaas = new Usuario();
         adminSaas.setUsername("admin.saas");
@@ -56,10 +56,10 @@ class JwtServiceTest {
     @Test
     @DisplayName("gerarToken() e decodificar() devem preservar username, role e oficinaId")
     void roundTrip_preservaClaims() {
-        Jwt jwt = jwtService.decodificar(jwtService.gerarToken(administrativo));
+        Jwt jwt = jwtService.decodificar(jwtService.gerarToken(gerente));
 
-        assertThat(jwt.getSubject()).isEqualTo("ana.administrativo");
-        assertThat(jwt.getClaimAsString("role")).isEqualTo("ADMINISTRATIVO");
+        assertThat(jwt.getSubject()).isEqualTo("ana.gerente");
+        assertThat(jwt.getClaimAsString("role")).isEqualTo("GERENTE");
         assertThat(jwt.getClaim("oficinaId").toString()).isEqualTo("7");
         assertThat(jwt.getClaimAsString("iss")).isEqualTo(ISSUER);
         assertThat(jwt.getExpiresAt()).isAfter(jwt.getIssuedAt());
@@ -81,7 +81,7 @@ class JwtServiceTest {
         JwtService outroEmissor =
                 construir("outro-segredo-de-testes-com-mais-de-32-bytes!!", ISSUER, Duration.ofHours(8));
 
-        String tokenForjado = outroEmissor.gerarToken(administrativo);
+        String tokenForjado = outroEmissor.gerarToken(gerente);
 
         assertThatThrownBy(() -> jwtService.decodificar(tokenForjado))
                 .isInstanceOf(JwtException.class);
@@ -93,7 +93,7 @@ class JwtServiceTest {
         JwtService outroIssuer =
                 construir(SECRET, "atacante", Duration.ofHours(8));
 
-        String tokenForjado = outroIssuer.gerarToken(administrativo);
+        String tokenForjado = outroIssuer.gerarToken(gerente);
 
         assertThatThrownBy(() -> jwtService.decodificar(tokenForjado))
                 .isInstanceOf(JwtException.class);
@@ -105,7 +105,7 @@ class JwtServiceTest {
         JwtService emissor =
                 construir(SECRET, ISSUER, Duration.ofMillis(100));
 
-        String token = emissor.gerarToken(administrativo);
+        String token = emissor.gerarToken(gerente);
 
         Thread.sleep(200);
 
