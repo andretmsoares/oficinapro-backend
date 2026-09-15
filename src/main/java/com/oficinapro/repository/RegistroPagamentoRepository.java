@@ -12,6 +12,5 @@ import java.util.Optional;
 public interface RegistroPagamentoRepository extends JpaRepository<RegistroPagamento, Long> {
 
     List<RegistroPagamento> findByPagamentoId(Long pagamentoId);
-    Optional<RegistroPagamento> findById(Long id);
     List<RegistroPagamento> findByMeioPagamento(MeioPagamento meioPagamento);
 }
