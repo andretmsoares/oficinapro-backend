@@ -3,10 +3,7 @@ package com.oficinapro.service.mao_obra;
 import com.oficinapro.dto.mao_obra.MaoObraRequestDTO;
 import com.oficinapro.dto.mao_obra.MaoObraResponseDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
-import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
-import com.oficinapro.exception.ordem_servico.OSCanceledException;
-import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.model.MaoObra;
 import com.oficinapro.model.OrdemDeServico;
@@ -51,7 +48,7 @@ public class MaoObraServiceImpl implements MaoObraService {
     public MaoObraResponseDTO criar(MaoObraRequestDTO request) {
         OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
 
-        validarOsEditavel(os);
+        valorRecalculator.validarOsEditavel(os);
 
         MaoObra maoObra = new MaoObra();
         maoObra.setOrdemDeServico(os);
@@ -71,7 +68,7 @@ public class MaoObraServiceImpl implements MaoObraService {
         MaoObra maoObra = buscarPorEntidadeId(id); // já valida acesso
 
         OrdemDeServico os = maoObra.getOrdemDeServico();
-        validarOsEditavel(os);
+        valorRecalculator.validarOsEditavel(os);
 
         // osId do request é ignorado propositalmente: não é permitido
         // mover uma mão de obra para outra OS via update.
@@ -91,7 +88,7 @@ public class MaoObraServiceImpl implements MaoObraService {
         MaoObra maoObra = buscarPorEntidadeId(id); // já valida acesso
 
         OrdemDeServico os = maoObra.getOrdemDeServico();
-        validarOsEditavel(os);
+        valorRecalculator.validarOsEditavel(os);
 
         PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
 
@@ -106,15 +103,6 @@ public class MaoObraServiceImpl implements MaoObraService {
         maoObraRepository.delete(maoObra);
 
         valorRecalculator.recalcular(os);
-    }
-
-    private void validarOsEditavel(OrdemDeServico os) {
-        if (os.getStatus() == StatusOrdemDeServico.CANCELADA) {
-            throw new OSCanceledException();
-        }
-        if (os.getStatus() == StatusOrdemDeServico.ENTREGUE) {
-            throw new OSFinishedException();
-        }
     }
 
     private MaoObraResponseDTO toResponse(MaoObra maoObra) {

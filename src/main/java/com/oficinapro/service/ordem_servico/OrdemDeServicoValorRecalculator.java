@@ -1,5 +1,8 @@
 package com.oficinapro.service.ordem_servico;
 
+import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.MaoObra;
 import com.oficinapro.model.OrdemDeServico;
@@ -36,5 +39,14 @@ public class OrdemDeServicoValorRecalculator {
 
         ordemDeServicoService.recalcularValorTotal(os.getId(), totalPecas.add(totalMaoObra));
         pagamentoService.recalcularStatus(os.getId());
+    }
+
+    public void validarOsEditavel(OrdemDeServico os) {
+        if (os.getStatus() == StatusOrdemDeServico.CANCELADA) {
+            throw new OSCanceledException();
+        }
+        if (os.getStatus() == StatusOrdemDeServico.FECHADA) {
+            throw new OSFinishedException();
+        }
     }
 }
