@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @Tag(
         name = "Mecânicos",
@@ -49,7 +51,7 @@ public class MecanicoController {
 
     @GetMapping("/nome/{nome}")
     @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<MecanicoResponseDTO> buscarPorNome(@PathVariable String nome) {
+    public ResponseEntity<List<MecanicoResponseDTO>> buscarPorNome(@PathVariable String nome) {
         return ResponseEntity.ok(mecanicoService.buscarPorNome(nome));
     }
 
