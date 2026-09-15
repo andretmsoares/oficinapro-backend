@@ -9,5 +9,5 @@ public enum StatusOrdemDeServico {
     EM_EXECUCAO,
     FINALIZADA,
     ENTREGUE,
-    CANCELADA
+    FECHADA, CANCELADA
 }

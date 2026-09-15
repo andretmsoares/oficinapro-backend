@@ -4,6 +4,7 @@ import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSFinishedException;
@@ -198,13 +199,12 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     ) {
         OrdemDeServico os = this.buscarPorEntidadeId(id);
 
-        StatusOrdemDeServico atual = os.getStatus();
         StatusOrdemDeServico novo = dto.status();
 
         Usuario usuario =
                 authenticatedUserProvider.getUsuarioAutenticado();
 
-        validarTransicaoStatus(atual, novo, usuario);
+        validarTransicaoStatus(os, novo, usuario);
 
         os.setStatus(novo);
 
@@ -385,10 +385,12 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
     }
 
     private void validarTransicaoStatus(
-            StatusOrdemDeServico atual,
+            OrdemDeServico os,
             StatusOrdemDeServico novo,
             Usuario usuario
     ) {
+        StatusOrdemDeServico atual = os.getStatus();
+
         if (atual == StatusOrdemDeServico.CANCELADA) {
             throw new OSCanceledException();
         }
@@ -401,6 +403,18 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
             throw new AccessDeniedException(
                     "O mecânico não possui permissão para realizar esta alteração de status"
             );
+        }
+
+        if (novo == StatusOrdemDeServico.FINALIZADA) {
+
+            PagamentoResponseDTO pagamento =
+                    pagamentoService.buscarPorOsId(os.getId());
+
+            if (pagamento.status() != StatusPagamento.PAGA) {
+                throw new IllegalStateException(
+                        "A Ordem de Serviço só pode ser finalizada após o pagamento integral"
+                );
+            }
         }
 
         if (atual == novo) {
@@ -427,35 +441,30 @@ public class OrdemDeServicoServiceServiceImpl implements OrdemDeServicoService {
 
             case DIAGNOSTICO ->
                     novo == StatusOrdemDeServico.AGUARDANDO_APROVACAO
-                            || novo == StatusOrdemDeServico.ABERTA
                             || novo == StatusOrdemDeServico.CANCELADA;
 
             case AGUARDANDO_APROVACAO ->
                     novo == StatusOrdemDeServico.AGUARDANDO_PECAS
-                            || novo == StatusOrdemDeServico.EM_EXECUCAO
-                            || novo == StatusOrdemDeServico.DIAGNOSTICO
                             || novo == StatusOrdemDeServico.CANCELADA;
 
             case AGUARDANDO_PECAS ->
                     novo == StatusOrdemDeServico.EM_EXECUCAO
-                            || novo == StatusOrdemDeServico.DIAGNOSTICO
                             || novo == StatusOrdemDeServico.CANCELADA;
 
             case EM_EXECUCAO ->
-                    novo == StatusOrdemDeServico.FINALIZADA
-                            || novo == StatusOrdemDeServico.AGUARDANDO_PECAS
+                        novo == StatusOrdemDeServico.FINALIZADA
                             || novo == StatusOrdemDeServico.CANCELADA;
 
             case FINALIZADA ->
                     novo == StatusOrdemDeServico.ENTREGUE
-                            || novo == StatusOrdemDeServico.EM_EXECUCAO
-                            || novo == StatusOrdemDeServico.DIAGNOSTICO
                             || novo == StatusOrdemDeServico.ABERTA;
 
             case ENTREGUE ->
-                    novo == StatusOrdemDeServico.EM_EXECUCAO
-                            || novo == StatusOrdemDeServico.DIAGNOSTICO
+                    novo == StatusOrdemDeServico.FECHADA
                             || novo == StatusOrdemDeServico.ABERTA;
+
+            case FECHADA ->
+                    novo == StatusOrdemDeServico.ABERTA;
 
             case CANCELADA -> false;
         };
