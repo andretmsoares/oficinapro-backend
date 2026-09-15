@@ -1,28 +1,5 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.exception.GlobalExceptionHandler;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import tools.jackson.databind.ObjectMapper;
-import com.oficinapro.dto.usuario.UsuarioRequestDTO;
-import com.oficinapro.dto.usuario.UsuarioResponseDTO;
-import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
-import com.oficinapro.enums.Role;
-import com.oficinapro.service.usuario.UsuarioService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -31,124 +8,144 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.oficinapro.dto.usuario.UsuarioRequestDTO;
+import com.oficinapro.dto.usuario.UsuarioResponseDTO;
+import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
+import com.oficinapro.enums.Role;
+import com.oficinapro.exception.GlobalExceptionHandler;
+import com.oficinapro.service.usuario.UsuarioService;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
+
 @WebMvcTest(UsuarioController.class)
 @ActiveProfiles("test")
 @EnableMethodSecurity
 @Import(GlobalExceptionHandler.class)
 class UsuarioControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private UsuarioService usuarioService;
+  @MockitoBean private UsuarioService usuarioService;
 
-    private UsuarioResponseDTO responseDTO;
-    private UsuarioRequestDTO requestDTO;
-    private UsuarioUpdateRequestDTO updateRequestDTO;
+  private UsuarioResponseDTO responseDTO;
+  private UsuarioRequestDTO requestDTO;
+  private UsuarioUpdateRequestDTO updateRequestDTO;
 
-    @BeforeEach
-    void setUp() {
-        responseDTO = new UsuarioResponseDTO(
-                1L, "Ana Admin", "83944445555", "11122233344",
-                1L, "ana.admin", Role.ADMIN
-        );
-        requestDTO = new UsuarioRequestDTO(
-                "Ana Admin", "83944445555", "11122233344",
-                1L, "ana.admin", "senha1234", Role.ADMIN
-        );
-        updateRequestDTO = new UsuarioUpdateRequestDTO(
-                "Ana Admin", "83944445555", "11122233344",
-                1L, "ana.admin", "senha1234", Role.ADMIN
-        );
-    }
+  @BeforeEach
+  void setUp() {
+    responseDTO =
+        new UsuarioResponseDTO(
+            1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN);
+    requestDTO =
+        new UsuarioRequestDTO(
+            "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", "senha1234", Role.ADMIN);
+    updateRequestDTO =
+        new UsuarioUpdateRequestDTO(
+            "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", "senha1234", Role.ADMIN);
+  }
 
-    // ─── GET /api/usuarios ────────────────────────────────────────────────────────
+  // ─── GET /api/usuarios ────────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("GET /api/usuarios - ADMIN deve retornar 200 com página de usuários")
-    @WithMockUser(roles = "ADMIN")
-    void deveListarUsuariosComoAdmin() throws Exception {
-        when(usuarioService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+  @Test
+  @DisplayName("GET /api/usuarios - ADMIN deve retornar 200 com página de usuários")
+  @WithMockUser(roles = "ADMIN")
+  void deveListarUsuariosComoAdmin() throws Exception {
+    when(usuarioService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
 
-        mockMvc.perform(get("/api/usuarios"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
-                .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
-    }
+    mockMvc
+        .perform(get("/api/usuarios"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(1))
+        .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
+        .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+  }
 
-    @Test
-    @DisplayName("GET /api/usuarios - ADMINISTRATIVO deve retornar 403 (somente ADMIN pode listar todos)")
-    @WithMockUser(roles = "ADMINISTRATIVO")
-    void deveNegarAcessoParaAdministrativo() throws Exception {
-        mockMvc.perform(get("/api/usuarios"))
-                .andExpect(status().isForbidden());
-    }
+  @Test
+  @DisplayName("GET /api/usuarios - GERENTE deve retornar 403 (somente ADMIN pode listar todos)")
+  @WithMockUser(roles = "GERENTE")
+  void deveNegarAcessoParaGerente() throws Exception {
+    mockMvc.perform(get("/api/usuarios")).andExpect(status().isForbidden());
+  }
 
-    // ─── GET /api/usuarios/{id} ───────────────────────────────────────────────────
+  // ─── GET /api/usuarios/{id} ───────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("GET /api/usuarios/{id} - ADMIN deve retornar 200 com o usuário correto")
-    @WithMockUser(roles = "ADMIN")
-    void deveBuscarUsuarioPorId() throws Exception {
-        when(usuarioService.buscarPorId(1L)).thenReturn(responseDTO);
+  @Test
+  @DisplayName("GET /api/usuarios/{id} - ADMIN deve retornar 200 com o usuário correto")
+  @WithMockUser(roles = "ADMIN")
+  void deveBuscarUsuarioPorId() throws Exception {
+    when(usuarioService.buscarPorId(1L)).thenReturn(responseDTO);
 
-        mockMvc.perform(get("/api/usuarios/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.nome").value("Ana Admin"))
-                .andExpect(jsonPath("$.username").value("ana.admin"));
-    }
+    mockMvc
+        .perform(get("/api/usuarios/1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.nome").value("Ana Admin"))
+        .andExpect(jsonPath("$.username").value("ana.admin"));
+  }
 
-    // ─── POST /api/usuarios ───────────────────────────────────────────────────────
+  // ─── POST /api/usuarios ───────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("POST /api/usuarios - ADMIN deve criar usuário e retornar 201")
-    @WithMockUser(roles = "ADMIN")
-    void deveCriarUsuario() throws Exception {
-        when(usuarioService.criar(any(UsuarioRequestDTO.class))).thenReturn(responseDTO);
+  @Test
+  @DisplayName("POST /api/usuarios - ADMIN deve criar usuário e retornar 201")
+  @WithMockUser(roles = "ADMIN")
+  void deveCriarUsuario() throws Exception {
+    when(usuarioService.criar(any(UsuarioRequestDTO.class))).thenReturn(responseDTO);
 
-        mockMvc.perform(post("/api/usuarios")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDTO)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.username").value("ana.admin"))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
-    }
+    mockMvc
+        .perform(
+            post("/api/usuarios")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDTO)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.username").value("ana.admin"))
+        .andExpect(jsonPath("$.role").value("ADMIN"));
+  }
 
-    // ─── PUT /api/usuarios/{id} ───────────────────────────────────────────────────
+  // ─── PUT /api/usuarios/{id} ───────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("PUT /api/usuarios/{id} - ADMIN deve atualizar usuário e retornar 200")
-    @WithMockUser(roles = "ADMIN")
-    void deveAtualizarUsuario() throws Exception {
-        when(usuarioService.atualizar(eq(1L), any(UsuarioUpdateRequestDTO.class))).thenReturn(responseDTO);
+  @Test
+  @DisplayName("PUT /api/usuarios/{id} - ADMIN deve atualizar usuário e retornar 200")
+  @WithMockUser(roles = "ADMIN")
+  void deveAtualizarUsuario() throws Exception {
+    when(usuarioService.atualizar(eq(1L), any(UsuarioUpdateRequestDTO.class)))
+        .thenReturn(responseDTO);
 
-        mockMvc.perform(put("/api/usuarios/1")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequestDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.nome").value("Ana Admin"));
-    }
+    mockMvc
+        .perform(
+            put("/api/usuarios/1")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateRequestDTO)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.nome").value("Ana Admin"));
+  }
 
-    // ─── DELETE /api/usuarios/{id} ────────────────────────────────────────────────
+  // ─── DELETE /api/usuarios/{id} ────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("DELETE /api/usuarios/{id} - ADMIN deve excluir usuário e retornar 204")
-    @WithMockUser(roles = "ADMIN")
-    void deveDeletarUsuario() throws Exception {
-        doNothing().when(usuarioService).deletar(1L);
+  @Test
+  @DisplayName("DELETE /api/usuarios/{id} - ADMIN deve excluir usuário e retornar 204")
+  @WithMockUser(roles = "ADMIN")
+  void deveDeletarUsuario() throws Exception {
+    doNothing().when(usuarioService).deletar(1L);
 
-        mockMvc.perform(delete("/api/usuarios/1")
-                        .with(csrf()))
-                .andExpect(status().isNoContent());
-    }
+    mockMvc.perform(delete("/api/usuarios/1").with(csrf())).andExpect(status().isNoContent());
+  }
 }

@@ -9,23 +9,27 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthenticatedUserProvider {
 
-    public Usuario getUsuarioAutenticado() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+  public Usuario getUsuarioAutenticado() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof Usuario usuario)) {
-            throw new AuthenticationCredentialsNotFoundException("Nenhum usuário autenticado encontrado no contexto de segurança");
-        }
-
-        return usuario;
+    if (auth == null
+        || !auth.isAuthenticated()
+        || !(auth.getPrincipal() instanceof Usuario usuario)) {
+      throw new AuthenticationCredentialsNotFoundException(
+          "Nenhum usuário autenticado encontrado no contexto de segurança");
     }
 
-    public Long getOficinaIdUsuarioLogado() {
-        Usuario usuario = getUsuarioAutenticado();
+    return usuario;
+  }
 
-        if (usuario.getOficina() == null) {
-            throw new AuthenticationCredentialsNotFoundException("Usuário não está vinculado a uma oficina");
-        }
+  public Long getOficinaIdUsuarioLogado() {
+    Usuario usuario = getUsuarioAutenticado();
 
-        return usuario.getOficina().getId();
+    if (usuario.getOficina() == null) {
+      throw new AuthenticationCredentialsNotFoundException(
+          "Usuário não está vinculado a uma oficina");
     }
+
+    return usuario.getOficina().getId();
+  }
 }

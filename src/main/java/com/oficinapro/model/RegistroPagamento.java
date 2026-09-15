@@ -2,10 +2,9 @@ package com.oficinapro.model;
 
 import com.oficinapro.enums.MeioPagamento;
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "registro_pagamento")
@@ -15,25 +14,24 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RegistroPagamento {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "pagamento_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_registro_pagamento")
-    )
-    private Pagamento pagamento;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(
+      name = "pagamento_id",
+      nullable = false,
+      foreignKey = @ForeignKey(name = "fk_registro_pagamento"))
+  private Pagamento pagamento;
 
-    @Column(name = "valor", precision = 12, scale = 2, nullable = false)
-    private BigDecimal valor;
+  @Column(name = "valor", precision = 12, scale = 2, nullable = false)
+  private BigDecimal valor;
 
-    @Column(name = "meio_pagamento", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private MeioPagamento meioPagamento;
+  @Column(name = "meio_pagamento", nullable = false)
+  @Enumerated(EnumType.STRING)
+  private MeioPagamento meioPagamento;
 
-    @Column(name = "data", nullable = false)
-    private LocalDateTime data;
+  @Column(name = "data", nullable = false)
+  private LocalDateTime data;
 }

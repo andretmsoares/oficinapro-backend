@@ -18,48 +18,42 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(
-        name = "Autenticação",
-        description = "Login e consulta do usuário autenticado"
-)
+@Tag(name = "Autenticação", description = "Login e consulta do usuário autenticado")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthService authService;
+  private final AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
+  public AuthController(AuthService authService) {
+    this.authService = authService;
+  }
 
-    @Operation(
-            summary = "Login",
-            description = "Autentica por username e password e devolve o access token JWT"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Autenticado com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
-    })
-    @SecurityRequirements // rota pública: não exige o cadeado no Swagger
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(
-            @Valid @RequestBody LoginRequestDTO request) {
+  @Operation(
+      summary = "Login",
+      description = "Autentica por username e password e devolve o access token JWT")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Autenticado com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+    @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
+  })
+  @SecurityRequirements // rota pública: não exige o cadeado no Swagger
+  @PostMapping("/login")
+  public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
 
-        return ResponseEntity.ok(authService.login(request));
-    }
+    return ResponseEntity.ok(authService.login(request));
+  }
 
-    @Operation(
-            summary = "Usuário autenticado",
-            description = "Retorna os dados do usuário dono do token enviado"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Dados do usuário autenticado"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido")
-    })
-    @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/me")
-    public ResponseEntity<UsuarioResponseDTO> me() {
-        return ResponseEntity.ok(authService.usuarioLogado());
-    }
+  @Operation(
+      summary = "Usuário autenticado",
+      description = "Retorna os dados do usuário dono do token enviado")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Dados do usuário autenticado"),
+    @ApiResponse(responseCode = "401", description = "Token ausente ou inválido")
+  })
+  @SecurityRequirement(name = "bearerAuth")
+  @GetMapping("/me")
+  public ResponseEntity<UsuarioResponseDTO> me() {
+    return ResponseEntity.ok(authService.usuarioLogado());
+  }
 }

@@ -10,60 +10,93 @@ import com.oficinapro.repository.ClienteRepository;
 import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
-import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
+import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ClienteServiceImpl
-        extends AbstractPessoaServiceImpl<Cliente, ClienteRequestDTO, ClienteRequestDTO, ClienteResponseDTO>
-        implements ClienteService {
+    extends AbstractPessoaServiceImpl<
+        Cliente, ClienteRequestDTO, ClienteRequestDTO, ClienteResponseDTO>
+    implements ClienteService {
 
-    public ClienteServiceImpl(ClienteRepository repository,
-                              OficinaServiceImpl oficinaService,
-                              PessoaService pessoaService,
-                              AuthenticatedUserProvider authenticatedUserProvider,
-                              OficinaAccessValidator oficinaAccessValidator) {
-        super(repository, oficinaService, pessoaService, authenticatedUserProvider, oficinaAccessValidator);
-    }
+  public ClienteServiceImpl(
+      ClienteRepository repository,
+      OficinaServiceImpl oficinaService,
+      PessoaService pessoaService,
+      AuthenticatedUserProvider authenticatedUserProvider,
+      OficinaAccessValidator oficinaAccessValidator) {
+    super(
+        repository,
+        oficinaService,
+        pessoaService,
+        authenticatedUserProvider,
+        oficinaAccessValidator);
+  }
 
-    @Override
-    protected ClienteResponseDTO toResponse(Cliente cliente) {
-        return new ClienteResponseDTO(
-                cliente.getId(), cliente.getNome(), cliente.getTelefone(),
-                cliente.getDocumento(), cliente.getOficina().getId());
-    }
+  @Override
+  protected ClienteResponseDTO toResponse(Cliente cliente) {
+    return new ClienteResponseDTO(
+        cliente.getId(),
+        cliente.getNome(),
+        cliente.getTelefone(),
+        cliente.getDocumento(),
+        cliente.getOficina().getId());
+  }
 
-    @Override
-    @Transactional
-    protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
-        Cliente cliente = new Cliente();
-        cliente.setNome(request.nome());
-        cliente.setDocumento(request.documento());
-        cliente.setTelefone(request.telefone());
-        cliente.setOficina(oficina);
-        return cliente;
-    }
+  @Override
+  @Transactional
+  protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
+    Cliente cliente = new Cliente();
+    cliente.setNome(request.nome());
+    cliente.setDocumento(request.documento());
+    cliente.setTelefone(request.telefone());
+    cliente.setOficina(oficina);
+    return cliente;
+  }
 
-    @Override
-    @Transactional
-    protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
-        cliente.setNome(request.nome());
-        cliente.setDocumento(request.documento());
-        cliente.setTelefone(request.telefone());
-    }
+  @Override
+  @Transactional
+  protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
+    cliente.setNome(request.nome());
+    cliente.setDocumento(request.documento());
+    cliente.setTelefone(request.telefone());
+  }
 
-    @Transactional(readOnly = true)
-    @Override protected String extractDocumentoCreate(ClienteRequestDTO r) { return r.documento(); }
-    @Transactional(readOnly = true)
-    @Override protected Long extractOficinaIdCreate(ClienteRequestDTO r) { return r.oficinaId(); }
-    @Transactional(readOnly = true)
-    @Override protected String extractDocumentoUpdate(ClienteRequestDTO r) { return r.documento(); }
-    @Transactional(readOnly = true)
-    @Override protected Long extractOficinaIdUpdate(ClienteRequestDTO r) { return r.oficinaId(); }
-    @Transactional(readOnly = true)
-    @Override protected RuntimeException notFoundException() { return new ClienteNotFoundException(); }
-    @Transactional(readOnly = true)
-    @Override protected RuntimeException alreadyExistsException() { return new ClienteAlreadyExistsException(); }
+  @Transactional(readOnly = true)
+  @Override
+  protected String extractDocumentoCreate(ClienteRequestDTO r) {
+    return r.documento();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected Long extractOficinaIdCreate(ClienteRequestDTO r) {
+    return r.oficinaId();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected String extractDocumentoUpdate(ClienteRequestDTO r) {
+    return r.documento();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected Long extractOficinaIdUpdate(ClienteRequestDTO r) {
+    return r.oficinaId();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected RuntimeException notFoundException() {
+    return new ClienteNotFoundException();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected RuntimeException alreadyExistsException() {
+    return new ClienteAlreadyExistsException();
+  }
 }

@@ -3,46 +3,44 @@ package com.oficinapro.service.ordem_servico;
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface OrdemDeServicoService {
 
-    List<OrdemDeServicoResponseDTO> listar();
+  List<OrdemDeServicoResponseDTO> listar();
 
-    List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
+  List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
 
-    List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId);
+  List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId);
 
-    List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId);
+  List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId);
 
-    List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
+  List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
 
-    List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId);
+  List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId);
 
-    List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
+  List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
 
-    OrdemDeServicoResponseDTO buscarPorId(Long id);
+  OrdemDeServicoResponseDTO buscarPorId(Long id);
 
-    OrdemDeServico buscarPorEntidadeId(Long id);
+  OrdemDeServico buscarPorEntidadeId(Long id);
 
-    OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto);
+  OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto);
 
-    OrdemDeServicoResponseDTO recalcularValorTotal(Long id, BigDecimal novoValorTotal);
+  OrdemDeServicoResponseDTO recalcularValorTotal(Long id, BigDecimal novoValorTotal);
 
-    OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto);
+  OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto);
 
-    OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto);
+  OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto);
 
-    OrdemDeServicoResponseDTO atribuirCliente(Long id, AtribuirClienteRequestDTO dto);
+  OrdemDeServicoResponseDTO atribuirCliente(Long id, AtribuirClienteRequestDTO dto);
 
-    OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request);
+  OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request);
 
-    OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
+  OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
 
-    List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId,int mes,int ano);
+  List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId, int mes, int ano);
 
-    void deletar(Long id);
-
+  void deletar(Long id);
 }

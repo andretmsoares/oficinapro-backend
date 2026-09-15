@@ -9,6 +9,7 @@ import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.exception.ordem_servico.*;
+import com.oficinapro.exception.pagamento.PagamentoAlreadyExistsException;
 import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
 import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
 import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
@@ -22,6 +23,10 @@ import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -36,296 +41,279 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.time.DateTimeException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
-    public ResponseEntity<Map<String, Object>> handleAccessDenied(Exception exception) {
-        return buildResponse(HttpStatus.FORBIDDEN, "Acesso negado: Você não tem permissão para acessar este recurso.");
-    }
+  @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+  public ResponseEntity<Map<String, Object>> handleAccessDenied(Exception exception) {
+    return buildResponse(
+        HttpStatus.FORBIDDEN, "Acesso negado: Você não tem permissão para acessar este recurso.");
+  }
 
-    /**
-     * Falha de login. A mensagem é sempre genérica, mesmo quando o username não existe,
-     * para não permitir descobrir quais usuários estão cadastrados.
-     */
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, Object>> handleAuthenticationFailure(
-            AuthenticationException exception) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
-    }
+  /**
+   * Falha de login. A mensagem é sempre genérica, mesmo quando o username não existe, para não
+   * permitir descobrir quais usuários estão cadastrados.
+   */
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<Map<String, Object>> handleAuthenticationFailure(
+      AuthenticationException exception) {
+    return buildResponse(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
+  }
 
-    @ExceptionHandler(OficinaNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleOficinaNotFound(
-            OficinaNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(OficinaNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaNotFound(
+      OficinaNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(UnidadeNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleUnidadeNotFound(
-            UnidadeNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(UnidadeNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleUnidadeNotFound(
+      UnidadeNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(ClienteNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleClienteNotFound(
-            ClienteNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(ClienteNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleClienteNotFound(
+      ClienteNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(MecanicoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleMecanicoNotFound(
-            MecanicoNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(MecanicoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleMecanicoNotFound(
+      MecanicoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(UsuarioNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleUsuarioNotFound(
-            UsuarioNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(UsuarioNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleUsuarioNotFound(
+      UsuarioNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(VeiculoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleVeiculoNotFound(
-            VeiculoNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(VeiculoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleVeiculoNotFound(
+      VeiculoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(OrdemDeServicoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleOSNotFound(
-            OrdemDeServicoNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(OrdemDeServicoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleOSNotFound(
+      OrdemDeServicoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(MaoObraNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleMaoObraNotFound(
-            MaoObraNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(MaoObraNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleMaoObraNotFound(
+      MaoObraNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(ItemOsPecaNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleItemOSNotFound(
-            ItemOsPecaNotFoundException  exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(ItemOsPecaNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleItemOSNotFound(
+      ItemOsPecaNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(PagamentoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handlePagamentoNotFound(
-            PagamentoNotFoundException  exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(PagamentoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handlePagamentoNotFound(
+      PagamentoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(PagamentoNotFoundForThisOsException.class)
-    public ResponseEntity<Map<String, Object>> handlePagamentoNotFoundForThisOs(
-            PagamentoNotFoundForThisOsException  exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  @ExceptionHandler(PagamentoNotFoundForThisOsException.class)
+  public ResponseEntity<Map<String, Object>> handlePagamentoNotFoundForThisOs(
+      PagamentoNotFoundForThisOsException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(RegistroPagamentoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleRegistroPagamentoNotFoundForThisOs(
-            RegistroPagamentoNotFoundException exception) {
-        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-    }
+  /**
+   * A relação OS↔pagamento é 1:1, garantida também pela constraint uk_pagamento_os. Sem este
+   * handler a violação da regra escapava como 500, escondendo um erro de uso da API atrás de um
+   * erro de servidor.
+   */
+  @ExceptionHandler(PagamentoAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handlePagamentoAlreadyExists(
+      PagamentoAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(PagamentoValorExcedidoException.class)
-    public ResponseEntity<Map<String, Object>> handleValorPagamentoExcedido(
-            PagamentoValorExcedidoException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
-    @ExceptionHandler(CnpjAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
-            CnpjAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(RegistroPagamentoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleRegistroPagamentoNotFoundForThisOs(
+      RegistroPagamentoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
 
-    @ExceptionHandler(PlacaAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handlePlacaAlreadyExists(
-            PlacaAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
-    @ExceptionHandler(PagamentoValorInvalidoException.class)
-    public ResponseEntity<Map<String, Object>> handlePagamentoValorInvalid(
-            PagamentoValorInvalidoException exception) {
-        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
-    }
+  @ExceptionHandler(PagamentoValorExcedidoException.class)
+  public ResponseEntity<Map<String, Object>> handleValorPagamentoExcedido(
+      PagamentoValorExcedidoException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(EnderecoAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleEnderecoAlreadyExists(
-            EnderecoAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(CnpjAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleCnpjAlreadyExists(
+      CnpjAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(ClienteAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleClienteAlreadyExists(
-            ClienteAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(PlacaAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handlePlacaAlreadyExists(
+      PlacaAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(MecanicoAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleMecanicoAlreadyExists(
-            MecanicoAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(PagamentoValorInvalidoException.class)
+  public ResponseEntity<Map<String, Object>> handlePagamentoValorInvalid(
+      PagamentoValorInvalidoException exception) {
+    return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+  }
 
-    @ExceptionHandler(UsernameAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExists(
-            UsernameAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(EnderecoAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleEnderecoAlreadyExists(
+      EnderecoAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(OficinaIncompativelComRoleException.class)
-    public ResponseEntity<Map<String, Object>> handleOficinaIncompativelComRole(
-            OficinaIncompativelComRoleException exception) {
-        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
-    }
+  @ExceptionHandler(ClienteAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleClienteAlreadyExists(
+      ClienteAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(UsuarioAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleUsuarioAlreadyExists(
-            UsuarioAlreadyExistsException exception) {
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
-    }
+  @ExceptionHandler(MecanicoAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleMecanicoAlreadyExists(
+      MecanicoAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(DescontoInvalidoException.class)
-    public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
-            DescontoInvalidoException exception) {
-        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
-    }
+  @ExceptionHandler(UsernameAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExists(
+      UsernameAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(OSCanceledException.class)
-    public ResponseEntity<Map<String, Object>> handleOSCanceled(
-            OSCanceledException exception) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
-    }
+  @ExceptionHandler(OficinaIncompativelComRoleException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaIncompativelComRole(
+      OficinaIncompativelComRoleException exception) {
+    return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+  }
 
-    @ExceptionHandler(OSFinishedException.class)
-    public ResponseEntity<Map<String, Object>> handleOSFinished(
-            OSFinishedException exception) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
-    }
+  @ExceptionHandler(UsuarioAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handleUsuarioAlreadyExists(
+      UsuarioAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
 
-    @ExceptionHandler(OSIsNotPossibleSwapWorkshopException.class)
-    public ResponseEntity<Map<String, Object>> handleOSIsNotPossibleSwapWorkshop(
-            OSIsNotPossibleSwapWorkshopException exception) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
-    }
+  @ExceptionHandler(DescontoInvalidoException.class)
+  public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
+      DescontoInvalidoException exception) {
+    return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+  }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
-            DataIntegrityViolationException ex) {
+  @ExceptionHandler(OSCanceledException.class)
+  public ResponseEntity<Map<String, Object>> handleOSCanceled(OSCanceledException exception) {
+    return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+  }
 
-        return buildResponse(HttpStatus.CONFLICT, "Conflito de dados. Não foi possível realizar a operação porque os dados violam uma regra de integridade.");
-    }
+  @ExceptionHandler(OSFinishedException.class)
+  public ResponseEntity<Map<String, Object>> handleOSFinished(OSFinishedException exception) {
+    return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+  }
 
+  @ExceptionHandler(OSIsNotPossibleSwapWorkshopException.class)
+  public ResponseEntity<Map<String, Object>> handleOSIsNotPossibleSwapWorkshop(
+      OSIsNotPossibleSwapWorkshopException exception) {
+    return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+  }
 
-    @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleIncorrectResultSize(
-            IncorrectResultSizeDataAccessException ex) {
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+      DataIntegrityViolationException ex) {
 
+    return buildResponse(
+        HttpStatus.CONFLICT,
+        "Conflito de dados. Não foi possível realizar a operação porque os dados violam uma regra de integridade.");
+  }
 
-        return buildResponse(HttpStatus.CONFLICT,
-                        "Dados inconsistentes. A consulta retornou mais registros do que o esperado."
-                );
-    }
+  @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
+  public ResponseEntity<Map<String, Object>> handleIncorrectResultSize(
+      IncorrectResultSizeDataAccessException ex) {
 
+    return buildResponse(
+        HttpStatus.CONFLICT,
+        "Dados inconsistentes. A consulta retornou mais registros do que o esperado.");
+  }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalState(
-            IllegalStateException ex) {
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
 
+    return buildResponse(HttpStatus.BAD_REQUEST, "Operação inválida");
+  }
 
-        return buildResponse(HttpStatus.BAD_REQUEST,
-                        "Operação inválida"
-                );
-    }
+  @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+  public ResponseEntity<Map<String, Object>> handleInvalidDataAccessApiUsage(
+      InvalidDataAccessApiUsageException ex) {
 
+    return buildResponse(
+        HttpStatus.BAD_REQUEST,
+        "Requisição inválida. Os dados informados não podem ser utilizados nesta operação.");
+  }
 
-    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidDataAccessApiUsage(
-            InvalidDataAccessApiUsageException ex) {
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
+      MethodArgumentTypeMismatchException ex) {
 
+    String message = "Valor inválido para o parâmetro '%s'.".formatted(ex.getName());
 
-        return buildResponse(HttpStatus.BAD_REQUEST,
-                        "Requisição inválida. Os dados informados não podem ser utilizados nesta operação."
-                );
-    }
+    return buildResponse(HttpStatus.BAD_REQUEST, "Parâmetro inválido");
+  }
 
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
 
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
-            MethodArgumentTypeMismatchException ex) {
+    return buildResponse(
+        HttpStatus.BAD_REQUEST,
+        "Corpo da requisição inválido. Não foi possível interpretar o corpo da requisição.");
+  }
 
-        String message = "Valor inválido para o parâmetro '%s'."
-                .formatted(ex.getName());
+  @ExceptionHandler(DateTimeException.class)
+  public ResponseEntity<Map<String, Object>> handleDateTimeException(DateTimeException ex) {
 
-        return buildResponse(HttpStatus.BAD_REQUEST,
-                        "Parâmetro inválido"
-                );
-    }
+    return buildResponse(
+        HttpStatus.BAD_REQUEST, "Data ou hora inválida. A data ou hora informada é inválida.");
+  }
 
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<Map<String, Object>> handleValidation(
+      MethodArgumentNotValidException exception) {
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(
-            HttpMessageNotReadableException ex) {
+    Map<String, String> errors = new HashMap<>();
 
+    exception
+        .getBindingResult()
+        .getFieldErrors()
+        .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
-        return buildResponse(HttpStatus.BAD_REQUEST,"Corpo da requisição inválido. Não foi possível interpretar o corpo da requisição.");
-    }
+    Map<String, Object> body = new HashMap<>();
 
+    body.put("status", HttpStatus.BAD_REQUEST.value());
+    body.put("error", "Validation Error");
+    body.put("message", "Dados inválidos");
+    body.put("timestamp", LocalDateTime.now());
+    body.put("fields", errors);
 
-    @ExceptionHandler(DateTimeException.class)
-    public ResponseEntity<Map<String, Object>> handleDateTimeException(
-            DateTimeException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
 
-        return buildResponse(HttpStatus.BAD_REQUEST,
-                        "Data ou hora inválida. A data ou hora informada é inválida."
-                );
-    }
+  private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(
-            MethodArgumentNotValidException exception) {
+    Map<String, Object> body = new HashMap<>();
 
-        Map<String, String> errors = new HashMap<>();
+    body.put("status", status.value());
+    body.put("error", status.getReasonPhrase());
+    body.put("message", message);
+    body.put("timestamp", LocalDateTime.now());
 
-        exception.getBindingResult()
-                .getFieldErrors()
-                .forEach(error ->
-                        errors.put(
-                                error.getField(),
-                                error.getDefaultMessage()
-                        )
-                );
-
-        Map<String, Object> body = new HashMap<>();
-
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Validation Error");
-        body.put("message", "Dados inválidos");
-        body.put("timestamp", LocalDateTime.now());
-        body.put("fields", errors);
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(body);
-    }
-
-    private ResponseEntity<Map<String, Object>> buildResponse(
-            HttpStatus status,
-            String message) {
-
-        Map<String, Object> body = new HashMap<>();
-
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        body.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity
-                .status(status)
-                .body(body);
-    }
+    return ResponseEntity.status(status).body(body);
+  }
 }

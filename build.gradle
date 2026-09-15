@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '7.2.1'
 }
 
 group = 'com.oficinaPro'
@@ -51,6 +52,18 @@ dependencies {
 	testImplementation 'com.h2database:h2'
 }
 
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+        importOrder()
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'spotlessCheck'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 
@@ -62,3 +75,5 @@ tasks.named('test') {
 			'-Xmx1024m'
 	)
 }
+
+

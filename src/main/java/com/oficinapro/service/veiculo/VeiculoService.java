@@ -8,19 +8,19 @@ import org.springframework.data.domain.Pageable;
 
 public interface VeiculoService {
 
-    Page<VeiculoResponseDTO> listar(Pageable pageable);
+  Page<VeiculoResponseDTO> listar(Pageable pageable);
 
-    Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable);
+  Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable);
 
-    Veiculo buscarPorEntidadeId(Long id);
+  Veiculo buscarPorEntidadeId(Long id);
 
-    VeiculoResponseDTO buscarPorId(Long id);
+  VeiculoResponseDTO buscarPorId(Long id);
 
-    VeiculoResponseDTO buscarPorPlaca(String placa);
+  VeiculoResponseDTO buscarPorPlaca(String placa);
 
-    VeiculoResponseDTO criar(VeiculoRequestDTO request);
+  VeiculoResponseDTO criar(VeiculoRequestDTO request);
 
-    VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request);
+  VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request);
 
-    void deletar(Long id);
+  void deletar(Long id);
 }

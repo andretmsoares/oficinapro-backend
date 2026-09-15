@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SpringDocConfig {
 
-    @Bean
-    public org.springdoc.core.customizers.OperationCustomizer customizeOperation() {
-        return (operation, handlerMethod) -> operation;
-    }
+  @Bean
+  public org.springdoc.core.customizers.OperationCustomizer customizeOperation() {
+    return (operation, handlerMethod) -> operation;
+  }
 }
