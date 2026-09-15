@@ -205,13 +205,14 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
         os.setStatus(novo);
 
-        if (novo == StatusOrdemDeServico.FINALIZADA
-                || novo == StatusOrdemDeServico.ENTREGUE) {
-
+        // FECHADA precisa estar nesta lista: o relatório de fluxo mensal conta OS
+        // concluídas por dataFechamento, e sem isso o passo ENTREGUE → FECHADA apagava
+        // a data registrada na entrega, fazendo a OS desaparecer do relatório.
+        // Nos demais status a OS voltou a estar em andamento, então a data é limpa.
+        if (ehStatusDeConclusao(novo)) {
             if (os.getDataFechamento() == null) {
                 os.setDataFechamento(LocalDateTime.now());
             }
-
         } else {
             os.setDataFechamento(null);
         }
@@ -380,6 +381,15 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
                 os.getDesconto(),
                 os.getValorComDesconto()
         );
+    }
+
+    /**
+     * Status em que a OS está concluída e a data de fechamento deve ser preservada.
+     */
+    private boolean ehStatusDeConclusao(StatusOrdemDeServico status) {
+        return status == StatusOrdemDeServico.FINALIZADA
+                || status == StatusOrdemDeServico.ENTREGUE
+                || status == StatusOrdemDeServico.FECHADA;
     }
 
     private void validarTransicaoStatus(
