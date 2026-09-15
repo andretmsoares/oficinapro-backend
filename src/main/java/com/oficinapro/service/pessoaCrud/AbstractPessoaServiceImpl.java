@@ -1,7 +1,6 @@
 package com.oficinapro.service.pessoaCrud;
 
 import com.oficinapro.enums.Role;
-import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Pessoa;
 import com.oficinapro.model.Usuario;
@@ -80,9 +79,12 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   @Override
   public T buscarPorEntidadeId(Long id) {
     T entity = repository.findById(id).orElseThrow(this::notFoundException);
+    // Usa a exceção da própria subclasse: antes isto era um UsuarioNotFoundException
+    // fixo, então buscar um cliente de outra oficina respondia "Usuário não
+    // encontrado". Além de errado, revelava que o registro foi barrado pelo
+    // isolamento e não por não existir.
     oficinaAccessValidator.validarAcessoAoRegistro(
-        entity.getOficina() != null ? entity.getOficina().getId() : null,
-        new UsuarioNotFoundException());
+        entity.getOficina() != null ? entity.getOficina().getId() : null, notFoundException());
     return entity;
   }
 
@@ -122,6 +124,20 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   public RES criar(C request) {
     Long oficinaId = extractOficinaIdCreate(request);
 
+    // Sem esta validação um GERENTE conseguia criar registros dentro de QUALQUER
+    // oficina, bastando informar outro oficinaId no corpo da requisição: o método
+    // apenas resolvia a oficina e salvava. A checagem vem antes de resolver a
+    // oficina para que sondar ids alheios devolva 403, e não 404 (que confirmaria
+    // ou negaria a existência da oficina).
+    //
+    // oficinaId nulo fica de fora: é a criação do ADMIN do SaaS. Validar aqui
+    // negaria o GERENTE com "só pode acessar sua própria oficina", escondendo o
+    // motivo real, que o validateBeforeCreate informa com precisão ("apenas ADMIN
+    // pode criar outro ADMIN").
+    if (oficinaId != null) {
+      oficinaAccessValidator.validarAcessoOficina(oficinaId);
+    }
+
     // oficinaId nulo é um caso legítimo: o ADMIN do SaaS não pertence a nenhuma
     // oficina. Resolver a oficina sem esse guard chamaria findById(null), que o
     // Spring Data rejeita com InvalidDataAccessApiUsageException e tornaria
@@ -158,6 +174,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     // promoção para ADMIN do SaaS. Aqui não há oficina de destino para validar, e
     // chamar findById(null) quebraria a operação.
     if (oficinaId != null) {
+      oficinaAccessValidator.validarAcessoOficina(oficinaId);
       oficinaService.buscarPorEntidadeId(oficinaId);
     }
 

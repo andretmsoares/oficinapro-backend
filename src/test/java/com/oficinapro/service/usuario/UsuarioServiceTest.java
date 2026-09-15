@@ -159,6 +159,8 @@ class UsuarioServiceTest {
     Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
 
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(usuarioRepository.findByOficinaId(1L, pageable)).thenReturn(page);
 
     Page<UsuarioResponseDTO> resultado = service.listar(pageable);
@@ -219,8 +221,15 @@ class UsuarioServiceTest {
     // administrativoUser pertence à oficina 1; usuarioAlheio à oficina 2
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
     when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuarioAlheio));
+    // O isolamento é delegado ao validador, que devolve a exceção de "não
+    // encontrado" para não revelar que o registro existe em outra oficina.
+    doThrow(new UsuarioNotFoundException())
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
 
     assertThatThrownBy(() -> service.buscarPorId(5L)).isInstanceOf(UsuarioNotFoundException.class);
+
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
   }
 
   // ─────────────────────────── criar ───────────────────────────
@@ -319,13 +328,18 @@ class UsuarioServiceTest {
             "senha1234",
             Role.GERENTE);
 
-    // administrativoUser pertence à oficina 1; request aponta para oficina 2
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    // administrativoUser pertence à oficina 1; request aponta para oficina 2.
+    // criar() passou a validar a oficina de destino antes de resolver a oficina:
+    // sem isso um GERENTE criava usuários em qualquer oficina informando outro id.
+    doThrow(new AccessDeniedException("Você só pode acessar dados da sua própria oficina"))
+        .when(oficinaAccessValidator)
+        .validarAcessoOficina(2L);
 
     assertThatThrownBy(() -> service.criar(requestOutraOficina))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(usuarioRepository, never()).save(any());
+    verify(oficinaService, never()).buscarPorEntidadeId(any());
   }
 
   // ─────────────────────────── atualizar ───────────────────────────

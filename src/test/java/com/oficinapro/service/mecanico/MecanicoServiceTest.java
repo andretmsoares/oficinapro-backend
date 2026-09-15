@@ -135,6 +135,8 @@ class MecanicoServiceTest {
     Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
 
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(mecanicoRepository.findByOficinaId(1L, pageable)).thenReturn(page);
 
     Page<MecanicoResponseDTO> resultado = service.listar(pageable);
@@ -194,8 +196,15 @@ class MecanicoServiceTest {
 
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
     when(mecanicoRepository.findById(5L)).thenReturn(Optional.of(mecanicoAlheio));
+    // O isolamento é delegado ao validador, que devolve a exceção de "não
+    // encontrado" da própria entidade para não revelar que o registro existe.
+    doThrow(new MecanicoNotFoundException())
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
 
     assertThatThrownBy(() -> service.buscarPorId(5L)).isInstanceOf(MecanicoNotFoundException.class);
+
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
   }
 
   // ─────────────────────────── criar ───────────────────────────
@@ -253,12 +262,17 @@ class MecanicoServiceTest {
         new MecanicoRequestDTO(
             "Novo Mecânico", "83999999999", "11122233344", 2L, BigDecimal.valueOf(2500), null);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
+    // criar() passou a validar a oficina de destino antes de resolver a oficina:
+    // sem isso um GERENTE criava registros em qualquer oficina informando outro id.
+    doThrow(new AccessDeniedException("Você só pode acessar dados da sua própria oficina"))
+        .when(oficinaAccessValidator)
+        .validarAcessoOficina(2L);
 
     assertThatThrownBy(() -> service.criar(requestOutraOficina))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(mecanicoRepository, never()).save(any());
+    verify(oficinaService, never()).buscarPorEntidadeId(any());
   }
 
   // ─────────────────────────── atualizar ───────────────────────────

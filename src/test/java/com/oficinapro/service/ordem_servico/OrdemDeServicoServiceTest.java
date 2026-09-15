@@ -151,6 +151,8 @@ class OrdemDeServicoServiceTest {
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
   void deveListarOSDaPropriaOficinaComoAdministrativo() {
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));
 
     List<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar();

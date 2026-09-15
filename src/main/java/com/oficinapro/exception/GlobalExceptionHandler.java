@@ -9,6 +9,7 @@ import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.exception.ordem_servico.*;
+import com.oficinapro.exception.pagamento.PagamentoAlreadyExistsException;
 import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
 import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
 import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
@@ -123,6 +124,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handlePagamentoNotFoundForThisOs(
       PagamentoNotFoundForThisOsException exception) {
     return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
+
+  /**
+   * A relação OS↔pagamento é 1:1, garantida também pela constraint uk_pagamento_os. Sem este
+   * handler a violação da regra escapava como 500, escondendo um erro de uso da API atrás de um
+   * erro de servidor.
+   */
+  @ExceptionHandler(PagamentoAlreadyExistsException.class)
+  public ResponseEntity<Map<String, Object>> handlePagamentoAlreadyExists(
+      PagamentoAlreadyExistsException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
   }
 
   @ExceptionHandler(RegistroPagamentoNotFoundException.class)

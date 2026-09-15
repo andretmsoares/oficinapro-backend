@@ -124,6 +124,8 @@ class ClienteServiceTest {
     Page<Cliente> page = new PageImpl<>(List.of(cliente));
 
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(clienteRepository.findByOficinaId(1L, pageable)).thenReturn(page);
 
     Page<ClienteResponseDTO> resultado = service.listar(pageable);
@@ -181,8 +183,15 @@ class ClienteServiceTest {
 
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
     when(clienteRepository.findById(5L)).thenReturn(Optional.of(clienteDeOutraOficina));
+    // O isolamento é delegado ao validador, que devolve a exceção de "não
+    // encontrado" da própria entidade para não revelar que o registro existe.
+    doThrow(new ClienteNotFoundException())
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
 
     assertThatThrownBy(() -> service.buscarPorId(5L)).isInstanceOf(ClienteNotFoundException.class);
+
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
   }
 
   // ─────────────────────────── criar ───────────────────────────
@@ -235,12 +244,17 @@ class ClienteServiceTest {
     ClienteRequestDTO requestOutraOficina =
         new ClienteRequestDTO("Novo Cliente", "83999999999", "11122233344", 2L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
+    // criar() passou a validar a oficina de destino antes de resolver a oficina:
+    // sem isso um GERENTE criava registros em qualquer oficina informando outro id.
+    doThrow(new AccessDeniedException("Você só pode acessar dados da sua própria oficina"))
+        .when(oficinaAccessValidator)
+        .validarAcessoOficina(2L);
 
     assertThatThrownBy(() -> service.criar(requestOutraOficina))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(clienteRepository, never()).save(any());
+    verify(oficinaService, never()).buscarPorEntidadeId(any());
   }
 
   // ─────────────────────────── atualizar ───────────────────────────

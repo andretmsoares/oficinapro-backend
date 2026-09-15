@@ -96,6 +96,8 @@ class UnidadeServiceTest {
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas unidades da sua oficina")
   void deveListarUnidadesDaPropriaOficinaComoAdministrativo() {
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(unidadeRepository.findByOficinaId(1L)).thenReturn(List.of(unidade));
 
     List<UnidadeResponseDTO> resultado = unidadeService.listar();
@@ -136,9 +138,16 @@ class UnidadeServiceTest {
     // normalUser pertence à oficina 1; unidadeOutraOficina pertence à oficina 2
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
     when(unidadeRepository.findById(2L)).thenReturn(Optional.of(unidadeOutraOficina));
+    // O isolamento é delegado ao validador, que devolve "não encontrado" para não
+    // revelar que a unidade existe em outra oficina.
+    doThrow(new UnidadeNotFoundException(2L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
 
     assertThatThrownBy(() -> unidadeService.buscarPorId(2L))
         .isInstanceOf(UnidadeNotFoundException.class);
+
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
   }
 
   // ---------------------------------------------------------------

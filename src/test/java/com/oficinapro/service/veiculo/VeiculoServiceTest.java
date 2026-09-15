@@ -106,6 +106,8 @@ class VeiculoServiceTest {
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
   void deveListarVeiculosDaPropriaOficinaComoAdministrativo() {
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(veiculoRepository.findByOficinaId(1L, pageable))
         .thenReturn(new PageImpl<>(List.of(veiculo)));
 
@@ -152,9 +154,16 @@ class VeiculoServiceTest {
     // normalUser pertence à oficina 1; veiculoOutraOficina pertence à oficina 2
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
     when(veiculoRepository.findById(2L)).thenReturn(Optional.of(veiculoOutraOficina));
+    // O isolamento é delegado ao validador, que devolve "não encontrado" para não
+    // revelar que o veículo existe em outra oficina.
+    doThrow(new VeiculoNotFoundException(2L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
 
     assertThatThrownBy(() -> veiculoService.buscarPorId(2L))
         .isInstanceOf(VeiculoNotFoundException.class);
+
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(2L), any(RuntimeException.class));
   }
 
   // ---------------------------------------------------------------
@@ -163,9 +172,12 @@ class VeiculoServiceTest {
 
   @Test
   @DisplayName(
-      "ADMIN: deve normalizar a placa (remove hífen e converte para maiúsculas) antes de buscar")
-  void deveBuscarVeiculoPorPlacaComNormalizacaoComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+      "GERENTE: deve normalizar a placa (remove hífen e converte para maiúsculas) antes de buscar")
+  void deveBuscarVeiculoPorPlacaComNormalizacaoComoGerente() {
+    // A busca por placa é sempre escopada na oficina do usuário logado, obtida do
+    // AuthenticatedUserProvider. Por isso o cenário é de GERENTE e não de ADMIN:
+    // o ADMIN do SaaS não tem oficina, e o endpoint é restrito a GERENTE/MECANICO.
+    when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(1L);
     // placa normalizada: "ABC-1234" -> "ABC1234"
     when(veiculoRepository.findByPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
 
