@@ -87,7 +87,7 @@ public class UnidadeServiceImpl implements UnidadeService {
 
         Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
-        if (unidadeRepository.existsByEndereco(request.endereco())) {
+        if (unidadeRepository.existsByOficinaIdAndEndereco(oficinaId, request.endereco())) {
             throw new EnderecoAlreadyExistsException(request.endereco());
         }
 
@@ -115,8 +115,13 @@ public class UnidadeServiceImpl implements UnidadeService {
                 new UnidadeNotFoundException(id)
         );
 
-        if (!unidade.getEndereco().equals(request.endereco())
-                && unidadeRepository.existsByEndereco(request.endereco())) {
+        Long oficinaDaUnidade = unidade.getOficina() != null
+                ? unidade.getOficina().getId()
+                : null;
+
+        if (oficinaDaUnidade != null
+                && unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(
+                        oficinaDaUnidade, request.endereco(), id)) {
             throw new EnderecoAlreadyExistsException(request.endereco());
         }
 

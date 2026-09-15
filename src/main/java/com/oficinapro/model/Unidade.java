@@ -7,7 +7,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "unidade")
+@Table(
+        name = "unidade",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_unidade_oficina_endereco",
+                columnNames = {"oficina_id", "endereco"}
+        )
+)
 public class Unidade {
 
     @Id
@@ -25,7 +31,10 @@ public class Unidade {
     @Column(nullable = false, length = 255)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 255)
+    // A unicidade é composta com oficina_id (ver uniqueConstraints em @Table).
+    // Era global e foi removida do banco pela migration V15: duas oficinas podem
+    // operar no mesmo endereço, e a versão global revelava unidades de outros tenants.
+    @Column(nullable = false, length = 255)
     private String endereco;
 
     @Column(length = 20)
