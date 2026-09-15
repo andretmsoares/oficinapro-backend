@@ -5,6 +5,12 @@ spring:
   profiles:
     default: dev
 
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     open-in-view: false
     hibernate:
@@ -13,6 +19,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: America/Sao_Paulo
 
   flyway:
     enabled: true
@@ -20,8 +28,9 @@ spring:
 
 oficinapro:
   jwt:
-    # Default vazio apenas para que a falha venha do JwtConfig, com mensagem
-    # explicando o que fazer, em vez de um erro cru de placeholder não resolvido.
+    # Default vazio apenas para que a falha venha do JwtConfig,
+    # com mensagem explicando o que fazer, em vez de um erro
+    # cru de placeholder não resolvido.
     # Precisa ter no mínimo 32 caracteres (exigência do HS256).
     secret: ${JWT_SECRET:}
     issuer: oficinapro
@@ -46,3 +55,10 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+  swagger-ui:
+    path: /swagger-ui.html
