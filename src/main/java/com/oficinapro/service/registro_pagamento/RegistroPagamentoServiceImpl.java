@@ -43,7 +43,7 @@ public class RegistroPagamentoServiceImpl implements RegistroPagamentoService {
                 .orElseThrow(() -> new RegistroPagamentoNotFoundException(id));
 
         // Isolamento por oficina: buscarEntidadePorId do pagamento valida o acesso
-        // (pagamento -> ordem de serviço -> oficina). Sem isto, um ADMINISTRATIVO
+        // (pagamento -> ordem de serviço -> oficina). Sem isto, um GERENTE
         // conseguiria ler o registro de pagamento de outra oficina por ID.
         pagamentoService.buscarEntidadePorId(registro.getPagamento().getId());
 

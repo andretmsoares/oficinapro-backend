@@ -32,11 +32,15 @@ public class OpenApiConfig {
                                 no botão *Authorize* (apenas o token, sem o prefixo `Bearer`).
 
                                 Cargos:
-                                - `ADMIN`: administrador do SaaS, sem vínculo com oficina;
-                                  pode criar qualquer usuário e ver dados de todas as oficinas.
-                                - `ADMINISTRATIVO`: administrador de uma oficina; cria
-                                  `ADMINISTRATIVO` e `MECANICO` e só acessa dados da sua oficina.
-                                - `MECANICO`: não gerencia usuários.
+                                - `ADMIN`: administrador do SaaS, sem vínculo com oficina.
+                                  Gerencia oficinas e contas de usuário de qualquer oficina,
+                                  mas **não** acessa dados operacionais (clientes, veículos,
+                                  ordens de serviço, peças, mão de obra e pagamentos).
+                                - `GERENTE`: administrador de uma oficina; cria `GERENTE` e
+                                  `MECANICO` e só acessa dados da sua própria oficina.
+                                - `MECANICO`: atua nas ordens de serviço da sua oficina.
+                                  Não gerencia usuários, não acessa o financeiro e não pode
+                                  finalizar, entregar ou cancelar uma OS.
                                 """)
                         .version("1.0.0")
                         .contact(new Contact()
