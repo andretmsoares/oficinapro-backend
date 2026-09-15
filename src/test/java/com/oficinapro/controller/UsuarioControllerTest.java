@@ -82,9 +82,9 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/usuarios - ADMINISTRATIVO deve retornar 403 (somente ADMIN pode listar todos)")
-    @WithMockUser(roles = "ADMINISTRATIVO")
-    void deveNegarAcessoParaAdministrativo() throws Exception {
+    @DisplayName("GET /api/usuarios - GERENTE deve retornar 403 (somente ADMIN pode listar todos)")
+    @WithMockUser(roles = "GERENTE")
+    void deveNegarAcessoParaGerente() throws Exception {
         mockMvc.perform(get("/api/usuarios"))
                 .andExpect(status().isForbidden());
     }
