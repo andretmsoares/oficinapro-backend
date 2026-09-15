@@ -3,6 +3,7 @@ package com.oficinapro.exception;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
+import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
@@ -97,6 +98,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OrdemDeServicoNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleOSNotFound(
             OrdemDeServicoNotFoundException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(MaoObraNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMaoObraNotFound(
+            MaoObraNotFoundException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
