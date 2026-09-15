@@ -18,12 +18,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * Testa a cadeia de segurança real (SecurityConfig + JwtAuthenticationFilter + SecurityErrorResponder).
+ * Testa a cadeia de segurança real (SecurityConfig + JwtAuthenticationFilter +
+ * SecurityErrorResponder).
  *
- * <p>Os testes de controller usam {@code @WebMvcTest}, que NÃO carrega o {@code SecurityConfig} — lá
- * só é possível validar {@code @PreAuthorize} (403). A distinção entre 401 (não autenticado) e 403
- * (autenticado sem permissão) só pode ser verificada com a aplicação completa, que é o papel deste
- * teste.
+ * <p>Os testes de controller usam {@code @WebMvcTest}, que NÃO carrega o {@code SecurityConfig} —
+ * lá só é possível validar {@code @PreAuthorize} (403). A distinção entre 401 (não autenticado) e
+ * 403 (autenticado sem permissão) só pode ser verificada com a aplicação completa, que é o papel
+ * deste teste.
  */
 @SpringBootTest
 @ActiveProfiles("test")

@@ -279,9 +279,7 @@ class PagamentoControllerTest {
   @WithMockUser(roles = "MECANICO")
   @DisplayName("GET /api/pagamentos/oficina/{id}/a-receber - MECANICO recebe 403")
   void calcularValorParaReceber_mecanico_retorna403() throws Exception {
-    mockMvc
-        .perform(get("/api/pagamentos/oficina/1/a-receber"))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/pagamentos/oficina/1/a-receber")).andExpect(status().isForbidden());
 
     verify(pagamentoService, never()).calcularValorParaReceber(any());
   }
@@ -311,7 +309,8 @@ class PagamentoControllerTest {
   void atualizar_valorExcedido_retorna409() throws Exception {
     when(pagamentoService.atualizar(eq(10L), any()))
         .thenThrow(
-            new PagamentoValorExcedidoException(new BigDecimal("200.00"), new BigDecimal("100.00")));
+            new PagamentoValorExcedidoException(
+                new BigDecimal("200.00"), new BigDecimal("100.00")));
 
     mockMvc
         .perform(

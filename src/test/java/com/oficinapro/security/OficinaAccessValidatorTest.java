@@ -178,7 +178,8 @@ class OficinaAccessValidatorTest {
     }
 
     @Test
-    @DisplayName("lança a exceção de 'não encontrado' fornecida quando o registro é de outra oficina")
+    @DisplayName(
+        "lança a exceção de 'não encontrado' fornecida quando o registro é de outra oficina")
     void deveLancarNotFoundFornecidoParaRegistroDeOutraOficina() {
       logado(Role.GERENTE, OFICINA_A);
       RuntimeException notFound = new IllegalStateException("registro inexistente");

@@ -12,14 +12,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-    private static final String BEARER_AUTH = "bearerAuth";
+  private static final String BEARER_AUTH = "bearerAuth";
 
-    @Bean
-    public OpenAPI oficinaProOpenAPI() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title("OficinaPro API")
-                        .description("""
+  @Bean
+  public OpenAPI oficinaProOpenAPI() {
+    return new OpenAPI()
+        .info(
+            new Info()
+                .title("OficinaPro API")
+                .description(
+                    """
                                 API REST para gerenciamento de oficinas mecânicas.
 
                                 A API permite o gerenciamento de oficinas,
@@ -42,20 +44,21 @@ public class OpenApiConfig {
                                   Não gerencia usuários, não acessa o financeiro e não pode
                                   finalizar, entregar ou cancelar uma OS.
                                 """)
-                        .version("1.0.0")
-                        .contact(new Contact()
-                                .name("OficinaPro")))
+                .version("1.0.0")
+                .contact(new Contact().name("OficinaPro")))
+        .components(
+            new Components()
+                .addSecuritySchemes(
+                    BEARER_AUTH,
+                    new SecurityScheme()
+                        .name(BEARER_AUTH)
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .description("Access token JWT obtido em POST /api/auth/login")))
 
-                .components(new Components()
-                        .addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
-                                .name(BEARER_AUTH)
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")
-                                .description("Access token JWT obtido em POST /api/auth/login")))
-
-                // Aplica o cadeado a todos os endpoints. Rotas públicas (ex.: login)
-                // se desmarcam com @SecurityRequirements no controller.
-                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
-    }
+        // Aplica o cadeado a todos os endpoints. Rotas públicas (ex.: login)
+        // se desmarcam com @SecurityRequirements no controller.
+        .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
+  }
 }

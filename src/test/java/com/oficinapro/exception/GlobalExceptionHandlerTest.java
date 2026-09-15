@@ -43,8 +43,8 @@ import org.springframework.web.bind.annotation.RestController;
  * cobre exceções que nenhum controller de produção consegue disparar em teste (falhas de acesso a
  * dados, corpo ilegível, tipo de path variable incorreto) sem depender de contexto Spring.
  *
- * <p>Além do status, os testes verificam que mensagens de infraestrutura NÃO vazam detalhes de banco
- * para o cliente.
+ * <p>Além do status, os testes verificam que mensagens de infraestrutura NÃO vazam detalhes de
+ * banco para o cliente.
  */
 class GlobalExceptionHandlerTest {
 
@@ -112,10 +112,16 @@ class GlobalExceptionHandlerTest {
       mockMvc
           .perform(get("/teste/integridade"))
           .andExpect(status().isConflict())
-          .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(
-              org.hamcrest.Matchers.containsString("uk_pagamento_os"))))
-          .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(
-              org.hamcrest.Matchers.containsStringIgnoringCase("constraint"))));
+          .andExpect(
+              jsonPath("$.message")
+                  .value(
+                      org.hamcrest.Matchers.not(
+                          org.hamcrest.Matchers.containsString("uk_pagamento_os"))))
+          .andExpect(
+              jsonPath("$.message")
+                  .value(
+                      org.hamcrest.Matchers.not(
+                          org.hamcrest.Matchers.containsStringIgnoringCase("constraint"))));
     }
 
     @Test
@@ -124,8 +130,11 @@ class GlobalExceptionHandlerTest {
       mockMvc
           .perform(get("/teste/resultado-multiplo"))
           .andExpect(status().isConflict())
-          .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(
-              org.hamcrest.Matchers.containsStringIgnoringCase("select"))));
+          .andExpect(
+              jsonPath("$.message")
+                  .value(
+                      org.hamcrest.Matchers.not(
+                          org.hamcrest.Matchers.containsStringIgnoringCase("select"))));
     }
   }
 
@@ -163,8 +172,11 @@ class GlobalExceptionHandlerTest {
       mockMvc
           .perform(get("/teste/data-access-invalido"))
           .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(
-              org.hamcrest.Matchers.containsStringIgnoringCase("hibernate"))));
+          .andExpect(
+              jsonPath("$.message")
+                  .value(
+                      org.hamcrest.Matchers.not(
+                          org.hamcrest.Matchers.containsStringIgnoringCase("hibernate"))));
     }
 
     @Test
@@ -334,7 +346,8 @@ class GlobalExceptionHandlerTest {
 
     @GetMapping("/data-access-invalido")
     public void dataAccessInvalido() {
-      throw new InvalidDataAccessApiUsageException("org.hibernate.TransientObjectException: id nulo");
+      throw new InvalidDataAccessApiUsageException(
+          "org.hibernate.TransientObjectException: id nulo");
     }
 
     @GetMapping("/data-invalida")

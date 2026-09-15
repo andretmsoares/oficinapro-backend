@@ -38,7 +38,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
-
 @ExtendWith(MockitoExtension.class)
 class PagamentoServiceImplTest {
 
@@ -76,8 +75,7 @@ class PagamentoServiceImplTest {
   }
 
   private void devolveOArgumentoSalvo() {
-    when(repository.save(any(Pagamento.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(repository.save(any(Pagamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
   }
 
   @Nested
@@ -171,8 +169,7 @@ class PagamentoServiceImplTest {
           .when(oficinaAccessValidator)
           .validarRole(Role.GERENTE);
 
-      assertThatThrownBy(
-              () -> service.atualizar(PAGAMENTO_ID, new PagamentoRequestDTO(OS_ID, "x")))
+      assertThatThrownBy(() -> service.atualizar(PAGAMENTO_ID, new PagamentoRequestDTO(OS_ID, "x")))
           .isInstanceOf(AccessDeniedException.class);
 
       verify(repository, never()).save(any());
@@ -212,8 +209,7 @@ class PagamentoServiceImplTest {
       when(repository.findById(PAGAMENTO_ID))
           .thenReturn(Optional.of(pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE)));
 
-      assertThatThrownBy(
-              () -> service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("500.01")))
+      assertThatThrownBy(() -> service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("500.01")))
           .isInstanceOf(PagamentoValorExcedidoException.class);
 
       verify(repository, never()).save(any());
@@ -271,8 +267,7 @@ class PagamentoServiceImplTest {
       when(repository.findById(PAGAMENTO_ID))
           .thenReturn(Optional.of(pagamento(os, "100.00", StatusPagamento.PAGO_PARCIALMENTE)));
 
-      assertThatThrownBy(
-              () -> service.estornarValorPago(PAGAMENTO_ID, new BigDecimal("150.00")))
+      assertThatThrownBy(() -> service.estornarValorPago(PAGAMENTO_ID, new BigDecimal("150.00")))
           .isInstanceOf(PagamentoValorInvalidoException.class)
           .hasMessageContaining("estorno excede");
 
@@ -286,8 +281,7 @@ class PagamentoServiceImplTest {
           .when(oficinaAccessValidator)
           .validarRole(Role.GERENTE);
 
-      assertThatThrownBy(
-              () -> service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("10.00")))
+      assertThatThrownBy(() -> service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("10.00")))
           .isInstanceOf(AccessDeniedException.class);
 
       verify(repository, never()).findById(any());

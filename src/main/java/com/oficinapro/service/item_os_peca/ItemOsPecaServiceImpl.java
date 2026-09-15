@@ -5,131 +5,129 @@ import com.oficinapro.dto.itemOsPeca.ItemOsPecaResponseDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoValorRecalculator;
 import com.oficinapro.service.pagamento.PagamentoService;
-import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
-    private final ItemOsPecaRepository itemOsPecaRepository;
-    private final OrdemDeServicoService ordemDeServicoService;
-    private final PagamentoService pagamentoService;
-    private final OrdemDeServicoValorRecalculator valorRecalculator;
+  private final ItemOsPecaRepository itemOsPecaRepository;
+  private final OrdemDeServicoService ordemDeServicoService;
+  private final PagamentoService pagamentoService;
+  private final OrdemDeServicoValorRecalculator valorRecalculator;
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ItemOsPecaResponseDTO> listarPorOrdemServico(Long osId) {
+  @Override
+  @Transactional(readOnly = true)
+  public List<ItemOsPecaResponseDTO> listarPorOrdemServico(Long osId) {
 
-        ordemDeServicoService.buscarPorEntidadeId(osId);
+    ordemDeServicoService.buscarPorEntidadeId(osId);
 
-        return itemOsPecaRepository.findByOrdemDeServicoId(osId).stream()
-                .map(this::toResponse)
-                .toList();
+    return itemOsPecaRepository.findByOrdemDeServicoId(osId).stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ItemOsPecaResponseDTO buscarPorId(Long id) {
+    ItemOsPeca item = buscarPorEntidadeId(id);
+    return toResponse(item);
+  }
+
+  @Override
+  @Transactional
+  public ItemOsPecaResponseDTO criar(ItemOsPecaRequestDTO request) {
+    OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
+
+    valorRecalculator.validarOsEditavel(os);
+
+    ItemOsPeca item = new ItemOsPeca();
+    item.setOrdemDeServico(os);
+    item.setNome(request.nome());
+    item.setQuantidade(request.quantidade());
+    item.setValorUnitario(request.valorUnitario());
+    item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
+
+    item = itemOsPecaRepository.save(item);
+
+    valorRecalculator.recalcular(os);
+
+    return toResponse(item);
+  }
+
+  @Override
+  @Transactional
+  public ItemOsPecaResponseDTO atualizar(Long id, ItemOsPecaUpdateRequestDTO request) {
+    ItemOsPeca item = buscarPorEntidadeId(id); // já valida acesso
+
+    OrdemDeServico os = item.getOrdemDeServico();
+    valorRecalculator.validarOsEditavel(os);
+
+    item.setNome(request.nome());
+    item.setQuantidade(request.quantidade());
+    item.setValorUnitario(request.valorUnitario());
+    item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
+
+    item = itemOsPecaRepository.save(item);
+
+    valorRecalculator.recalcular(os);
+
+    return toResponse(item);
+  }
+
+  @Override
+  @Transactional
+  public void deletar(Long id) {
+    ItemOsPeca item = buscarPorEntidadeId(id); // já valida acesso
+
+    OrdemDeServico os = item.getOrdemDeServico();
+    valorRecalculator.validarOsEditavel(os);
+    PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
+
+    BigDecimal valorRestante = os.getValorComDesconto().subtract(item.getValorTotal());
+
+    int comparacao = valorRestante.compareTo(pagamento.valorPago());
+
+    if (comparacao < 0) {
+      throw new PagamentoValorExcedidoException(valorRestante, os.getValorTotal());
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public ItemOsPecaResponseDTO buscarPorId(Long id) {
-        ItemOsPeca item = buscarPorEntidadeId(id);
-        return toResponse(item);
-    }
+    itemOsPecaRepository.delete(item);
+    valorRecalculator.recalcular(os);
+  }
 
-    @Override
-    @Transactional
-    public ItemOsPecaResponseDTO criar(ItemOsPecaRequestDTO request) {
-        OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
+  private BigDecimal calcularValorTotal(BigDecimal quantidade, BigDecimal valorUnitario) {
+    return quantidade.multiply(valorUnitario).setScale(2, RoundingMode.HALF_UP);
+  }
 
-        valorRecalculator.validarOsEditavel(os);
+  private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {
+    return new ItemOsPecaResponseDTO(
+        item.getId(),
+        item.getOrdemDeServico().getId(),
+        item.getNome(),
+        item.getQuantidade(),
+        item.getValorUnitario(),
+        item.getValorTotal());
+  }
 
-        ItemOsPeca item = new ItemOsPeca();
-        item.setOrdemDeServico(os);
-        item.setNome(request.nome());
-        item.setQuantidade(request.quantidade());
-        item.setValorUnitario(request.valorUnitario());
-        item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
+  private ItemOsPeca buscarPorEntidadeId(Long id) {
+    ItemOsPeca item =
+        itemOsPecaRepository.findById(id).orElseThrow(() -> new ItemOsPecaNotFoundException(id));
 
-        item = itemOsPecaRepository.save(item);
+    ordemDeServicoService.buscarPorEntidadeId(item.getOrdemDeServico().getId());
 
-        valorRecalculator.recalcular(os);
-
-        return toResponse(item);
-    }
-
-    @Override
-    @Transactional
-    public ItemOsPecaResponseDTO atualizar(Long id, ItemOsPecaUpdateRequestDTO request) {
-        ItemOsPeca item = buscarPorEntidadeId(id); // já valida acesso
-
-        OrdemDeServico os = item.getOrdemDeServico();
-        valorRecalculator.validarOsEditavel(os);
-
-        item.setNome(request.nome());
-        item.setQuantidade(request.quantidade());
-        item.setValorUnitario(request.valorUnitario());
-        item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
-
-        item = itemOsPecaRepository.save(item);
-
-        valorRecalculator.recalcular(os);
-
-        return toResponse(item);
-    }
-
-    @Override
-    @Transactional
-    public void deletar(Long id) {
-        ItemOsPeca item = buscarPorEntidadeId(id); // já valida acesso
-
-        OrdemDeServico os = item.getOrdemDeServico();
-        valorRecalculator.validarOsEditavel(os);
-        PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
-
-        BigDecimal valorRestante = os.getValorComDesconto().subtract(item.getValorTotal());
-
-        int comparacao = valorRestante.compareTo(pagamento.valorPago());
-
-        if (comparacao < 0) {
-            throw new PagamentoValorExcedidoException(valorRestante, os.getValorTotal());
-        }
-
-        itemOsPecaRepository.delete(item);
-        valorRecalculator.recalcular(os);
-    }
-
-    private BigDecimal calcularValorTotal(BigDecimal quantidade, BigDecimal valorUnitario) {
-        return quantidade.multiply(valorUnitario).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {
-        return new ItemOsPecaResponseDTO(
-                item.getId(),
-                item.getOrdemDeServico().getId(),
-                item.getNome(),
-                item.getQuantidade(),
-                item.getValorUnitario(),
-                item.getValorTotal()
-        );
-    }
-
-    private ItemOsPeca buscarPorEntidadeId(Long id) {
-        ItemOsPeca item = itemOsPecaRepository.findById(id)
-                .orElseThrow(() -> new ItemOsPecaNotFoundException(id));
-
-        ordemDeServicoService.buscarPorEntidadeId(item.getOrdemDeServico().getId());
-
-        return item;
-    }
+    return item;
+  }
 }

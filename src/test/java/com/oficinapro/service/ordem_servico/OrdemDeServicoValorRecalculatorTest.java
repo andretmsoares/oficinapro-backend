@@ -131,9 +131,7 @@ class OrdemDeServicoValorRecalculatorTest {
     recalculator.recalcular(os);
 
     InOrder ordem = inOrder(ordemDeServicoService, pagamentoService);
-    ordem
-        .verify(ordemDeServicoService)
-        .recalcularValorTotal(eq(OS_ID), any(BigDecimal.class));
+    ordem.verify(ordemDeServicoService).recalcularValorTotal(eq(OS_ID), any(BigDecimal.class));
     ordem.verify(pagamentoService).recalcularStatus(OS_ID);
   }
 
@@ -160,7 +158,8 @@ class OrdemDeServicoValorRecalculatorTest {
       value = StatusOrdemDeServico.class,
       names = {"CANCELADA", "FECHADA"},
       mode = EnumSource.Mode.EXCLUDE)
-  @DisplayName("deve permitir lançamentos em todos os demais status, inclusive FINALIZADA e ENTREGUE")
+  @DisplayName(
+      "deve permitir lançamentos em todos os demais status, inclusive FINALIZADA e ENTREGUE")
   void devePermitirLancamentoNosDemaisStatus(StatusOrdemDeServico status) {
     assertThatCode(() -> recalculator.validarOsEditavel(os(status)))
         .as(

@@ -136,8 +136,7 @@ class MaoObraServiceTest {
 
       assertThatThrownBy(
               () ->
-                  service.criar(
-                      new MaoObraRequestDTO(OS_ID, new BigDecimal("100.00"), "Serviço")))
+                  service.criar(new MaoObraRequestDTO(OS_ID, new BigDecimal("100.00"), "Serviço")))
           .isInstanceOf(OSCanceledException.class);
 
       verify(maoObraRepository, never()).save(any());
@@ -151,8 +150,7 @@ class MaoObraServiceTest {
           .thenThrow(new OrdemDeServicoNotFoundException(999L));
 
       assertThatThrownBy(
-              () ->
-                  service.criar(new MaoObraRequestDTO(999L, new BigDecimal("100.00"), "Serviço")))
+              () -> service.criar(new MaoObraRequestDTO(999L, new BigDecimal("100.00"), "Serviço")))
           .isInstanceOf(OrdemDeServicoNotFoundException.class);
 
       verify(maoObraRepository, never()).save(any());
@@ -183,7 +181,8 @@ class MaoObraServiceTest {
     }
 
     @Test
-    @DisplayName("não deve mover a mão de obra para outra OS via update: o osId do corpo é ignorado")
+    @DisplayName(
+        "não deve mover a mão de obra para outra OS via update: o osId do corpo é ignorado")
     void naoDeveMoverMaoObraParaOutraOs() {
       OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "300.00");
       MaoObra existente = maoObra(os, "300.00");
@@ -195,8 +194,7 @@ class MaoObraServiceTest {
       Long outraOsId = 888L;
       MaoObraResponseDTO resposta =
           service.atualizar(
-              MAO_OBRA_ID,
-              new MaoObraRequestDTO(outraOsId, new BigDecimal("450.00"), "Revisado"));
+              MAO_OBRA_ID, new MaoObraRequestDTO(outraOsId, new BigDecimal("450.00"), "Revisado"));
 
       assertThat(resposta.osId())
           .as("a mão de obra deve permanecer na OS original")
@@ -306,8 +304,7 @@ class MaoObraServiceTest {
     void deveLancarQuandoMaoObraNaoExiste() {
       when(maoObraRepository.findById(404L)).thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> service.deletar(404L))
-          .isInstanceOf(MaoObraNotFoundException.class);
+      assertThatThrownBy(() -> service.deletar(404L)).isInstanceOf(MaoObraNotFoundException.class);
     }
   }
 

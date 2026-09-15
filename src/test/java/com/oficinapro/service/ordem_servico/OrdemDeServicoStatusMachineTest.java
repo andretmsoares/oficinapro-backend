@@ -56,8 +56,8 @@ import org.springframework.security.access.AccessDeniedException;
 /**
  * Máquina de estados da Ordem de Serviço.
  *
- * <p>O grafo abaixo é declarado de forma independente da implementação, de propósito: ele descreve a
- * regra de negócio pretendida. Se alguém alterar {@code transicaoPermitida} sem alterar a regra,
+ * <p>O grafo abaixo é declarado de forma independente da implementação, de propósito: ele descreve
+ * a regra de negócio pretendida. Se alguém alterar {@code transicaoPermitida} sem alterar a regra,
  * estes testes quebram — que é exatamente o objetivo.
  *
  * <pre>
@@ -86,8 +86,7 @@ class OrdemDeServicoStatusMachineTest {
               StatusOrdemDeServico.ABERTA,
               EnumSet.of(StatusOrdemDeServico.DIAGNOSTICO, StatusOrdemDeServico.CANCELADA),
               StatusOrdemDeServico.DIAGNOSTICO,
-              EnumSet.of(
-                  StatusOrdemDeServico.AGUARDANDO_APROVACAO, StatusOrdemDeServico.CANCELADA),
+              EnumSet.of(StatusOrdemDeServico.AGUARDANDO_APROVACAO, StatusOrdemDeServico.CANCELADA),
               StatusOrdemDeServico.AGUARDANDO_APROVACAO,
               EnumSet.of(StatusOrdemDeServico.AGUARDANDO_PECAS, StatusOrdemDeServico.CANCELADA),
               StatusOrdemDeServico.AGUARDANDO_PECAS,
@@ -182,8 +181,7 @@ class OrdemDeServicoStatusMachineTest {
   @ParameterizedTest(name = "{0} → {1} deve ser permitida")
   @MethodSource("transicoesValidas")
   @DisplayName("deve permitir todas as transições previstas na regra de negócio")
-  void devePermitirTransicoesValidas(
-      StatusOrdemDeServico origem, StatusOrdemDeServico destino) {
+  void devePermitirTransicoesValidas(StatusOrdemDeServico origem, StatusOrdemDeServico destino) {
     osComStatus(origem);
     logadoComo(Role.GERENTE);
 
@@ -213,8 +211,7 @@ class OrdemDeServicoStatusMachineTest {
   @ParameterizedTest(name = "{0} → {1} deve ser rejeitada")
   @MethodSource("transicoesInvalidas")
   @DisplayName("deve rejeitar toda transição fora do grafo com IllegalStateException")
-  void deveRejeitarTransicoesInvalidas(
-      StatusOrdemDeServico origem, StatusOrdemDeServico destino) {
+  void deveRejeitarTransicoesInvalidas(StatusOrdemDeServico origem, StatusOrdemDeServico destino) {
     osComStatus(origem);
     logadoComo(Role.GERENTE);
 

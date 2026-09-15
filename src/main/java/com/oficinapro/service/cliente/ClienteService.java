@@ -6,4 +6,4 @@ import com.oficinapro.model.Cliente;
 import com.oficinapro.service.pessoaCrud.PessoaCrudService;
 
 public interface ClienteService
-        extends PessoaCrudService<ClienteRequestDTO, ClienteRequestDTO, ClienteResponseDTO, Cliente> {}
+    extends PessoaCrudService<ClienteRequestDTO, ClienteRequestDTO, ClienteResponseDTO, Cliente> {}

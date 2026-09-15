@@ -5,18 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UnidadeRequestDTO(
-
-        @NotBlank(message = "Nome é obrigatório")
+    @NotBlank(message = "Nome é obrigatório")
         @NotNull
         @Size(max = 255, message = "Nome deve ter no máximo 255 caracteres")
         String nome,
-
-        @NotBlank(message = "Endereço é obrigatório")
+    @NotBlank(message = "Endereço é obrigatório")
         @NotNull
         @Size(max = 255, message = "Endereço deve ter no máximo 255 caracteres")
         String endereco,
-
-        @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
-        String telefone
-) {
-}
+    @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres") String telefone) {}

@@ -5,89 +5,65 @@ import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.service.unidade.UnidadeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Tag(
-            name = "Unidades",
-        description = "Operações de gerenciamento das Unidades de cada Oficina"
-)
+@Tag(name = "Unidades", description = "Operações de gerenciamento das Unidades de cada Oficina")
 @RestController
 @RequestMapping("/api/unidades")
 public class UnidadeController {
 
-    private final UnidadeService unidadeService;
+  private final UnidadeService unidadeService;
 
-    public UnidadeController(UnidadeService unidadeService) {
-        this.unidadeService = unidadeService;
-    }
+  public UnidadeController(UnidadeService unidadeService) {
+    this.unidadeService = unidadeService;
+  }
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<List<UnidadeResponseDTO>> listar() {
-        return ResponseEntity.ok(
-                unidadeService.listar()
-        );
-    }
+  @GetMapping
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<List<UnidadeResponseDTO>> listar() {
+    return ResponseEntity.ok(unidadeService.listar());
+  }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<UnidadeResponseDTO> buscarPorId(
-            @PathVariable Long id) {
+  @GetMapping("/{id}")
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<UnidadeResponseDTO> buscarPorId(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                unidadeService.buscarPorId(id)
-        );
-    }
+    return ResponseEntity.ok(unidadeService.buscarPorId(id));
+  }
 
-    @GetMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
-            @PathVariable Long oficinaId) {
+  @GetMapping("/oficina/{oficinaId}")
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(@PathVariable Long oficinaId) {
 
-        return ResponseEntity.ok(
-                unidadeService.listarPorOficina(oficinaId)
-        );
-    }
+    return ResponseEntity.ok(unidadeService.listarPorOficina(oficinaId));
+  }
 
-    @PostMapping("/oficina/{oficinaId}")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<UnidadeResponseDTO> criar(
-            @PathVariable Long oficinaId,
-            @Valid @RequestBody UnidadeRequestDTO request) {
+  @PostMapping("/oficina/{oficinaId}")
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<UnidadeResponseDTO> criar(
+      @PathVariable Long oficinaId, @Valid @RequestBody UnidadeRequestDTO request) {
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        unidadeService.criar(
-                                oficinaId,
-                                request
-                        )
-                );
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(unidadeService.criar(oficinaId, request));
+  }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<UnidadeResponseDTO> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody UnidadeRequestDTO request) {
+  @PutMapping("/{id}")
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<UnidadeResponseDTO> atualizar(
+      @PathVariable Long id, @Valid @RequestBody UnidadeRequestDTO request) {
 
-        return ResponseEntity.ok(
-                unidadeService.atualizar(id, request)
-        );
-    }
+    return ResponseEntity.ok(unidadeService.atualizar(id, request));
+  }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GERENTE')")
-    public ResponseEntity<Void> deletar(
-            @PathVariable Long id) {
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasAnyRole('GERENTE')")
+  public ResponseEntity<Void> deletar(@PathVariable Long id) {
 
-        unidadeService.deletar(id);
+    unidadeService.deletar(id);
 
-        return ResponseEntity.noContent().build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

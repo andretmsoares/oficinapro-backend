@@ -4,6 +4,4 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import jakarta.validation.constraints.NotNull;
 
 public record AtualizarStatusOSRequestDTO(
-        @NotNull(message = "O novo status é obrigatório")
-        StatusOrdemDeServico status
-) {}
+    @NotNull(message = "O novo status é obrigatório") StatusOrdemDeServico status) {}

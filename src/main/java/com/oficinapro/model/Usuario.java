@@ -1,18 +1,16 @@
 package com.oficinapro.model;
 
+import com.oficinapro.enums.Role;
 import jakarta.persistence.*;
+import java.util.Collection;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import com.oficinapro.enums.Role;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collection;
-import java.util.List;
 
 @Entity
 @Table(name = "usuario")
@@ -23,26 +21,24 @@ import java.util.List;
 @AllArgsConstructor
 public class Usuario extends Pessoa implements UserDetails {
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String username;
+  @Column(nullable = false, unique = true, length = 100)
+  private String username;
 
-    @Column(nullable = false, length = 255)
-    private String password;
+  @Column(nullable = false, length = 255)
+  private String password;
 
-    @Column(nullable = false, length = 50)
-    @Enumerated(EnumType.STRING)
-    private Role role;
+  @Column(nullable = false, length = 50)
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
-    /**
-     * O prefixo "ROLE_" é o que faz {@code hasRole('ADMIN')} nos @PreAuthorize funcionar.
-     */
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
-    }
+  /** O prefixo "ROLE_" é o que faz {@code hasRole('ADMIN')} nos @PreAuthorize funcionar. */
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+  }
 
-    /** ADMIN do SaaS não pertence a nenhuma oficina. */
-    public boolean isAdminSaas() {
-        return role == Role.ADMIN;
-    }
+  /** ADMIN do SaaS não pertence a nenhuma oficina. */
+  public boolean isAdminSaas() {
+    return role == Role.ADMIN;
+  }
 }

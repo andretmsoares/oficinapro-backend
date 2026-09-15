@@ -6,7 +6,7 @@ import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 
 public interface AuthService {
 
-    LoginResponseDTO login(LoginRequestDTO request);
+  LoginResponseDTO login(LoginRequestDTO request);
 
-    UsuarioResponseDTO usuarioLogado();
+  UsuarioResponseDTO usuarioLogado();
 }

@@ -1,12 +1,11 @@
 package com.oficinapro.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "mecanico")
@@ -17,9 +16,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class Mecanico extends Pessoa {
 
-    @Column(precision = 12, scale = 2)
-    private BigDecimal salario;
+  @Column(precision = 12, scale = 2)
+  private BigDecimal salario;
 
-    @Column(columnDefinition = "TEXT")
-    private String obs;
+  @Column(columnDefinition = "TEXT")
+  private String obs;
 }

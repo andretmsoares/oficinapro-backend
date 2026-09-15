@@ -133,8 +133,7 @@ class ItemOsPecaServiceTest {
           .thenAnswer(invocation -> invocation.getArgument(0));
 
       service.criar(
-          new ItemOsPecaRequestDTO(
-              OS_ID, "Peça", new BigDecimal("2"), new BigDecimal("50.00")));
+          new ItemOsPecaRequestDTO(OS_ID, "Peça", new BigDecimal("2"), new BigDecimal("50.00")));
 
       InOrder ordem = inOrder(itemOsPecaRepository, valorRecalculator);
       ordem.verify(itemOsPecaRepository).save(any(ItemOsPeca.class));
@@ -201,8 +200,7 @@ class ItemOsPecaServiceTest {
     @DisplayName("deve recalcular o valorTotal do item ao alterar quantidade e preço")
     void deveRecalcularValorTotalDoItem() {
       OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
-      when(itemOsPecaRepository.findById(ITEM_ID))
-          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(item(os, "2", "120.00")));
       when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(itemOsPecaRepository.save(any(ItemOsPeca.class)))
           .thenAnswer(invocation -> invocation.getArgument(0));
@@ -227,8 +225,7 @@ class ItemOsPecaServiceTest {
               () ->
                   service.atualizar(
                       404L,
-                      new ItemOsPecaUpdateRequestDTO(
-                          "x", BigDecimal.ONE, new BigDecimal("1.00"))))
+                      new ItemOsPecaUpdateRequestDTO("x", BigDecimal.ONE, new BigDecimal("1.00"))))
           .isInstanceOf(ItemOsPecaNotFoundException.class);
     }
 
@@ -236,8 +233,7 @@ class ItemOsPecaServiceTest {
     @DisplayName("não deve atualizar peça de OS cancelada")
     void naoDeveAtualizarPecaDeOsCancelada() {
       OrdemDeServico os = os(StatusOrdemDeServico.CANCELADA, "240.00");
-      when(itemOsPecaRepository.findById(ITEM_ID))
-          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(item(os, "2", "120.00")));
       when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       doThrow(new OSCanceledException()).when(valorRecalculator).validarOsEditavel(os);
 
@@ -245,8 +241,7 @@ class ItemOsPecaServiceTest {
               () ->
                   service.atualizar(
                       ITEM_ID,
-                      new ItemOsPecaUpdateRequestDTO(
-                          "x", BigDecimal.ONE, new BigDecimal("1.00"))))
+                      new ItemOsPecaUpdateRequestDTO("x", BigDecimal.ONE, new BigDecimal("1.00"))))
           .isInstanceOf(OSCanceledException.class);
 
       verify(itemOsPecaRepository, never()).save(any());
@@ -312,8 +307,7 @@ class ItemOsPecaServiceTest {
       when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       doThrow(new OSFinishedException()).when(valorRecalculator).validarOsEditavel(os);
 
-      assertThatThrownBy(() -> service.deletar(ITEM_ID))
-          .isInstanceOf(OSFinishedException.class);
+      assertThatThrownBy(() -> service.deletar(ITEM_ID)).isInstanceOf(OSFinishedException.class);
 
       verify(itemOsPecaRepository, never()).delete(any());
     }
@@ -354,8 +348,7 @@ class ItemOsPecaServiceTest {
     @DisplayName("deve revalidar o acesso à OS ao buscar uma peça por id")
     void deveRevalidarAcessoAoBuscarPorId() {
       OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
-      when(itemOsPecaRepository.findById(ITEM_ID))
-          .thenReturn(Optional.of(item(os, "2", "120.00")));
+      when(itemOsPecaRepository.findById(ITEM_ID)).thenReturn(Optional.of(item(os, "2", "120.00")));
       when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
 
       ItemOsPecaResponseDTO resposta = service.buscarPorId(ITEM_ID);

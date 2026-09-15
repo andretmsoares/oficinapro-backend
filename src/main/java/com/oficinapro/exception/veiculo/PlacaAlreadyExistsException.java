@@ -1,7 +1,7 @@
 package com.oficinapro.exception.veiculo;
 
 public class PlacaAlreadyExistsException extends RuntimeException {
-    public PlacaAlreadyExistsException(String placa) {
-        super("Já existe um veículo com a placa '" + placa + "' nesta oficina");
-    }
+  public PlacaAlreadyExistsException(String placa) {
+    super("Já existe um veículo com a placa '" + placa + "' nesta oficina");
+  }
 }
