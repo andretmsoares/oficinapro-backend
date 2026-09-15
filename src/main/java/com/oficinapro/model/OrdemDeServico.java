@@ -19,8 +19,7 @@ public class OrdemDeServico {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
-    private long id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oficina_id", nullable = false, foreignKey = @ForeignKey(name = "fk_os_oficina"))
