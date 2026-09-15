@@ -6,6 +6,8 @@ import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.security.role.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +19,12 @@ import java.util.List;
 public class OficinaServiceImpl implements OficinaService {
 
     private final OficinaRepository oficinaRepository;
+    private final OficinaAccessValidator oficinaAccessValidator;
 
     @Transactional(readOnly = true)
     @Override
     public List<OficinaResponseDTO> listar() {
+        oficinaAccessValidator.validarRole(Role.ADMIN);
         return oficinaRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -30,6 +34,7 @@ public class OficinaServiceImpl implements OficinaService {
     @Transactional(readOnly = true)
     @Override
     public OficinaResponseDTO buscarPorId(Long id) {
+        oficinaAccessValidator.validarRole(Role.ADMIN);
 
         Oficina oficina = this.buscarPorEntidadeId(id);
 
@@ -55,6 +60,8 @@ public class OficinaServiceImpl implements OficinaService {
     @Override
     public OficinaResponseDTO criar(OficinaRequestDTO request) {
 
+        oficinaAccessValidator.validarRole(Role.ADMIN);
+
         if (oficinaRepository.existsByCnpj(request.cnpj())) {
             throw new CnpjAlreadyExistsException(request.cnpj());
         }
@@ -75,6 +82,8 @@ public class OficinaServiceImpl implements OficinaService {
     public OficinaResponseDTO atualizar(
             Long id,
             OficinaRequestDTO request) {
+
+        oficinaAccessValidator.validarRole(Role.ADMIN);
 
         Oficina oficina = oficinaRepository.findById(id)
                 .orElseThrow(() ->
@@ -98,6 +107,8 @@ public class OficinaServiceImpl implements OficinaService {
     @Transactional
     @Override
     public void deletar(Long id) {
+
+        oficinaAccessValidator.validarRole(Role.ADMIN);
 
         if (!oficinaRepository.existsById(id)) {
             throw new OficinaNotFoundException(id);

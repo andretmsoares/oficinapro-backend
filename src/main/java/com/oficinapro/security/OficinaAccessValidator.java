@@ -16,9 +16,27 @@ public class OficinaAccessValidator {
         this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
+    public Usuario getUsuarioAutenticado() {
+        return authenticatedUserProvider.getUsuarioAutenticado();
+    }
+
+    public void validarRole(Role... rolesPermitidas) {
+        Usuario logado = getUsuarioAutenticado();
+
+        for (Role role : rolesPermitidas) {
+            if (logado.getRole() == role) {
+                return;
+            }
+        }
+
+        throw new AccessDeniedException(
+                "Usuário não possui permissão para realizar esta operação"
+        );
+    }
+
     /**
      * Retorna a oficina do usuário logado.
-     *
+     * <p>
      * Usuários ADMIN do SaaS não possuem oficina.
      */
     public Long getOficinaIdUsuarioLogado() {
@@ -39,7 +57,7 @@ public class OficinaAccessValidator {
 
     /**
      * Valida se o usuário logado pode operar sobre a oficina informada.
-     *
+     * <p>
      * ADMIN do SaaS pode operar sobre qualquer oficina.
      */
     public void validarAcessoOficina(Long oficinaId) {
@@ -60,7 +78,7 @@ public class OficinaAccessValidator {
 
     /**
      * Valida acesso a um registro através da oficina à qual ele pertence.
-     *
+     * <p>
      * Para evitar vazamento de informação, retorna uma exceção de "não encontrado"
      * fornecida pelo service chamador.
      */

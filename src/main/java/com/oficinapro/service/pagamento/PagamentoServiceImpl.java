@@ -8,6 +8,7 @@ import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.repository.PagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.security.role.Role;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional
     public PagamentoResponseDTO criar(PagamentoRequestDTO request) {
+
+        oficinaAccessValidator.validarRole(Role.GERENTE);
+
         OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
 
 
@@ -46,6 +50,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional
     public PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request) {
+
+        oficinaAccessValidator.validarRole(Role.GERENTE);
+
         Pagamento pagamento = buscarEntidadePorId(id);
 
         pagamento.setObs(request.obs());
@@ -132,12 +139,14 @@ public class PagamentoServiceImpl implements PagamentoService {
     @Override
     @Transactional
     public PagamentoResponseDTO atualizarValorPago(Long id, BigDecimal valor) {
+        oficinaAccessValidator.validarRole(Role.GERENTE);
         return ajustarValorPago(id, valor);
     }
 
     @Transactional
     @Override
     public PagamentoResponseDTO estornarValorPago(Long id, BigDecimal valor) {
+        oficinaAccessValidator.validarRole(Role.GERENTE);
         return ajustarValorPago(id, valor.negate());
     }
 
