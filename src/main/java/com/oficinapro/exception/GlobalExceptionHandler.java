@@ -262,8 +262,6 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
       MethodArgumentTypeMismatchException ex) {
 
-    String message = "Valor inválido para o parâmetro '%s'.".formatted(ex.getName());
-
     return buildResponse(HttpStatus.BAD_REQUEST, "Parâmetro inválido");
   }
 
