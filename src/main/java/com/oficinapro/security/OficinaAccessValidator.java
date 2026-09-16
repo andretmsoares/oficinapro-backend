@@ -1,6 +1,8 @@
 package com.oficinapro.security;
 
 import com.oficinapro.enums.Role;
+import com.oficinapro.exception.oficina.OficinaDisabledException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Usuario;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -92,4 +94,20 @@ public class OficinaAccessValidator {
       throws java.nio.file.AccessDeniedException {
     validarAcessoAoRegistro(oficinaDoRegistro, notFoundException.apply(id));
   }
+
+public void validarOficinaAtiva(Usuario usuario) {
+    
+    if (usuario.getRole() == Role.ADMIN) {
+        return;
+    }
+
+    if (usuario.getOficina() == null) {
+        throw new UsuarioAcessDeniedException();
+    }
+
+    if (!Boolean.TRUE.equals(usuario.getOficina().getAtivo())) {
+        throw new OficinaDisabledException();
+    }
+}
+
 }

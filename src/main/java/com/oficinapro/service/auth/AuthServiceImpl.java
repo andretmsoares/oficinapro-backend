@@ -39,6 +39,8 @@ public class AuthServiceImpl implements AuthService {
 
     Usuario usuario = (Usuario) authentication.getPrincipal();
 
+    oficinaAccessValidator.validarOficinaAtiva(usuario);
+
     return LoginResponseDTO.bearer(
         jwtService.gerarToken(usuario),
         jwtService.expiracao().toSeconds(),

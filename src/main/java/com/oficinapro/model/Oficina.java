@@ -28,4 +28,7 @@ public class Oficina {
 
   @Column(length = 20)
   private String telefone;
+
+  @Column(nullable = false)
+  private Boolean ativo = true;
 }

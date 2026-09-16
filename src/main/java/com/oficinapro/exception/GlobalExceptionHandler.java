@@ -7,6 +7,9 @@ import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
+import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
+import com.oficinapro.exception.oficina.OficinaDisabledException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.exception.ordem_servico.*;
 import com.oficinapro.exception.pagamento.PagamentoAlreadyExistsException;
@@ -210,6 +213,18 @@ public class GlobalExceptionHandler {
     return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
   }
 
+  @ExceptionHandler(OficinaAlreadyActivatedException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaAlreadyActivated(
+      OficinaAlreadyActivatedException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
+  @ExceptionHandler(OficinaAlreadyDisabledException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaAlreadyDisabled(
+      OficinaAlreadyDisabledException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
   @ExceptionHandler(DescontoInvalidoException.class)
   public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
       DescontoInvalidoException exception) {
@@ -233,8 +248,14 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(UsuarioAcessDeniedException.class)
-  public ResponseEntity<Map<String, Object>> handleUsuarioAcessDeniedException(
+  public ResponseEntity<Map<String, Object>> handleUsuarioAcessDenied(
       UsuarioAcessDeniedException exception) {
+    return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+  }
+
+  @ExceptionHandler(OficinaDisabledException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaDisabled(
+      OficinaDisabledException exception) {
     return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
   }
 

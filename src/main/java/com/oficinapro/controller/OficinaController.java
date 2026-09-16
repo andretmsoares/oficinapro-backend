@@ -73,6 +73,26 @@ public class OficinaController {
     return ResponseEntity.ok(oficinaService.atualizar(id, request));
   }
 
+  @Operation(summary = "Ativar oficina", description = "Ativar uma oficina pelo ID")
+  @PreAuthorize("hasRole('ADMIN')")
+  @DeleteMapping("/ativar/{id}")
+  public ResponseEntity<Void> ativar(@PathVariable Long id) {
+
+    oficinaService.ativar(id);
+
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(summary = "Desativar oficina", description = "Desativar uma oficina pelo ID")
+  @PreAuthorize("hasRole('ADMIN')")
+  @DeleteMapping("/desativar/{id}")
+  public ResponseEntity<Void> desativar(@PathVariable Long id) {
+
+    oficinaService.desativar(id);
+
+    return ResponseEntity.noContent().build();
+  }
+
   @Operation(summary = "Excluir oficina", description = "Exclui uma oficina pelo ID")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "Oficina excluída com sucesso"),
