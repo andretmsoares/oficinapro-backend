@@ -380,7 +380,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private boolean ehStatusDeConclusao(StatusOrdemDeServico status) {
     return status == StatusOrdemDeServico.FINALIZADA
         || status == StatusOrdemDeServico.ENTREGUE
-        || status == StatusOrdemDeServico.FECHADA;
+        || status == StatusOrdemDeServico.FECHADA
+        || status == StatusOrdemDeServico.CANCELADA;
   }
 
   private void validarTransicaoStatus(
