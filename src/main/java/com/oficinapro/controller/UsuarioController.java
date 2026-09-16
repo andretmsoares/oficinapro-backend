@@ -4,6 +4,10 @@ import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
 import com.oficinapro.service.usuario.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -17,13 +21,23 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Usuários", description = "Operações de gerenciamento de usuários")
+@Tag(name = "Usuários", description = "Contas de acesso ao sistema (ADMIN, GERENTE, MECANICO)")
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
 
   private final UsuarioService usuarioService;
 
+  @Operation(
+      summary = "Listar todos os usuários",
+      description =
+          "Retorna, paginado, todos os usuários de todas as oficinas da plataforma."
+              + " Exclusivo do ADMIN do SaaS.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Página de usuários retornada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode listar todos")
+  })
   @GetMapping
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<Page<UsuarioResponseDTO>> listar(
@@ -31,44 +45,138 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.listar(pageable));
   }
 
+  @Operation(
+      summary = "Listar usuários de uma oficina",
+      description =
+          "Retorna, paginado, os usuários da oficina informada. O ADMIN pode consultar"
+              + " qualquer oficina; o GERENTE só a própria.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Página de usuários retornada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(
+        responseCode = "403",
+        description = "Sem permissão, ou GERENTE tentando acessar oficina de outro tenant")
+  })
   @GetMapping("/oficina/{oficinaId}")
   @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
   public ResponseEntity<Page<UsuarioResponseDTO>> listarPorOficina(
-      @PathVariable Long oficinaId, @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
+      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(usuarioService.listarPorOficinaId(oficinaId, pageable));
   }
 
+  @Operation(
+      summary = "Buscar usuário por ID",
+      description =
+          "Busca um usuário pelo ID. O ADMIN pode buscar qualquer usuário; o GERENTE só"
+              + " os da própria oficina — usuário de outra oficina responde 404, não 403.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Usuário encontrado"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão"),
+    @ApiResponse(
+        responseCode = "404",
+        description = "Usuário não encontrado, ou pertence a outra oficina")
+  })
   @GetMapping("/{id}")
   @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-  public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
+  public ResponseEntity<UsuarioResponseDTO> buscarPorId(
+      @Parameter(description = "ID do usuário") @PathVariable Long id) {
     return ResponseEntity.ok(usuarioService.buscarPorId(id));
   }
 
+  @Operation(
+      summary = "Buscar usuários por nome (dentro da própria oficina)",
+      description =
+          "Busca, na oficina do GERENTE autenticado, usuários cujo nome contenha o termo."
+              + " Restrito a GERENTE: o ADMIN não pertence a nenhuma oficina e deve usar"
+              + " o endpoint /admin/nome/{nome}.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão")
+  })
   @GetMapping("/nome/{nome}")
   @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNome(@PathVariable String nome) {
+  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNome(
+      @Parameter(description = "Termo de busca pelo nome") @PathVariable String nome) {
     return ResponseEntity.ok(usuarioService.buscarPorNome(nome));
   }
 
+  @Operation(
+      summary = "Buscar usuário por documento (dentro da própria oficina)",
+      description =
+          "Busca, na oficina do GERENTE autenticado, o usuário com o documento exato"
+              + " informado. Restrito a GERENTE, pelo mesmo motivo do endpoint por nome.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Usuário encontrado"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão"),
+    @ApiResponse(
+        responseCode = "404",
+        description = "Nenhum usuário com este documento na oficina")
+  })
   @GetMapping("/documento/{documento}")
   @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<UsuarioResponseDTO> buscarPorDocumento(@PathVariable String documento) {
+  public ResponseEntity<UsuarioResponseDTO> buscarPorDocumento(
+      @Parameter(description = "CPF, apenas dígitos") @PathVariable String documento) {
     return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
   }
 
+  @Operation(
+      summary = "Buscar usuários por nome em todas as oficinas (ADMIN)",
+      description =
+          "Busca usuários cujo nome contenha o termo, sem escopo de oficina. Exclusivo"
+              + " do ADMIN — as rotas /nome/{nome} não funcionam para ele, pois exigem"
+              + " oficina, e o ADMIN do SaaS não pertence a nenhuma.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS")
+  })
   @GetMapping("/admin/nome/{nome}")
   @PreAuthorize("hasAnyRole('ADMIN')")
-  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNomeAdmin(@PathVariable String nome) {
+  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNomeAdmin(
+      @Parameter(description = "Termo de busca pelo nome") @PathVariable String nome) {
     return ResponseEntity.ok(usuarioService.buscarPorNomeAdmin(nome));
   }
 
+  @Operation(
+      summary = "Buscar usuários por documento em todas as oficinas (ADMIN)",
+      description =
+          "Busca usuários pelo documento, sem escopo de oficina. Exclusivo do ADMIN, pelo"
+              + " mesmo motivo do endpoint de busca por nome.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS")
+  })
   @GetMapping("/admin/documento/{documento}")
   @PreAuthorize("hasAnyRole('ADMIN')")
   public ResponseEntity<List<UsuarioResponseDTO>> buscarPorDocumentoAdmin(
-      @PathVariable String documento) {
+      @Parameter(description = "Documento, apenas dígitos") @PathVariable String documento) {
     return ResponseEntity.ok(usuarioService.buscarPorDocumentoAdmin(documento));
   }
 
+  @Operation(
+      summary = "Criar usuário",
+      description =
+          "Cria uma conta de acesso. O ADMIN pode criar qualquer papel, inclusive outro"
+              + " ADMIN; o GERENTE só pode criar GERENTE ou MECANICO na própria oficina."
+              + " ADMIN não pode ter oficinaId; GERENTE e MECANICO são obrigados a ter.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
+    @ApiResponse(
+        responseCode = "400",
+        description = "Dados inválidos, ou papel incompatível com o vínculo de oficina"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(
+        responseCode = "403",
+        description =
+            "Sem permissão para gerenciar usuários, ou tentando atribuir um papel que não"
+                + " pode conceder (ex.: GERENTE tentando criar ADMIN)"),
+    @ApiResponse(responseCode = "409", description = "Username ou documento já cadastrado")
+  })
   @PostMapping
   @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
   public ResponseEntity<UsuarioResponseDTO> criar(@Valid @RequestBody UsuarioRequestDTO request) {
@@ -76,16 +184,43 @@ public class UsuarioController {
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
+  @Operation(
+      summary = "Atualizar usuário",
+      description =
+          "Atualiza os dados de uma conta, incluindo papel e senha (opcional — se"
+              + " omitida, a senha atual é mantida). Uma conta com papel ADMIN só pode"
+              + " ser editada por outro ADMIN.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
+    @ApiResponse(
+        responseCode = "400",
+        description = "Dados inválidos, ou papel incompatível com o vínculo de oficina"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(
+        responseCode = "403",
+        description = "Sem permissão, ou tentando editar um ADMIN sem ser ADMIN"),
+    @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+    @ApiResponse(responseCode = "409", description = "Username ou documento já em uso")
+  })
   @PutMapping("/{id}")
   @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
   public ResponseEntity<UsuarioResponseDTO> atualizar(
-      @PathVariable Long id, @Valid @RequestBody UsuarioUpdateRequestDTO request) {
+      @Parameter(description = "ID do usuário") @PathVariable Long id,
+      @Valid @RequestBody UsuarioUpdateRequestDTO request) {
     return ResponseEntity.ok(usuarioService.atualizar(id, request));
   }
 
+  @Operation(summary = "Excluir usuário", description = "Remove uma conta de acesso.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Usuário excluído com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão"),
+    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+  })
   @DeleteMapping("/{id}")
   @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-  public ResponseEntity<Void> deletar(@PathVariable Long id) {
+  public ResponseEntity<Void> deletar(
+      @Parameter(description = "ID do usuário") @PathVariable Long id) {
     usuarioService.deletar(id);
     return ResponseEntity.noContent().build();
   }
