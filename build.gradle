@@ -60,10 +60,12 @@ spotless {
     }
 }
 
-tasks.named("build") {
-    dependsOn("spotlessApply")
-}
-
+// build NÃO depende de spotlessApply de propósito: se dependesse, o próprio "./gradlew
+// build" reformataria o código e em seguida validaria o resultado já formatado por ele
+// mesmo, e o spotlessCheck do CI nunca mais falharia por estilo — o portão de qualidade
+// ficaria decorativo. O fluxo correto é rodar spotlessApply localmente antes de
+// commitar (documentado em docs/development.md) e deixar o build reprovar quando isso
+// não for feito.
 tasks.named('check') {
     dependsOn 'spotlessCheck'
 }
