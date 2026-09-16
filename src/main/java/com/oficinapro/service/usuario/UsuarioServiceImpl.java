@@ -35,11 +35,7 @@ public class UsuarioServiceImpl
       PessoaService pessoaService,
       PasswordEncoder passwordEncoder,
       OficinaAccessValidator oficinaAccessValidator) {
-    super(
-        usuarioRepository,
-        oficinaService,
-        pessoaService,
-        oficinaAccessValidator);
+    super(usuarioRepository, oficinaService, pessoaService, oficinaAccessValidator);
     this.usuarioRepository = usuarioRepository;
     this.passwordEncoder = passwordEncoder;
   }

@@ -115,15 +115,13 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     return toResponse(entity);
   }
 
-    @Transactional(readOnly = true)
+  @Transactional(readOnly = true)
   @Override
   public List<RES> buscarPorNomeAdmin(String nome) {
 
     oficinaAccessValidator.validarRole(Role.ADMIN);
 
-    return repository.findByNome(nome).stream()
-        .map(this::toResponse)
-        .toList();
+    return repository.findByNome(nome).stream().map(this::toResponse).toList();
   }
 
   @Transactional(readOnly = true)
@@ -132,9 +130,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
     oficinaAccessValidator.validarRole(Role.ADMIN);
 
-    return repository.findByDocumento(documento).stream()
-        .map(this::toResponse)
-        .toList();
+    return repository.findByDocumento(documento).stream().map(this::toResponse).toList();
   }
 
   @Transactional

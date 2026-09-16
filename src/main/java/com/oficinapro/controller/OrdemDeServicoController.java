@@ -34,7 +34,7 @@ public class OrdemDeServicoController {
     try {
       return ResponseEntity.ok(service.listar());
     } catch (AccessDeniedException e) {
-      
+
       e.printStackTrace();
     }
     return null;

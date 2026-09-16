@@ -228,8 +228,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(UsuarioAcessDeniedException.class)
   public ResponseEntity<Map<String, Object>> handleUsuarioAcessDeniedException(
-    UsuarioAcessDeniedException exception
-  ) {
+      UsuarioAcessDeniedException exception) {
     return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
   }
 

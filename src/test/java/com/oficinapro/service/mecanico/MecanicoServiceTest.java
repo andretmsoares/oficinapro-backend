@@ -49,7 +49,6 @@ class MecanicoServiceTest {
 
   @Mock private PessoaService pessoaService;
 
-
   // Adicionado no refactor: o isolamento por oficina saiu dos services e passou
   // a viver em OficinaAccessValidator.
   @Mock private com.oficinapro.security.OficinaAccessValidator oficinaAccessValidator;

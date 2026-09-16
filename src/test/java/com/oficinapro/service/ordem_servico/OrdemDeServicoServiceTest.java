@@ -63,7 +63,6 @@ class OrdemDeServicoServiceTest {
 
   @Mock private MecanicoService mecanicoService;
 
-
   // Dependências adicionadas no refactor. Sem estes dois mocks os campos ficam
   // nulos e praticamente todo teste desta classe estoura NullPointerException:
   // - PagamentoService: criar() passou a abrir o pagamento junto com a OS;

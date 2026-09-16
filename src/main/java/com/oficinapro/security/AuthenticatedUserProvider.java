@@ -2,9 +2,7 @@ package com.oficinapro.security;
 
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Usuario;
-
 import java.nio.file.AccessDeniedException;
-
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

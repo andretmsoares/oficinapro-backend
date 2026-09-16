@@ -60,6 +60,10 @@ spotless {
     }
 }
 
+tasks.named("build") {
+    dependsOn("spotlessApply")
+}
+
 tasks.named('check') {
     dependsOn 'spotlessCheck'
 }

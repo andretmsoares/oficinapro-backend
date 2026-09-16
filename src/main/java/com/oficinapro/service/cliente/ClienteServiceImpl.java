@@ -25,11 +25,7 @@ public class ClienteServiceImpl
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
       OficinaAccessValidator oficinaAccessValidator) {
-    super(
-        repository,
-        oficinaService,
-        pessoaService,
-        oficinaAccessValidator);
+    super(repository, oficinaService, pessoaService, oficinaAccessValidator);
   }
 
   @Override
