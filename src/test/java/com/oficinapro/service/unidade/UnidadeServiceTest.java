@@ -55,7 +55,7 @@ class UnidadeServiceTest {
 
   @BeforeEach
   void setUp() {
-    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999", true);
 
     // Unidade não tem @AllArgsConstructor, usa o construtor (Oficina, String, String, String)
     unidade = new Unidade(oficina, "Unidade Central", "Rua das Flores, 100", "83911112222");
@@ -127,7 +127,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("GERENTE: deve lançar UnidadeNotFoundException ao acessar unidade de outra oficina")
   void deveLancarExcecaoAoBuscarUnidadeDeOutraOficinaComoAdministrativo() {
-    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
+    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888", true);
     Unidade unidadeOutraOficina =
         new Unidade(outraOficina, "Unidade Remota", "Av. Distante, 999", "83922223333");
     ReflectionTestUtils.setField(unidadeOutraOficina, "id", 2L);
@@ -209,7 +209,7 @@ class UnidadeServiceTest {
   void devePermitirMesmoEnderecoEmOficinasDiferentes() {
     Long outraOficinaId = 2L;
     Oficina outraOficina =
-        new Oficina(outraOficinaId, "Outra Oficina", "98765432000155", "8388887777");
+        new Oficina(outraOficinaId, "Outra Oficina", "98765432000155", "8388887777", true);
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Filial", "Rua das Flores, 100", "83977778888");
 

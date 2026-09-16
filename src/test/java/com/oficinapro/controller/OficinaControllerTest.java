@@ -47,7 +47,7 @@ class OficinaControllerTest {
   @BeforeEach
   void setUp() {
     oficinaResponseDTO =
-        new OficinaResponseDTO(1L, "Oficina Central", "12345678000195", "83999998888");
+        new OficinaResponseDTO(1L, "Oficina Central", "12345678000195", "83999998888", true);
     oficinaRequestDTO = new OficinaRequestDTO("Oficina Central", "12345678000195", "83999998888");
   }
 

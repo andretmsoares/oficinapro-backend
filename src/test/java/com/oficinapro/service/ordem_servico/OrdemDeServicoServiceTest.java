@@ -84,7 +84,7 @@ class OrdemDeServicoServiceTest {
 
   @BeforeEach
   void setUp() {
-    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999", true);
 
     unidade = new Unidade(oficina, "Unidade Central", "Rua das Flores, 100", "83911112222");
     ReflectionTestUtils.setField(unidade, "id", 1L);

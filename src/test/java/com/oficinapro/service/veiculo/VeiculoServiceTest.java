@@ -60,7 +60,7 @@ class VeiculoServiceTest {
 
   @BeforeEach
   void setUp() {
-    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999", true);
 
     veiculo = new Veiculo();
     ReflectionTestUtils.setField(veiculo, "id", 1L);
@@ -138,7 +138,7 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("GERENTE: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
   void deveLancarExcecaoAoBuscarVeiculoDeOutraOficinaComoAdministrativo() {
-    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
+    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888", true);
 
     Veiculo veiculoOutraOficina = new Veiculo();
     ReflectionTestUtils.setField(veiculoOutraOficina, "id", 2L);
