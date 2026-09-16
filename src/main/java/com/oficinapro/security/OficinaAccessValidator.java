@@ -52,11 +52,6 @@ public class OficinaAccessValidator {
    * <p>ADMIN do SaaS pode operar sobre qualquer oficina.
    */
   public void validarAcessoOficina(Long oficinaId) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    if (logado.getRole() == Role.ADMIN) {
-      return;
-    }
 
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
@@ -72,11 +67,6 @@ public class OficinaAccessValidator {
    * service chamador.
    */
   public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    if (logado.getRole() == Role.ADMIN) {
-      return;
-    }
 
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
