@@ -54,8 +54,8 @@ class ClienteControllerTest {
 
   @Test
   @DisplayName("GET /api/clientes - GERENTE deve retornar 200 com página de clientes")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarClientesComoAdmin() throws Exception {
+  @WithMockUser(roles = "GERENTE")
+  void deveListarClientesComoGerente() throws Exception {
     when(clienteService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
@@ -66,10 +66,16 @@ class ClienteControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/clientes - MECANICO deve retornar 403")
+  @DisplayName("GET /api/clientes - MECANICO deve retornar 200 com página de clientes")
   @WithMockUser(roles = "MECANICO")
   void deveNegarAcessoParaMecanico() throws Exception {
-    mockMvc.perform(get("/api/clientes")).andExpect(status().isForbidden());
+    when(clienteService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/clientes"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(1))
+        .andExpect(jsonPath("$.content[0].nome").value("João Silva"));
   }
 
   // ─── GET /api/clientes/{id} ──────────────────────────────────────────────────

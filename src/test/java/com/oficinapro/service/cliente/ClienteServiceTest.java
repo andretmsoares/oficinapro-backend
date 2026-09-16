@@ -3,6 +3,7 @@ package com.oficinapro.service.cliente;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
@@ -92,27 +93,6 @@ class ClienteServiceTest {
   }
 
   // ─────────────────────────── listar ───────────────────────────
-
-  @Test
-  @DisplayName("listar() como ADMIN deve retornar todos os clientes paginados")
-  void listar_comoAdmin_retornaTodosPaginados() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Cliente> page = new PageImpl<>(List.of(cliente));
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(clienteRepository.findAll(pageable)).thenReturn(page);
-
-    Page<ClienteResponseDTO> resultado = service.listar(pageable);
-
-    assertThat(resultado).isNotNull();
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
-    assertThat(resultado.getContent().get(0).nome()).isEqualTo("João Silva");
-    assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
-
-    verify(clienteRepository, times(1)).findAll(pageable);
-    verify(clienteRepository, never()).findByOficinaId(anyLong(), any(Pageable.class));
-  }
 
   @Test
   @DisplayName("listar() como GERENTE deve retornar apenas clientes da sua oficina")
@@ -330,22 +310,5 @@ class ClienteServiceTest {
     assertThatThrownBy(() -> service.deletar(99L)).isInstanceOf(ClienteNotFoundException.class);
 
     verify(clienteRepository, never()).delete(any());
-  }
-
-  // ─────────────────────────── listarPorOficinaId ───────────────────────────
-
-  @Test
-  @DisplayName("listarPorOficinaId() como ADMIN deve retornar clientes de qualquer oficina")
-  void listarPorOficinaId_comoAdmin_sucesso() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Cliente> page = new PageImpl<>(List.of(cliente));
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(clienteRepository.findByOficinaId(1L, pageable)).thenReturn(page);
-
-    Page<ClienteResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);
-
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
   }
 }

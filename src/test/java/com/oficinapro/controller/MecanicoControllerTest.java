@@ -70,8 +70,8 @@ class MecanicoControllerTest {
 
   @Test
   @DisplayName("GET /api/mecanicos - GERENTE deve retornar 200 com página de mecânicos")
-  @WithMockUser(roles = "ADMIN")
-  void deveListarMecanicosComoAdmin() throws Exception {
+  @WithMockUser(roles = "GERENTE")
+  void deveListarMecanicosComoGerente() throws Exception {
     when(mecanicoService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc

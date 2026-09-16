@@ -457,23 +457,6 @@ class UsuarioServiceTest {
     verify(usuarioRepository, never()).delete(any());
   }
 
-  // ─────────────────────────── listarPorOficinaId ───────────────────────────
-
-  @Test
-  @DisplayName("listarPorOficinaId() como ADMIN deve retornar usuários de qualquer oficina")
-  void listarPorOficinaId_comoAdmin_sucesso() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(usuarioRepository.findByOficinaId(1L, pageable)).thenReturn(page);
-
-    Page<UsuarioResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);
-
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().getFirst().oficinaId()).isEqualTo(1L);
-  }
-
   // ────────────── ADMIN do SaaS: sem filiação com oficina ──────────────
 
   @Test

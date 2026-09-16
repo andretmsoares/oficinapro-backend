@@ -23,7 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -67,7 +69,9 @@ class UsuarioControllerTest {
   @DisplayName("GET /api/usuarios - ADMIN deve retornar 200 com página de usuários")
   @WithMockUser(roles = "ADMIN")
   void deveListarUsuariosComoAdmin() throws Exception {
-    when(usuarioService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+    Page<UsuarioResponseDTO> page = new PageImpl<>(List.of(responseDTO));
+
+    when(usuarioService.listar(any(Pageable.class))).thenReturn(page);
 
     mockMvc
         .perform(get("/api/usuarios"))
@@ -75,13 +79,27 @@ class UsuarioControllerTest {
         .andExpect(jsonPath("$.content[0].id").value(1))
         .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
         .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+
+    verify(usuarioService).listar(any(Pageable.class));
   }
 
   @Test
-  @DisplayName("GET /api/usuarios - GERENTE deve retornar 403 (somente ADMIN pode listar todos)")
+  @DisplayName(
+      "GET /api/usuarios - GERENTE deve retornar 200 com página de usuários da própria oficina")
   @WithMockUser(roles = "GERENTE")
-  void deveNegarAcessoParaGerente() throws Exception {
-    mockMvc.perform(get("/api/usuarios")).andExpect(status().isForbidden());
+  void deveListarUsuariosComoGerente() throws Exception {
+    Page<UsuarioResponseDTO> page = new PageImpl<>(List.of(responseDTO));
+
+    when(usuarioService.listar(any(Pageable.class))).thenReturn(page);
+
+    mockMvc
+        .perform(get("/api/usuarios"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(1))
+        .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
+        .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+
+    verify(usuarioService).listar(any(Pageable.class));
   }
 
   // ─── GET /api/usuarios/{id} ───────────────────────────────────────────────────

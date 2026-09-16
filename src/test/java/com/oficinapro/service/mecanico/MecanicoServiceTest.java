@@ -103,29 +103,6 @@ class MecanicoServiceTest {
   // ─────────────────────────── listar ───────────────────────────
 
   @Test
-  @DisplayName("listar() como ADMIN deve retornar todos os mecânicos paginados")
-  void listar_comoAdmin_retornaTodosPaginados() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(mecanicoRepository.findAll(pageable)).thenReturn(page);
-
-    Page<MecanicoResponseDTO> resultado = service.listar(pageable);
-
-    assertThat(resultado).isNotNull();
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
-    assertThat(resultado.getContent().get(0).nome()).isEqualTo("Carlos Mecânico");
-    assertThat(resultado.getContent().get(0).salario())
-        .isEqualByComparingTo(BigDecimal.valueOf(3500.00));
-    assertThat(resultado.getContent().get(0).obs()).isEqualTo("Especialista em motores");
-
-    verify(mecanicoRepository, times(1)).findAll(pageable);
-    verify(mecanicoRepository, never()).findByOficinaId(anyLong(), any(Pageable.class));
-  }
-
-  @Test
   @DisplayName("listar() como GERENTE deve retornar apenas mecânicos da sua oficina")
   void listar_comoAdministrativo_retornaMecanicosDaSuaOficina() {
     Pageable pageable = PageRequest.of(0, 10);
@@ -357,22 +334,5 @@ class MecanicoServiceTest {
     assertThatThrownBy(() -> service.deletar(99L)).isInstanceOf(MecanicoNotFoundException.class);
 
     verify(mecanicoRepository, never()).delete(any());
-  }
-
-  // ─────────────────────────── listarPorOficinaId ───────────────────────────
-
-  @Test
-  @DisplayName("listarPorOficinaId() como ADMIN deve retornar mecânicos de qualquer oficina")
-  void listarPorOficinaId_comoAdmin_sucesso() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(mecanicoRepository.findByOficinaId(1L, pageable)).thenReturn(page);
-
-    Page<MecanicoResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);
-
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
   }
 }

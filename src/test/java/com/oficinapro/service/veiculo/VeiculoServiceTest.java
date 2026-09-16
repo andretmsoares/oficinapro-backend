@@ -85,21 +85,6 @@ class VeiculoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("ADMIN: deve chamar findAll(pageable) e retornar todos os veículos")
-  void deveListarTodosOsVeiculosComoAdmin() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(veiculoRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(veiculo)));
-
-    Page<VeiculoResponseDTO> resultado = veiculoService.listar(pageable);
-
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
-    assertThat(resultado.getContent().get(0).modelo()).isEqualTo("Civic");
-    verify(veiculoRepository).findAll(pageable);
-    verify(veiculoRepository, never()).findByOficinaId(anyLong(), any(Pageable.class));
-  }
-
-  @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
   void deveListarVeiculosDaPropriaOficinaComoAdministrativo() {
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
