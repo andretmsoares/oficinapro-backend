@@ -9,7 +9,10 @@ import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
+import com.oficinapro.enums.Role;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
+import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
@@ -269,5 +273,103 @@ class OficinaServiceTest {
     assertThatThrownBy(() -> service.deletar(99L)).isInstanceOf(OficinaNotFoundException.class);
 
     verify(oficinaRepository, never()).deleteById(anyLong());
+  }
+
+  // ─────────────────────────── desativar / ativar ───────────────────────────
+  //
+  // A exclusão lógica substitui a física: apagar uma oficina levava junto, por
+  // cascata, unidades, pessoas, veículos, OS, pagamentos e todo o histórico.
+
+  @Test
+  @DisplayName("desativar() deve marcar a oficina como inativa e persistir")
+  void desativar_oficinaAtiva_marcaComoInativa() {
+    oficina.setAtivo(true);
+    when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
+
+    service.desativar(1L);
+
+    assertThat(oficina.getAtivo()).isFalse();
+    verify(oficinaRepository).save(oficina);
+  }
+
+  @Test
+  @DisplayName("desativar() deve exigir papel ADMIN")
+  void desativar_exigeAdmin() {
+    doThrow(new AccessDeniedException("sem permissão"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.desativar(1L)).isInstanceOf(AccessDeniedException.class);
+
+    verify(oficinaRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("desativar() uma oficina já inativa deve lançar OficinaAlreadyDisabledException")
+  void desativar_oficinaJaInativa_lancaExcecao() {
+    oficina.setAtivo(false);
+    when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
+
+    assertThatThrownBy(() -> service.desativar(1L))
+        .isInstanceOf(OficinaAlreadyDisabledException.class);
+
+    verify(oficinaRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("desativar() deve lançar OficinaNotFoundException quando o ID não existe")
+  void desativar_idNaoExistente_lancaExcecao() {
+    when(oficinaRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.desativar(99L)).isInstanceOf(OficinaNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("ativar() deve reativar uma oficina desativada")
+  void ativar_oficinaInativa_reativa() {
+    oficina.setAtivo(false);
+    when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
+
+    service.ativar(1L);
+
+    assertThat(oficina.getAtivo())
+        .as("reativar é o caminho de volta da exclusão lógica implementada em desativar()")
+        .isTrue();
+    verify(oficinaRepository).save(oficina);
+  }
+
+  @Test
+  @DisplayName("ativar() uma oficina já ativa deve lançar OficinaAlreadyActivatedException")
+  void ativar_oficinaJaAtiva_lancaExcecao() {
+    oficina.setAtivo(true);
+    when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
+
+    assertThatThrownBy(() -> service.ativar(1L))
+        .isInstanceOf(OficinaAlreadyActivatedException.class);
+
+    verify(oficinaRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("ativar() deve exigir papel ADMIN")
+  void ativar_exigeAdmin() {
+    doThrow(new AccessDeniedException("sem permissão"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.ativar(1L)).isInstanceOf(AccessDeniedException.class);
+
+    verify(oficinaRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("a resposta deve expor o flag ativo")
+  void respostaExpoeFlagAtivo() {
+    oficina.setAtivo(false);
+    when(oficinaRepository.findById(1L)).thenReturn(Optional.of(oficina));
+
+    OficinaResponseDTO resposta = service.buscarPorId(1L);
+
+    assertThat(resposta.ativo()).isFalse();
   }
 }

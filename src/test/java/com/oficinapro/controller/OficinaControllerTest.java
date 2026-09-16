@@ -3,6 +3,9 @@ package com.oficinapro.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -11,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
+import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
+import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
 import com.oficinapro.exception.GlobalExceptionHandler;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.service.oficina.OficinaService;
@@ -133,5 +138,86 @@ class OficinaControllerTest {
   @WithMockUser(roles = "USER")
   void deveNegarAcessoParaUsuarioNaoAdmin() throws Exception {
     mockMvc.perform(get("/api/oficinas")).andExpect(status().isForbidden());
+  }
+
+  // ─────────────── ativar / desativar (exclusão lógica) ───────────────
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PATCH /api/oficinas/{id}/desativar - ADMIN desativa e recebe 204")
+  void desativar_admin_retorna204() throws Exception {
+    doNothing().when(oficinaService).desativar(1L);
+
+    mockMvc
+        .perform(patch("/api/oficinas/1/desativar").with(csrf()))
+        .andExpect(status().isNoContent());
+
+    verify(oficinaService).desativar(1L);
+  }
+
+  @Test
+  @WithMockUser(roles = "GERENTE")
+  @DisplayName("PATCH /api/oficinas/{id}/desativar - GERENTE recebe 403")
+  void desativar_gerente_retorna403() throws Exception {
+    mockMvc
+        .perform(patch("/api/oficinas/1/desativar").with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(oficinaService, never()).desativar(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PATCH /api/oficinas/{id}/ativar - ADMIN reativa e recebe 204")
+  void ativar_admin_retorna204() throws Exception {
+    doNothing().when(oficinaService).ativar(1L);
+
+    mockMvc
+        .perform(patch("/api/oficinas/1/ativar").with(csrf()))
+        .andExpect(status().isNoContent());
+
+    verify(oficinaService).ativar(1L);
+  }
+
+  @Test
+  @WithMockUser(roles = "MECANICO")
+  @DisplayName("PATCH /api/oficinas/{id}/ativar - MECANICO recebe 403")
+  void ativar_mecanico_retorna403() throws Exception {
+    mockMvc.perform(patch("/api/oficinas/1/ativar").with(csrf())).andExpect(status().isForbidden());
+
+    verify(oficinaService, never()).ativar(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PATCH /api/oficinas/{id}/desativar - oficina já desativada retorna 409")
+  void desativar_jaDesativada_retorna409() throws Exception {
+    doThrow(new OficinaAlreadyDisabledException()).when(oficinaService).desativar(1L);
+
+    mockMvc
+        .perform(patch("/api/oficinas/1/desativar").with(csrf()))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("PATCH /api/oficinas/{id}/ativar - oficina já ativa retorna 409")
+  void ativar_jaAtiva_retorna409() throws Exception {
+    doThrow(new OficinaAlreadyActivatedException()).when(oficinaService).ativar(1L);
+
+    mockMvc.perform(patch("/api/oficinas/1/ativar").with(csrf())).andExpect(status().isConflict());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/oficinas/{id} - resposta expõe o flag ativo")
+  void buscarPorId_exponeFlagAtivo() throws Exception {
+    when(oficinaService.buscarPorId(1L))
+        .thenReturn(new OficinaResponseDTO(1L, "Oficina Central", "12345678000195", "8399", false));
+
+    mockMvc
+        .perform(get("/api/oficinas/1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.ativo").value(false));
   }
 }
