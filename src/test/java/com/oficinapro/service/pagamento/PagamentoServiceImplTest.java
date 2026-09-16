@@ -297,7 +297,7 @@ class PagamentoServiceImplTest {
     void deveMarcarComoPagaQuandoOsIgualaValorPago() {
       OrdemDeServico os = os("200.00");
       Pagamento existente = pagamento(os, "200.00", StatusPagamento.PAGO_PARCIALMENTE);
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       service.recalcularStatus(OS_ID);
@@ -315,7 +315,6 @@ class PagamentoServiceImplTest {
       OrdemDeServico os = os("800.00");
       Pagamento existente = pagamento(os, "500.00", StatusPagamento.PAGA);
       existente.setDataPagamentoTotal(java.time.LocalDateTime.now());
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       service.recalcularStatus(OS_ID);
@@ -331,7 +330,6 @@ class PagamentoServiceImplTest {
     void deveRecusarReduzirOsAbaixoDoValorPago() {
       OrdemDeServico os = os("100.00");
       Pagamento existente = pagamento(os, "300.00", StatusPagamento.PAGA);
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
@@ -348,7 +346,6 @@ class PagamentoServiceImplTest {
     void deveManterPendenteQuandoNadaFoiPago() {
       OrdemDeServico os = os("450.00");
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGO_PARCIALMENTE);
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       service.recalcularStatus(OS_ID);
@@ -362,7 +359,6 @@ class PagamentoServiceImplTest {
     void osZeradaSemPagamentoPermanecePendente() {
       OrdemDeServico os = os("0.00");
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE);
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       service.recalcularStatus(OS_ID);
@@ -377,7 +373,6 @@ class PagamentoServiceImplTest {
     void recalcularStatusNaoExigeRole() {
       OrdemDeServico os = os("100.00");
       Pagamento existente = pagamento(os, "50.00", StatusPagamento.PAGO_PARCIALMENTE);
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
 
       service.recalcularStatus(OS_ID);
@@ -415,7 +410,6 @@ class PagamentoServiceImplTest {
     @Test
     @DisplayName("deve lançar PagamentoNotFoundForThisOsException quando a OS não tem pagamento")
     void deveLancarQuandoOsNaoTemPagamento() {
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os("500.00"));
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
 
       assertThatThrownBy(() -> service.buscarPorOsId(OS_ID))

@@ -132,21 +132,20 @@ class OrdemDeServicoServiceTest {
   // listar()
   // ---------------------------------------------------------------
 
-@Test
-@DisplayName("ADMIN: deve negar acesso à listagem de OS")
-void deveNegarListagemDeOSComoAdmin() {
-  when(oficinaAccessValidator.getUsuarioAutenticado())
-      .thenReturn(adminUser);
+  @Test
+  @DisplayName("ADMIN: deve negar acesso à listagem de OS")
+  void deveNegarListagemDeOSComoAdmin() {
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
 
-  when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
-      .thenThrow(new UsuarioAcessDeniedException());
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
+        .thenThrow(new UsuarioAcessDeniedException());
 
-  assertThatThrownBy(() -> ordemDeServicoService.listar())
-      .isInstanceOf(UsuarioAcessDeniedException.class);
+    assertThatThrownBy(() -> ordemDeServicoService.listar())
+        .isInstanceOf(UsuarioAcessDeniedException.class);
 
-  verify(ordemServicoRepository, never()).findAll();
-  verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
-}
+    verify(ordemServicoRepository, never()).findAll();
+    verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
+  }
 
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
