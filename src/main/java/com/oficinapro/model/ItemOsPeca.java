@@ -26,6 +26,9 @@ public class ItemOsPeca {
   @Column(nullable = false, length = 255)
   private String nome;
 
+  // Quantidade de peça é sempre inteira (2 pastilhas, 1 correia) — validado em
+  // ItemOsPecaRequestDTO/UpdateRequestDTO com @Digits(fraction = 0). A coluna manteve
+  // scale 3 por compatibilidade com a migration original; não representa fração válida.
   @Column(nullable = false, precision = 12, scale = 3)
   private BigDecimal quantidade;
 
