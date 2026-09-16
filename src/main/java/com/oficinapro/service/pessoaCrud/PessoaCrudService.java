@@ -23,4 +23,8 @@ public interface PessoaCrudService<C, U, RES, T extends Pessoa> {
   RES atualizar(Long id, U request);
 
   void deletar(Long id);
+
+  List<RES> buscarPorNomeAdmin(String nome);
+
+  List<RES> buscarPorDocumentoAdmin(String documento);
 }

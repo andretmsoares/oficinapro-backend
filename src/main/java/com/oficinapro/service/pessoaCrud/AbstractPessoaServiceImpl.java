@@ -9,6 +9,9 @@ import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
+
+import net.bytebuddy.implementation.bytecode.Throw;
+
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -117,6 +120,28 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
             .orElseThrow(this::notFoundException);
 
     return toResponse(entity);
+  }
+
+    @Transactional(readOnly = true)
+  @Override
+  public List<RES> buscarPorNomeAdmin(String nome) {
+
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    return repository.findByNome(nome).stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<RES> buscarPorDocumentoAdmin(String documento) {
+
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    return repository.findByDocumento(documento).stream()
+        .map(this::toResponse)
+        .toList();
   }
 
   @Transactional

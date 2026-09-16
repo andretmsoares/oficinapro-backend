@@ -45,15 +45,27 @@ public class UsuarioController {
   }
 
   @GetMapping("/nome/{nome}")
-  @PreAuthorize("hasAnyRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNome(@PathVariable String nome) {
     return ResponseEntity.ok(usuarioService.buscarPorNome(nome));
   }
 
   @GetMapping("/documento/{documento}")
-  @PreAuthorize("hasAnyRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<UsuarioResponseDTO> buscarPorDocumento(@PathVariable String documento) {
     return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
+  }
+
+    @GetMapping("/nome/{nome}")
+  @PreAuthorize("hasAnyRole('ADMIN')")
+  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNomeAdmin(@PathVariable String nome) {
+    return ResponseEntity.ok(usuarioService.buscarPorNomeAdmin(nome));
+  }
+
+  @GetMapping("/documento/{documento}")
+  @PreAuthorize("hasAnyRole('ADMIN')")
+  public ResponseEntity<List<UsuarioResponseDTO>> buscarPorDocumentoAdmin(@PathVariable String documento) {
+    return ResponseEntity.ok(usuarioService.buscarPorDocumentoAdmin(documento));
   }
 
   @PostMapping
