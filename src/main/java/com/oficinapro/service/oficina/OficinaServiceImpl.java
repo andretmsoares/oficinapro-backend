@@ -116,6 +116,7 @@ public class OficinaServiceImpl implements OficinaService {
         oficina.getId(), oficina.getNome(), oficina.getCnpj(), oficina.getTelefone(), oficina.getAtivo());
   }
 
+  @Transactional
   @Override
   public void desativar(Long id) {
     oficinaAccessValidator.validarRole(Role.ADMIN);
@@ -131,13 +132,14 @@ public class OficinaServiceImpl implements OficinaService {
     oficinaRepository.save(oficina);
   }
 
+  @Transactional
   @Override
   public void ativar(Long id) {
     oficinaAccessValidator.validarRole(Role.ADMIN);
 
     Oficina oficina = this.buscarPorEntidadeId(id);
 
-    if (!oficina.getAtivo()) {
+    if (oficina.getAtivo()) {
       throw new OficinaAlreadyActivatedException();
     }
 

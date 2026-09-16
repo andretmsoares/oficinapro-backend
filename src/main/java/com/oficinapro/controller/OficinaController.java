@@ -73,9 +73,20 @@ public class OficinaController {
     return ResponseEntity.ok(oficinaService.atualizar(id, request));
   }
 
-  @Operation(summary = "Ativar oficina", description = "Ativar uma oficina pelo ID")
+  @Operation(
+      summary = "Ativar oficina",
+      description =
+          "Reativa uma oficina previamente desativada, restaurando o acesso de seus"
+              + " usuários. Não altera nenhum outro dado da oficina.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Oficina ativada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode ativar oficinas"),
+    @ApiResponse(responseCode = "404", description = "Oficina não encontrada"),
+    @ApiResponse(responseCode = "409", description = "Oficina já está ativa")
+  })
   @PreAuthorize("hasRole('ADMIN')")
-  @DeleteMapping("/ativar/{id}")
+  @PatchMapping("/{id}/ativar")
   public ResponseEntity<Void> ativar(@PathVariable Long id) {
 
     oficinaService.ativar(id);
@@ -83,9 +94,23 @@ public class OficinaController {
     return ResponseEntity.noContent().build();
   }
 
-  @Operation(summary = "Desativar oficina", description = "Desativar uma oficina pelo ID")
+  @Operation(
+      summary = "Desativar oficina",
+      description =
+          "Desativa uma oficina (exclusão lógica). Usuários vinculados a ela deixam de"
+              + " conseguir fazer login enquanto a oficina estiver desativada. Os dados"
+              + " não são apagados e podem ser restaurados com o endpoint de ativação.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Oficina desativada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(
+        responseCode = "403",
+        description = "Apenas o ADMIN do SaaS pode desativar oficinas"),
+    @ApiResponse(responseCode = "404", description = "Oficina não encontrada"),
+    @ApiResponse(responseCode = "409", description = "Oficina já está desativada")
+  })
   @PreAuthorize("hasRole('ADMIN')")
-  @DeleteMapping("/desativar/{id}")
+  @PatchMapping("/{id}/desativar")
   public ResponseEntity<Void> desativar(@PathVariable Long id) {
 
     oficinaService.desativar(id);
