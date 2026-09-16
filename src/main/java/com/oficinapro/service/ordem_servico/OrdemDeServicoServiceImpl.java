@@ -9,6 +9,7 @@ import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
@@ -327,6 +328,11 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public void deletar(Long id) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(id);
+    int comparacao = pagamento.valorPago().compareTo(BigDecimal.ZERO);
+    if (comparacao > 0) {
+      throw new OrdemDeServicoImpossibleDeleteException();
+    }
     ordemServicoRepository.delete(os);
   }
 

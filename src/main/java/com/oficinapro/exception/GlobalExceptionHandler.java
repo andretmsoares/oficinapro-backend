@@ -204,6 +204,12 @@ public class GlobalExceptionHandler {
     return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
   }
 
+  @ExceptionHandler(OrdemDeServicoImpossibleDeleteException.class)
+  public ResponseEntity<Map<String, Object>> handleOrdemDeServicoImpossibleDelete(
+      OrdemDeServicoImpossibleDeleteException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
   @ExceptionHandler(DescontoInvalidoException.class)
   public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
       DescontoInvalidoException exception) {
