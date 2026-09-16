@@ -1,5 +1,6 @@
 package com.oficinapro.repository;
 
+import com.oficinapro.dto.estatisticas.ContagemPorOficinaDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 import java.time.LocalDateTime;
@@ -41,4 +42,14 @@ public interface OrdemDeServicoRepository extends JpaRepository<OrdemDeServico, 
       @Param("oficinaId") Long oficinaId,
       @Param("inicio") LocalDateTime inicio,
       @Param("fim") LocalDateTime fim);
+
+  long countByOficinaId(Long oficinaId);
+
+  // LEFT JOIN a partir de Oficina para que oficina sem nenhum registro apareça
+  // com zero, em vez de sumir do relatório.
+  @Query(
+      "select new com.oficinapro.dto.estatisticas.ContagemPorOficinaDTO(o.id, o.nome, count(os.id))"
+          + " from Oficina o left join OrdemDeServico os on os.oficina = o"
+          + " group by o.id, o.nome order by o.nome")
+  List<ContagemPorOficinaDTO> contarPorOficina();
 }
