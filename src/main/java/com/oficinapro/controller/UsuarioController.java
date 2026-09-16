@@ -56,13 +56,13 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
   }
 
-    @GetMapping("/nome/{nome}")
+    @GetMapping("/admin/nome/{nome}")
   @PreAuthorize("hasAnyRole('ADMIN')")
   public ResponseEntity<List<UsuarioResponseDTO>> buscarPorNomeAdmin(@PathVariable String nome) {
     return ResponseEntity.ok(usuarioService.buscarPorNomeAdmin(nome));
   }
 
-  @GetMapping("/documento/{documento}")
+  @GetMapping("/admin/documento/{documento}")
   @PreAuthorize("hasAnyRole('ADMIN')")
   public ResponseEntity<List<UsuarioResponseDTO>> buscarPorDocumentoAdmin(@PathVariable String documento) {
     return ResponseEntity.ok(usuarioService.buscarPorDocumentoAdmin(documento));
