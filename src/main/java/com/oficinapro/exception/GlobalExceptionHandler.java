@@ -34,6 +34,7 @@ import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -266,6 +267,15 @@ public class GlobalExceptionHandler {
     return buildResponse(
         HttpStatus.CONFLICT,
         "Conflito de dados. Não foi possível realizar a operação porque os dados violam uma regra de integridade.");
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<String> handleOptimisticLockingFailure(
+          OptimisticLockingFailureException ex) {
+
+      return ResponseEntity
+          .status(HttpStatus.CONFLICT)
+          .body("O registro foi alterado por outro usuário. Atualize os dados e tente novamente.");
   }
 
   @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
