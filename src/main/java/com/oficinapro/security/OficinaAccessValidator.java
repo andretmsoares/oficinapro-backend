@@ -36,15 +36,14 @@ public class OficinaAccessValidator {
    * Retorna a oficina do usuário logado.
    *
    * <p>Usuários ADMIN do SaaS não possuem oficina.
+   *
+   * <p>Não deve engolir a exceção do provider: fazer isso e devolver {@code null} aqui já causou
+   * um bug real — o {@code null} seguia para {@code findByOficinaId(null)} (lista vazia disfarçada
+   * de sucesso) ou para {@code oficinaId.equals(...)} (NullPointerException virando 500), em vez de
+   * negar o acesso com 403 como deveria.
    */
   public Long getOficinaIdUsuarioLogado() {
-    try {
-      return authenticatedUserProvider.getOficinaIdUsuarioLogado();
-    } catch (java.nio.file.AccessDeniedException e) {
-
-      e.printStackTrace();
-    }
-    return null;
+    return authenticatedUserProvider.getOficinaIdUsuarioLogado();
   }
 
   /**
@@ -90,24 +89,28 @@ public class OficinaAccessValidator {
   public void validarAcessoAoRegistro(
       Long oficinaDoRegistro,
       Long id,
-      java.util.function.Function<Long, RuntimeException> notFoundException)
-      throws java.nio.file.AccessDeniedException {
+      java.util.function.Function<Long, RuntimeException> notFoundException) {
     validarAcessoAoRegistro(oficinaDoRegistro, notFoundException.apply(id));
   }
 
-public void validarOficinaAtiva(Usuario usuario) {
-    
+  /**
+   * Bloqueia o login (e qualquer operação que dependa dele) de um usuário cuja oficina foi
+   * desativada. O ADMIN do SaaS não tem oficina e está sempre isento desta checagem.
+   *
+   * <p>{@code ativo == null} é tratado como desativado: um registro legado sem o flag preenchido
+   * não pode virar brecha de acesso.
+   */
+  public void validarOficinaAtiva(Usuario usuario) {
     if (usuario.getRole() == Role.ADMIN) {
-        return;
+      return;
     }
 
     if (usuario.getOficina() == null) {
-        throw new UsuarioAcessDeniedException();
+      throw new UsuarioAcessDeniedException();
     }
 
     if (!Boolean.TRUE.equals(usuario.getOficina().getAtivo())) {
-        throw new OficinaDisabledException();
+      throw new OficinaDisabledException();
     }
-}
-
+  }
 }
