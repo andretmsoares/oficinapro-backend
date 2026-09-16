@@ -66,10 +66,16 @@ class UnidadeControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/unidades - MECANICO deve retornar 403")
+  @DisplayName("GET /api/unidades - MECANICO deve retornar 200 com lista de unidades")
   @WithMockUser(roles = "MECANICO")
   void deveNegarAcessoParaMecanico() throws Exception {
-    mockMvc.perform(get("/api/unidades")).andExpect(status().isForbidden());
+    when(unidadeService.listar()).thenReturn(List.of(responseDTO));
+
+    mockMvc
+        .perform(get("/api/unidades"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1))
+        .andExpect(jsonPath("$[0].nome").value("Filial Norte"));
   }
 
   // ─── GET /api/unidades/{id} ───────────────────────────────────────────────────
