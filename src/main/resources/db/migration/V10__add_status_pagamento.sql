@@ -1,2 +1,2 @@
 ALTER TABLE pagamento
-    ADD COLUMN status VARCHAR(30);
+    ADD COLUMN status VARCHAR(30) NOT NULL;
