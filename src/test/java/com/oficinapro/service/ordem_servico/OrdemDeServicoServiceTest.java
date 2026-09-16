@@ -13,6 +13,8 @@ import com.oficinapro.dto.ordemDeServico.OrdemDeServicoResponseDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
@@ -304,14 +306,70 @@ class OrdemDeServicoServiceTest {
   // deletar()
   // ---------------------------------------------------------------
 
+  /** Pagamento da OS 1 com o valor recebido informado. */
+  private com.oficinapro.dto.pagamento.PagamentoResponseDTO pagamentoCom(String valorPago) {
+    return new com.oficinapro.dto.pagamento.PagamentoResponseDTO(
+        50L,
+        1L,
+        new BigDecimal(valorPago),
+        "",
+        null,
+        com.oficinapro.enums.StatusPagamento.PAGAMENTO_PENDENTE);
+  }
+
   @Test
-  @DisplayName("ADMIN: deve deletar OS com sucesso")
-  void deveDeletarOSComSucessoComoAdmin() {
+  @DisplayName("deve deletar OS que ainda não recebeu nenhum pagamento")
+  void deveDeletarOSSemPagamentoRecebido() {
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0.00"));
 
     ordemDeServicoService.deletar(1L);
 
     verify(ordemServicoRepository).delete(os);
+  }
+
+  @Test
+  @DisplayName("não deve deletar OS que já recebeu pagamento")
+  void naoDeveDeletarOSComPagamentoRecebido() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("500.00"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .as(
+            "Excluir a OS apagava em cascata o pagamento e todos os registros de"
+                + " recebimento. Uma OS quitada de R$ 5.000 sumia sem deixar rastro,"
+                + " justamente num sistema sem auditoria.")
+        .isInstanceOf(OrdemDeServicoImpossibleDeleteException.class);
+
+    verify(ordemServicoRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("não deve deletar OS com pagamento parcial, por menor que seja")
+  void naoDeveDeletarOSComPagamentoParcialMinimo() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0.01"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .as("o limite é qualquer valor acima de zero, não um patamar mínimo")
+        .isInstanceOf(OrdemDeServicoImpossibleDeleteException.class);
+
+    verify(ordemServicoRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("deve validar o acesso à oficina antes de considerar a exclusão")
+  void deveValidarAcessoAntesDeExcluir() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    doThrow(new OrdemDeServicoNotFoundException(1L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(any(), any(RuntimeException.class));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .isInstanceOf(OrdemDeServicoNotFoundException.class);
+
+    verify(pagamentoService, never()).buscarPorOsId(any());
+    verify(ordemServicoRepository, never()).delete(any());
   }
 }
