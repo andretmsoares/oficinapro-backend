@@ -54,7 +54,7 @@ public class UnidadeController {
         description = "Unidade não encontrada, ou pertence a outra oficina")
   })
   @GetMapping("/{id}")
-  @PreAuthorize("hasAnyRole('GERENTE', MECANICO)")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<UnidadeResponseDTO> buscarPorId(
       @Parameter(description = "ID da unidade") @PathVariable Long id) {
 
