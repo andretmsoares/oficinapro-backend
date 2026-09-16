@@ -15,7 +15,6 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaService;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +31,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de AuthenticatedUserProvider
+// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
 // preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
 // derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
 // problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
@@ -42,8 +41,6 @@ class UnidadeServiceTest {
   @Mock private UnidadeRepository unidadeRepository;
 
   @Mock private OficinaService oficinaService;
-
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Adicionado no refactor: o isolamento por oficina saiu dos services e passou
   // a viver em OficinaAccessValidator.
@@ -80,7 +77,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("ADMIN: deve chamar findAll() e retornar todas as unidades")
   void deveListarTodasAsUnidadesComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(unidadeRepository.findAll()).thenReturn(List.of(unidade));
 
     List<UnidadeResponseDTO> resultado = unidadeService.listar();
@@ -95,7 +92,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas unidades da sua oficina")
   void deveListarUnidadesDaPropriaOficinaComoAdministrativo() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(unidadeRepository.findByOficinaId(1L)).thenReturn(List.of(unidade));
@@ -115,7 +112,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("ADMIN: deve buscar unidade por ID e retornar o DTO correto")
   void deveBuscarUnidadePorIdComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
     UnidadeResponseDTO resultado = unidadeService.buscarPorId(1L);
@@ -136,7 +133,7 @@ class UnidadeServiceTest {
     ReflectionTestUtils.setField(unidadeOutraOficina, "id", 2L);
 
     // normalUser pertence à oficina 1; unidadeOutraOficina pertence à oficina 2
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(unidadeRepository.findById(2L)).thenReturn(Optional.of(unidadeOutraOficina));
     // O isolamento é delegado ao validador, que devolve "não encontrado" para não
     // revelar que a unidade existe em outra oficina.
@@ -157,7 +154,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("ADMIN: deve listar unidades de uma oficina específica com sucesso")
   void deveListarUnidadesPorOficinaComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeRepository.findByOficinaId(1L)).thenReturn(List.of(unidade));
 
@@ -178,7 +175,7 @@ class UnidadeServiceTest {
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Unidade Nova", "Rua Nova, 200", "83933334444");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "Rua Nova, 200")).thenReturn(false);
     when(unidadeRepository.save(any(Unidade.class))).thenReturn(unidade);
@@ -196,7 +193,7 @@ class UnidadeServiceTest {
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Duplicada", "Rua das Flores, 100", "83944445555");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "Rua das Flores, 100"))
         .thenReturn(true);
@@ -216,7 +213,7 @@ class UnidadeServiceTest {
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Filial", "Rua das Flores, 100", "83977778888");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(outraOficinaId)).thenReturn(outraOficina);
     // O endereço já existe na oficina 1, mas a consulta é escopada pela oficina 2.
     when(unidadeRepository.existsByOficinaIdAndEndereco(outraOficinaId, "Rua das Flores, 100"))
@@ -244,7 +241,7 @@ class UnidadeServiceTest {
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Unidade Atualizada", "Rua das Flores, 100", "83955556666");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
     // A consulta exclui o próprio registro (IdNot), então manter o endereço não conflita.
     when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "Rua das Flores, 100", 1L))
@@ -264,7 +261,7 @@ class UnidadeServiceTest {
     UnidadeRequestDTO request =
         new UnidadeRequestDTO("Unidade Atualizada", "Rua Ocupada, 500", "83955556666");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
     when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "Rua Ocupada, 500", 1L))
         .thenReturn(true);
@@ -282,7 +279,7 @@ class UnidadeServiceTest {
   @Test
   @DisplayName("ADMIN: deve deletar unidade com sucesso")
   void deveDeletarUnidadeComSucesso() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
     unidadeService.deletar(1L);

@@ -36,15 +36,13 @@ public class OficinaAccessValidator {
    * <p>Usuários ADMIN do SaaS não possuem oficina.
    */
   public Long getOficinaIdUsuarioLogado() {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    try {
+      return authenticatedUserProvider.getOficinaIdUsuarioLogado();
+    } catch (java.nio.file.AccessDeniedException e) {
 
-    Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-
-    if (oficinaId == null) {
-      throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
+      e.printStackTrace();
     }
-
-    return oficinaId;
+    return null;
   }
 
   /**
@@ -52,7 +50,7 @@ public class OficinaAccessValidator {
    *
    * <p>ADMIN do SaaS pode operar sobre qualquer oficina.
    */
-  public void validarAcessoOficina(Long oficinaId) {
+  public void validarAcessoOficina(Long oficinaId){
     Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
 
     if (logado.getRole() == Role.ADMIN) {
@@ -71,8 +69,9 @@ public class OficinaAccessValidator {
    *
    * <p>Para evitar vazamento de informação, retorna uma exceção de "não encontrado" fornecida pelo
    * service chamador.
+   * 
    */
-  public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException) {
+  public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException){
     Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
 
     if (logado.getRole() == Role.ADMIN) {
@@ -86,11 +85,12 @@ public class OficinaAccessValidator {
     }
   }
 
-  /** Versão para registros que necessariamente possuem oficina. */
+  /** Versão para registros que necessariamente possuem oficina. 
+   *  */
   public void validarAcessoAoRegistro(
       Long oficinaDoRegistro,
       Long id,
-      java.util.function.Function<Long, RuntimeException> notFoundException) {
+      java.util.function.Function<Long, RuntimeException> notFoundException) throws java.nio.file.AccessDeniedException {
     validarAcessoAoRegistro(oficinaDoRegistro, notFoundException.apply(id));
   }
 }

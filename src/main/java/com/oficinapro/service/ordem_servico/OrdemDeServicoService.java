@@ -4,13 +4,14 @@ import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface OrdemDeServicoService {
 
-  List<OrdemDeServicoResponseDTO> listar();
+  List<OrdemDeServicoResponseDTO> listar() throws AccessDeniedException;
 
-  List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
+  List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId) throws AccessDeniedException;
 
   List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId);
 

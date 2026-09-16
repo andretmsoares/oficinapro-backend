@@ -7,7 +7,6 @@ import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.ClienteRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -25,13 +24,11 @@ public class ClienteServiceImpl
       ClienteRepository repository,
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
-      AuthenticatedUserProvider authenticatedUserProvider,
       OficinaAccessValidator oficinaAccessValidator) {
     super(
         repository,
         oficinaService,
         pessoaService,
-        authenticatedUserProvider,
         oficinaAccessValidator);
   }
 

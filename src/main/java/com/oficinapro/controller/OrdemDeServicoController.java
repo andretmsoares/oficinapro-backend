@@ -5,6 +5,7 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,13 @@ public class OrdemDeServicoController {
   @GetMapping
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
   public ResponseEntity<List<OrdemDeServicoResponseDTO>> listar() {
-    return ResponseEntity.ok(service.listar());
+    try {
+      return ResponseEntity.ok(service.listar());
+    } catch (AccessDeniedException e) {
+      
+      e.printStackTrace();
+    }
+    return null;
   }
 
   @GetMapping("/{id}")
@@ -92,7 +99,13 @@ public class OrdemDeServicoController {
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
   public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorVeiculo(
       @PathVariable Long veiculoId) {
-    return ResponseEntity.ok(service.listarPorVeiculo(veiculoId));
+    try {
+      return ResponseEntity.ok(service.listarPorVeiculo(veiculoId));
+    } catch (AccessDeniedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return null;
   }
 
   @GetMapping("/mecanico/{mecanicoId}")

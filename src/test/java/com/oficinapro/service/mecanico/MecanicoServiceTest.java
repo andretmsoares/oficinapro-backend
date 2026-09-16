@@ -14,7 +14,6 @@ import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.MecanicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import java.math.BigDecimal;
@@ -37,7 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de AuthenticatedUserProvider
+// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
 // preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
 // derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
 // problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
@@ -50,7 +49,6 @@ class MecanicoServiceTest {
 
   @Mock private PessoaService pessoaService;
 
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Adicionado no refactor: o isolamento por oficina saiu dos services e passou
   // a viver em OficinaAccessValidator.
@@ -111,7 +109,7 @@ class MecanicoServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findAll(pageable)).thenReturn(page);
 
     Page<MecanicoResponseDTO> resultado = service.listar(pageable);
@@ -134,7 +132,7 @@ class MecanicoServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(mecanicoRepository.findByOficinaId(1L, pageable)).thenReturn(page);
@@ -154,7 +152,7 @@ class MecanicoServiceTest {
   @Test
   @DisplayName("buscarPorId() como ADMIN deve encontrar mecânico de qualquer oficina")
   void buscarPorId_comoAdmin_encontrado_retornaDTO() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
 
     MecanicoResponseDTO resultado = service.buscarPorId(1L);
@@ -194,7 +192,7 @@ class MecanicoServiceTest {
     mecanicoAlheio.setOficina(outraOficina);
     mecanicoAlheio.setSalario(BigDecimal.valueOf(2000));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
     when(mecanicoRepository.findById(5L)).thenReturn(Optional.of(mecanicoAlheio));
     // O isolamento é delegado ao validador, que devolve a exceção de "não
     // encontrado" da própria entidade para não revelar que o registro existe.
@@ -221,7 +219,7 @@ class MecanicoServiceTest {
     salvo.setSalario(BigDecimal.valueOf(3500.00));
     salvo.setObs("Especialista em motores");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
     when(mecanicoRepository.save(any(Mecanico.class))).thenReturn(salvo);
@@ -243,7 +241,7 @@ class MecanicoServiceTest {
   @DisplayName(
       "criar() deve lançar MecanicoAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaMecanicoAlreadyExistsException() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(true);
 
@@ -289,7 +287,7 @@ class MecanicoServiceTest {
             BigDecimal.valueOf(4000.00),
             "Atualizado");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
         .thenReturn(false);
@@ -327,7 +325,7 @@ class MecanicoServiceTest {
         new MecanicoRequestDTO(
             "Carlos Atualizado", "83977776666", "99988877766", 1L, BigDecimal.valueOf(4000), null);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "99988877766", 1L))
         .thenReturn(true);
@@ -343,7 +341,7 @@ class MecanicoServiceTest {
   @Test
   @DisplayName("deletar() como ADMIN deve remover mecânico com sucesso")
   void deletar_comoAdmin_sucesso() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
 
     service.deletar(1L);
@@ -370,7 +368,7 @@ class MecanicoServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findByOficinaId(1L, pageable)).thenReturn(page);
 
     Page<MecanicoResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);

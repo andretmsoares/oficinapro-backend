@@ -7,7 +7,6 @@ import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.MecanicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -25,13 +24,11 @@ public class MecanicoServiceImpl
       MecanicoRepository repository,
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
-      AuthenticatedUserProvider authenticatedUserProvider,
       OficinaAccessValidator oficinaAccessValidator) {
     super(
         repository,
         oficinaService,
         pessoaService,
-        authenticatedUserProvider,
         oficinaAccessValidator);
   }
 

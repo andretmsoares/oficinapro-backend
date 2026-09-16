@@ -19,6 +19,7 @@ import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
@@ -223,6 +224,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleOSIsNotPossibleSwapWorkshop(
       OSIsNotPossibleSwapWorkshopException exception) {
     return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+  }
+
+  @ExceptionHandler(UsuarioAcessDeniedException.class)
+  public ResponseEntity<Map<String, Object>> handleUsuarioAcessDeniedException(
+    UsuarioAcessDeniedException exception
+  ) {
+    return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)

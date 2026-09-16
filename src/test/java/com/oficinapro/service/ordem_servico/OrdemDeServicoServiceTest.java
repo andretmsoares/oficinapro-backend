@@ -21,7 +21,6 @@ import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.OrdemDeServicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
@@ -44,7 +43,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: depois do refactor, buscarPorEntidadeId/criar/atualizar deixaram
-// de chamar AuthenticatedUserProvider (quem valida o escopo agora é o
+// de chamar oficinaAccessValidator (quem valida o escopo agora é o
 // OficinaAccessValidator). Vários testes daqui ainda preparam aquele stub, e com
 // strict stubs isso derrubaria a classe inteira por UnnecessaryStubbingException em
 // vez de apontar um problema real de comportamento.
@@ -64,7 +63,6 @@ class OrdemDeServicoServiceTest {
 
   @Mock private MecanicoService mecanicoService;
 
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Dependências adicionadas no refactor. Sem estes dois mocks os campos ficam
   // nulos e praticamente todo teste desta classe estoura NullPointerException:
@@ -135,7 +133,7 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve chamar findAll() e retornar todas as OS")
   void deveListarTodasAsOSComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findAll()).thenReturn(List.of(os));
 
     List<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar();
@@ -150,7 +148,7 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
   void deveListarOSDaPropriaOficinaComoAdministrativo() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));
@@ -170,7 +168,7 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve buscar OS por ID e retornar o DTO correto")
   void deveBuscarOSPorIdComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     OrdemDeServicoResponseDTO resultado = ordemDeServicoService.buscarPorId(1L);
@@ -191,7 +189,7 @@ class OrdemDeServicoServiceTest {
     OrdemDeServicoRequestDTO request =
         new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Troca de óleo");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
     when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
@@ -232,7 +230,7 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirMecanicoAOSComSucesso() {
     AtribuirMecanicoRequestDTO dto = new AtribuirMecanicoRequestDTO(1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(mecanicoService.buscarPorEntidadeId(1L)).thenReturn(mecanico);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -253,7 +251,7 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirClienteAOSComSucesso() {
     AtribuirClienteRequestDTO dto = new AtribuirClienteRequestDTO(1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(clienteService.buscarPorEntidadeId(1L)).thenReturn(cliente);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -276,7 +274,7 @@ class OrdemDeServicoServiceTest {
     OrdemDeServicoRequestDTO request =
         new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Revisão completa");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
     when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
@@ -294,7 +292,7 @@ class OrdemDeServicoServiceTest {
     // OS pertence à oficina 1, request tenta mover para oficina 2
     OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(2L, 1L, 1L, null, null, null);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     assertThatThrownBy(() -> ordemDeServicoService.atualizar(1L, request))
@@ -310,7 +308,7 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve deletar OS com sucesso")
   void deveDeletarOSComSucessoComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     ordemDeServicoService.deletar(1L);

@@ -25,8 +25,6 @@ class OficinaAccessValidatorTest {
   private static final Long OFICINA_A = 1L;
   private static final Long OFICINA_B = 2L;
 
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
-
   @InjectMocks private OficinaAccessValidator validator;
 
   private Usuario usuario(Role role, Long oficinaId) {
@@ -46,7 +44,7 @@ class OficinaAccessValidatorTest {
   }
 
   private void logado(Role role, Long oficinaId) {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(usuario(role, oficinaId));
+    when(validator.getUsuarioAutenticado()).thenReturn(usuario(role, oficinaId));
   }
 
   @Nested
@@ -236,7 +234,7 @@ class OficinaAccessValidatorTest {
     @DisplayName("delega ao AuthenticatedUserProvider para qualquer role")
     void deveDelegarAoProvider(Role role) {
       Usuario esperado = usuario(role, role == Role.ADMIN ? null : OFICINA_A);
-      when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(esperado);
+      when(validator.getUsuarioAutenticado()).thenReturn(esperado);
 
       assertThat(validator.getUsuarioAutenticado()).isSameAs(esperado);
     }

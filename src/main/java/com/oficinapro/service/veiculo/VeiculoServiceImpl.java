@@ -9,7 +9,6 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,6 @@ public class VeiculoServiceImpl implements VeiculoService {
 
   private final VeiculoRepository veiculoRepository;
   private final OficinaService oficinaService;
-  private final AuthenticatedUserProvider authenticatedUserProvider;
   private final OficinaAccessValidator oficinaAccessValidator;
 
   private String normalizarPlaca(String placa) {
@@ -34,7 +32,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Override
   @Transactional(readOnly = true)
   public Page<VeiculoResponseDTO> listar(Pageable pageable) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
 
     Page<Veiculo> page =
         logado.getRole() == Role.ADMIN
@@ -73,7 +71,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Transactional(readOnly = true)
   public VeiculoResponseDTO buscarPorPlaca(String placa) {
 
-    Long oficinaId = authenticatedUserProvider.getOficinaIdUsuarioLogado();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     Veiculo veiculo =
         veiculoRepository
