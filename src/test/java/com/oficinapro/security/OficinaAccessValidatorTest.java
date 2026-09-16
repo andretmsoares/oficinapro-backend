@@ -105,7 +105,7 @@ class OficinaAccessValidatorTest {
     @Test
     @DisplayName("retorna a oficina do usuário vinculado")
     void deveRetornarOficinaDoUsuarioVinculado() {
-      logado(Role.GERENTE, OFICINA_A);
+      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
 
       assertThat(validator.getOficinaIdUsuarioLogado()).isEqualTo(OFICINA_A);
     }
@@ -113,11 +113,11 @@ class OficinaAccessValidatorTest {
     @Test
     @DisplayName("nega acesso quando o usuário não tem oficina (caso do ADMIN do SaaS)")
     void deveNegarQuandoUsuarioNaoPossuiOficina() {
-      logado(Role.ADMIN, null);
+      when(authenticatedUserProvider.getOficinaIdUsuarioLogado())
+          .thenThrow(new UsuarioAcessDeniedException());
 
       assertThatThrownBy(() -> validator.getOficinaIdUsuarioLogado())
-          .isInstanceOf(AccessDeniedException.class)
-          .hasMessageContaining("não está vinculado a nenhuma oficina");
+          .isInstanceOf(UsuarioAcessDeniedException.class);
     }
   }
 
@@ -129,6 +129,8 @@ class OficinaAccessValidatorTest {
     @DisplayName("permite o GERENTE operar sobre a própria oficina")
     void devePermitirGerenteNaPropriaOficina() {
       logado(Role.GERENTE, OFICINA_A);
+
+      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
 
       assertThatCode(() -> validator.validarAcessoOficina(OFICINA_A)).doesNotThrowAnyException();
     }
@@ -175,6 +177,8 @@ class OficinaAccessValidatorTest {
     void devePermitirRegistroDaPropriaOficina() {
       logado(Role.GERENTE, OFICINA_A);
 
+      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+
       assertThatCode(
               () ->
                   validator.validarAcessoAoRegistro(
@@ -188,6 +192,8 @@ class OficinaAccessValidatorTest {
     void deveLancarNotFoundFornecidoParaRegistroDeOutraOficina() {
       logado(Role.GERENTE, OFICINA_A);
       RuntimeException notFound = new IllegalStateException("registro inexistente");
+
+      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
 
       assertThatThrownBy(() -> validator.validarAcessoAoRegistro(OFICINA_B, notFound))
           .as(
