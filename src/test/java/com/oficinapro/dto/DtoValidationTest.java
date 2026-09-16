@@ -127,8 +127,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa descrição acima de 500 caracteres")
     void recusaDescricaoLonga() {
-      MaoObraRequestDTO dto =
-          new MaoObraRequestDTO(1L, new BigDecimal("100.00"), "x".repeat(501));
+      MaoObraRequestDTO dto = new MaoObraRequestDTO(1L, new BigDecimal("100.00"), "x".repeat(501));
 
       assertThat(camposInvalidos(dto)).contains("descricao");
     }

@@ -14,9 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
+import com.oficinapro.exception.GlobalExceptionHandler;
 import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
 import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
-import com.oficinapro.exception.GlobalExceptionHandler;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.service.oficina.OficinaService;
 import java.util.List;
@@ -172,9 +172,7 @@ class OficinaControllerTest {
   void ativar_admin_retorna204() throws Exception {
     doNothing().when(oficinaService).ativar(1L);
 
-    mockMvc
-        .perform(patch("/api/oficinas/1/ativar").with(csrf()))
-        .andExpect(status().isNoContent());
+    mockMvc.perform(patch("/api/oficinas/1/ativar").with(csrf())).andExpect(status().isNoContent());
 
     verify(oficinaService).ativar(1L);
   }

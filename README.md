@@ -331,3 +331,6 @@ Checklist de PR em [`docs/development.md`](./docs/development.md) §9.
 
 Projeto desenvolvido no contexto de aplicação prática de tecnologias de desenvolvimento de
 software, utilizando como cenário inicial a **Soares Auto Center**.
+
+
+!!ANTES DO COMMIT RODAR spotlessApply 

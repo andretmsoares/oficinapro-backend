@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
-import com.oficinapro.dto.usuario.responseDTO;
+import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.exception.GlobalExceptionHandler;
@@ -44,14 +44,14 @@ class UsuarioControllerTest {
 
   @MockitoBean private UsuarioService usuarioService;
 
-  private responseDTO responseDTO;
+  private UsuarioResponseDTO responseDTO;
   private UsuarioRequestDTO requestDTO;
   private UsuarioUpdateRequestDTO updateRequestDTO;
 
   @BeforeEach
   void setUp() {
     responseDTO =
-        new responseDTO(
+        new UsuarioResponseDTO(
             1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN);
     requestDTO =
         new UsuarioRequestDTO(
@@ -182,8 +182,7 @@ class UsuarioControllerTest {
   @WithMockUser(roles = "ADMIN")
   @DisplayName("GET /api/usuarios/admin/documento/{doc} - ADMIN busca em todas as oficinas")
   void buscarPorDocumentoAdmin_admin_retorna200() throws Exception {
-    when(usuarioService.buscarPorDocumentoAdmin("12345678901"))
-        .thenReturn(List.of(responseDTO));
+    when(usuarioService.buscarPorDocumentoAdmin("12345678901")).thenReturn(List.of(responseDTO));
 
     mockMvc
         .perform(get("/api/usuarios/admin/documento/12345678901"))
@@ -215,9 +214,7 @@ class UsuarioControllerTest {
   @WithMockUser(roles = "ADMIN")
   @DisplayName("GET /api/usuarios/nome/{nome} - ADMIN recebe 403 na rota escopada por oficina")
   void buscarPorNome_admin_retorna403() throws Exception {
-    mockMvc
-        .perform(get("/api/usuarios/nome/Ana"))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/usuarios/nome/Ana")).andExpect(status().isForbidden());
 
     verify(usuarioService, never()).buscarPorNome(any());
   }
