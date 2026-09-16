@@ -242,6 +242,62 @@ class GlobalExceptionHandlerTest {
   }
 
   @Nested
+  @DisplayName("regras introduzidas com a exclusão lógica e o lock otimista")
+  class RegrasNovas {
+
+    @Test
+    @DisplayName("conflito de lock otimista deve virar 409")
+    void lockOtimistaVira409() throws Exception {
+      esperaStatus("lock-otimista", 409);
+    }
+
+    @Test
+    @DisplayName("conflito de lock otimista deve respeitar o envelope JSON de erro")
+    void lockOtimistaRespeitaEnvelopeDeErro() throws Exception {
+      mockMvc
+          .perform(get("/teste/lock-otimista"))
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.status").value(409))
+          .andExpect(jsonPath("$.error").exists())
+          .andExpect(jsonPath("$.message").exists())
+          .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("excluir OS com pagamento recebido deve virar 409")
+    void exclusaoDeOsComPagamentoVira409() throws Exception {
+      esperaStatus("os-com-pagamento", 409);
+    }
+
+    @Test
+    @DisplayName("oficina desativada deve virar 403")
+    void oficinaDesativadaVira403() throws Exception {
+      esperaStatus("oficina-desativada", 403);
+    }
+
+    @Test
+    @DisplayName("usuário sem vínculo com oficina deve virar 403, não 401")
+    void usuarioSemOficinaVira403() throws Exception {
+      mockMvc
+          .perform(get("/teste/usuario-sem-oficina"))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @DisplayName("desativar oficina já desativada deve virar 409")
+    void oficinaJaDesativadaVira409() throws Exception {
+      esperaStatus("oficina-ja-desativada", 409);
+    }
+
+    @Test
+    @DisplayName("ativar oficina já ativa deve virar 409")
+    void oficinaJaAtivaVira409() throws Exception {
+      esperaStatus("oficina-ja-ativa", 409);
+    }
+  }
+
+  @Nested
   @DisplayName("formato do corpo de erro")
   class FormatoDoCorpo {
 
@@ -358,6 +414,36 @@ class GlobalExceptionHandlerTest {
     @GetMapping("/acesso-negado")
     public void acessoNegado() {
       throw new AccessDeniedException("Você só pode acessar dados da sua própria oficina");
+    }
+
+    @GetMapping("/lock-otimista")
+    public void lockOtimista() {
+      throw new org.springframework.dao.OptimisticLockingFailureException("versão desatualizada");
+    }
+
+    @GetMapping("/os-com-pagamento")
+    public void osComPagamento() {
+      throw new com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException();
+    }
+
+    @GetMapping("/oficina-desativada")
+    public void oficinaDesativada() {
+      throw new com.oficinapro.exception.oficina.OficinaDisabledException();
+    }
+
+    @GetMapping("/oficina-ja-desativada")
+    public void oficinaJaDesativada() {
+      throw new com.oficinapro.exception.oficina.OficinaAlreadyDisabledException();
+    }
+
+    @GetMapping("/oficina-ja-ativa")
+    public void oficinaJaAtiva() {
+      throw new com.oficinapro.exception.oficina.OficinaAlreadyActivatedException();
+    }
+
+    @GetMapping("/usuario-sem-oficina")
+    public void usuarioSemOficina() {
+      throw new com.oficinapro.exception.usuario.UsuarioAcessDeniedException();
     }
 
     @GetMapping("/id/{id}")

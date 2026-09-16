@@ -3,13 +3,15 @@ package com.oficinapro.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
-import com.oficinapro.dto.usuario.UsuarioResponseDTO;
+import com.oficinapro.dto.usuario.responseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.exception.GlobalExceptionHandler;
@@ -42,14 +44,14 @@ class UsuarioControllerTest {
 
   @MockitoBean private UsuarioService usuarioService;
 
-  private UsuarioResponseDTO responseDTO;
+  private responseDTO responseDTO;
   private UsuarioRequestDTO requestDTO;
   private UsuarioUpdateRequestDTO updateRequestDTO;
 
   @BeforeEach
   void setUp() {
     responseDTO =
-        new UsuarioResponseDTO(
+        new responseDTO(
             1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN);
     requestDTO =
         new UsuarioRequestDTO(
@@ -147,5 +149,76 @@ class UsuarioControllerTest {
     doNothing().when(usuarioService).deletar(1L);
 
     mockMvc.perform(delete("/api/usuarios/1").with(csrf())).andExpect(status().isNoContent());
+  }
+
+  // ─────────── busca global do ADMIN (rotas /admin/**) ───────────
+  //
+  // As rotas antigas /nome e /documento escopavam pela oficina do usuário logado
+  // e por isso falhavam sempre para o ADMIN, que não pertence a oficina alguma.
+  // Passaram a ser de GERENTE, e o ADMIN ganhou rotas próprias, sem escopo.
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/admin/nome/{nome} - ADMIN busca em todas as oficinas")
+  void buscarPorNomeAdmin_admin_retorna200() throws Exception {
+    when(usuarioService.buscarPorNomeAdmin("Ana")).thenReturn(List.of(responseDTO));
+
+    mockMvc
+        .perform(get("/api/usuarios/admin/nome/Ana"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1));
+  }
+
+  @Test
+  @WithMockUser(roles = "GERENTE")
+  @DisplayName("GET /api/usuarios/admin/nome/{nome} - GERENTE recebe 403")
+  void buscarPorNomeAdmin_gerente_retorna403() throws Exception {
+    mockMvc.perform(get("/api/usuarios/admin/nome/Ana")).andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorNomeAdmin(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/admin/documento/{doc} - ADMIN busca em todas as oficinas")
+  void buscarPorDocumentoAdmin_admin_retorna200() throws Exception {
+    when(usuarioService.buscarPorDocumentoAdmin("12345678901"))
+        .thenReturn(List.of(responseDTO));
+
+    mockMvc
+        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1));
+  }
+
+  @Test
+  @WithMockUser(roles = "MECANICO")
+  @DisplayName("GET /api/usuarios/admin/documento/{doc} - MECANICO recebe 403")
+  void buscarPorDocumentoAdmin_mecanico_retorna403() throws Exception {
+    mockMvc
+        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorDocumentoAdmin(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "GERENTE")
+  @DisplayName("GET /api/usuarios/nome/{nome} - a rota escopada agora é do GERENTE")
+  void buscarPorNome_gerente_retorna200() throws Exception {
+    when(usuarioService.buscarPorNome("Ana")).thenReturn(List.of(responseDTO));
+
+    mockMvc.perform(get("/api/usuarios/nome/Ana")).andExpect(status().isOk());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/nome/{nome} - ADMIN recebe 403 na rota escopada por oficina")
+  void buscarPorNome_admin_retorna403() throws Exception {
+    mockMvc
+        .perform(get("/api/usuarios/nome/Ana"))
+        .andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorNome(any());
   }
 }
