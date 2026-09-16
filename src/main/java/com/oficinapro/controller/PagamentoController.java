@@ -118,7 +118,7 @@ public class PagamentoController {
         responseCode = "403",
         description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
   })
-  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   @GetMapping("/oficina/{oficinaId}/status/{status}")
   public ResponseEntity<List<PagamentoResponseDTO>> buscarPorStatus(
       @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,

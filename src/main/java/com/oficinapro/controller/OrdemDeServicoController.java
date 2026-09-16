@@ -104,7 +104,7 @@ public class OrdemDeServicoController {
         description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
   })
   @GetMapping("/fluxo-mensal")
-  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
       @Parameter(description = "Mês, de 1 a 12") @RequestParam int mes,
       @Parameter(description = "Ano com 4 dígitos") @RequestParam int ano) {
@@ -130,7 +130,7 @@ public class OrdemDeServicoController {
         description = "Tentativa de trocar a oficina da OS, o que não é permitido")
   })
   @PutMapping("/{id}")
-  @PreAuthorize("hasAnyRole( 'GERENTE')")
+  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
   public ResponseEntity<OrdemDeServicoResponseDTO> atualizar(
       @Parameter(description = "ID da ordem de serviço") @PathVariable Long id,
       @RequestBody @Valid OrdemDeServicoRequestDTO request) {
@@ -207,7 +207,7 @@ public class OrdemDeServicoController {
         description = "OS não encontrada, ou mecânico não encontrado")
   })
   @PatchMapping("/{id}/mecanico")
-  @PreAuthorize("hasAnyRole( 'GERENTE')")
+  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
   public ResponseEntity<OrdemDeServicoResponseDTO> atribuirMecanico(
       @Parameter(description = "ID da ordem de serviço") @PathVariable Long id,
       @RequestBody @Valid AtribuirMecanicoRequestDTO request) {
@@ -227,7 +227,7 @@ public class OrdemDeServicoController {
     @ApiResponse(responseCode = "404", description = "OS não encontrada, ou cliente não encontrado")
   })
   @PatchMapping("/{id}/cliente")
-  @PreAuthorize("hasAnyRole( 'GERENTE')")
+  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
   public ResponseEntity<OrdemDeServicoResponseDTO> atribuirCliente(
       @Parameter(description = "ID da ordem de serviço") @PathVariable Long id,
       @RequestBody @Valid AtribuirClienteRequestDTO request) {

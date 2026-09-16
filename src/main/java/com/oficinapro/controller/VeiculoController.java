@@ -40,7 +40,7 @@ public class VeiculoController {
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<Page<VeiculoResponseDTO>> listar(
       @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(veiculoService.listar(pageable));
@@ -102,7 +102,7 @@ public class VeiculoController {
     @ApiResponse(responseCode = "409", description = "Placa já cadastrada nesta oficina")
   })
   @PostMapping
-  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<VeiculoResponseDTO> criar(@Valid @RequestBody VeiculoRequestDTO request) {
     VeiculoResponseDTO response = veiculoService.criar(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
