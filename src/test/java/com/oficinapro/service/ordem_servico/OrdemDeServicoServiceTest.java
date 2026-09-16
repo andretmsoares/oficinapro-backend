@@ -15,6 +15,7 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
@@ -131,20 +132,21 @@ class OrdemDeServicoServiceTest {
   // listar()
   // ---------------------------------------------------------------
 
-  @Test
-  @DisplayName("ADMIN: deve chamar findAll() e retornar todas as OS")
-  void deveListarTodasAsOSComoAdmin() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(ordemServicoRepository.findAll()).thenReturn(List.of(os));
+@Test
+@DisplayName("ADMIN: deve negar acesso à listagem de OS")
+void deveNegarListagemDeOSComoAdmin() {
+  when(oficinaAccessValidator.getUsuarioAutenticado())
+      .thenReturn(adminUser);
 
-    List<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar();
+  when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
+      .thenThrow(new UsuarioAcessDeniedException());
 
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.get(0).status()).isEqualTo(StatusOrdemDeServico.ABERTA);
-    assertThat(resultado.get(0).valorTotal()).isEqualByComparingTo(BigDecimal.ZERO);
-    verify(ordemServicoRepository).findAll();
-    verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
-  }
+  assertThatThrownBy(() -> ordemDeServicoService.listar())
+      .isInstanceOf(UsuarioAcessDeniedException.class);
+
+  verify(ordemServicoRepository, never()).findAll();
+  verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
+}
 
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
