@@ -270,12 +270,12 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(OptimisticLockingFailureException.class)
-  public ResponseEntity<String> handleOptimisticLockingFailure(
-          OptimisticLockingFailureException ex) {
+  public ResponseEntity<Map<String, Object>> handleOptimisticLockingFailure(
+      OptimisticLockingFailureException ex) {
 
-      return ResponseEntity
-          .status(HttpStatus.CONFLICT)
-          .body("O registro foi alterado por outro usuário. Atualize os dados e tente novamente.");
+    return buildResponse(
+        HttpStatus.CONFLICT,
+        "O registro foi alterado por outro usuário. Atualize os dados e tente novamente.");
   }
 
   @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
