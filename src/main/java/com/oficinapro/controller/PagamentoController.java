@@ -75,7 +75,9 @@ public class PagamentoController {
     @ApiResponse(responseCode = "200", description = "Pagamento encontrado"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
-    @ApiResponse(responseCode = "404", description = "A OS não possui pagamento, ou não foi encontrada")
+    @ApiResponse(
+        responseCode = "404",
+        description = "A OS não possui pagamento, ou não foi encontrada")
   })
   @GetMapping("/os/{osId}")
   @PreAuthorize("hasAnyRole('GERENTE')")

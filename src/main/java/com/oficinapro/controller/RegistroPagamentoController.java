@@ -98,7 +98,9 @@ public class RegistroPagamentoController {
               + " pagamento, recalculando o status. Estornar mais do que já foi pago"
               + " nunca acontece: o valor estornado é exatamente o do registro excluído.")
   @ApiResponses({
-    @ApiResponse(responseCode = "204", description = "Registro excluído e valor estornado com sucesso"),
+    @ApiResponse(
+        responseCode = "204",
+        description = "Registro excluído e valor estornado com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
     @ApiResponse(responseCode = "404", description = "Registro não encontrado"),

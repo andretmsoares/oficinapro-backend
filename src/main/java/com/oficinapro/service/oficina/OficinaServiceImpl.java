@@ -113,7 +113,11 @@ public class OficinaServiceImpl implements OficinaService {
   private OficinaResponseDTO toResponse(Oficina oficina) {
 
     return new OficinaResponseDTO(
-        oficina.getId(), oficina.getNome(), oficina.getCnpj(), oficina.getTelefone(), oficina.getAtivo());
+        oficina.getId(),
+        oficina.getNome(),
+        oficina.getCnpj(),
+        oficina.getTelefone(),
+        oficina.getAtivo());
   }
 
   @Transactional

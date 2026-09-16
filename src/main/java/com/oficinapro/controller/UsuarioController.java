@@ -92,7 +92,9 @@ public class UsuarioController {
               + " Restrito a GERENTE: o ADMIN não pertence a nenhuma oficina e deve usar"
               + " o endpoint /admin/nome/{nome}.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de usuários encontrados (pode ser vazia)"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
@@ -112,9 +114,7 @@ public class UsuarioController {
     @ApiResponse(responseCode = "200", description = "Usuário encontrado"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
-    @ApiResponse(
-        responseCode = "404",
-        description = "Nenhum usuário com este documento na oficina")
+    @ApiResponse(responseCode = "404", description = "Nenhum usuário com este documento na oficina")
   })
   @GetMapping("/documento/{documento}")
   @PreAuthorize("hasAnyRole('GERENTE')")
@@ -130,7 +130,9 @@ public class UsuarioController {
               + " do ADMIN — as rotas /nome/{nome} não funcionam para ele, pois exigem"
               + " oficina, e o ADMIN do SaaS não pertence a nenhuma.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de usuários encontrados (pode ser vazia)"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS")
   })
@@ -147,7 +149,9 @@ public class UsuarioController {
           "Busca usuários pelo documento, sem escopo de oficina. Exclusivo do ADMIN, pelo"
               + " mesmo motivo do endpoint de busca por nome.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de usuários encontrados (pode ser vazia)"),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de usuários encontrados (pode ser vazia)"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS")
   })

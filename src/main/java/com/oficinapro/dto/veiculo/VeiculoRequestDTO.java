@@ -6,8 +6,7 @@ public record VeiculoRequestDTO(
     @NotBlank(message = "Modelo é obrigatório")
         @Size(max = 100, message = "Modelo deve ter no máximo 100 caracteres")
         String modelo,
-    @Min(value = 1900, message = "Ano deve ser maior ou igual a 1900")
-    Integer ano,
+    @Min(value = 1900, message = "Ano deve ser maior ou igual a 1900") Integer ano,
     @Size(max = 100, message = "Marca deve ter no máximo 100 caracteres") String marca,
     @NotBlank(message = "Placa é obrigatória")
         @Pattern(

@@ -24,10 +24,10 @@ public class AuthenticatedUserProvider {
   }
 
   /**
-   * {@link UsuarioAcessDeniedException} é unchecked (RuntimeException) de propósito: usar
-   * {@code java.nio.file.AccessDeniedException} aqui já causou um bug real — por ser checked, ela
-   * forçou try/catch em cima na pilha (controller e service), e o catch acabou engolindo a exceção
-   * em vez de propagá-la, fazendo endpoints devolverem 200 com corpo vazio em vez de 403.
+   * {@link UsuarioAcessDeniedException} é unchecked (RuntimeException) de propósito: usar {@code
+   * java.nio.file.AccessDeniedException} aqui já causou um bug real — por ser checked, ela forçou
+   * try/catch em cima na pilha (controller e service), e o catch acabou engolindo a exceção em vez
+   * de propagá-la, fazendo endpoints devolverem 200 com corpo vazio em vez de 403.
    */
   public Long getOficinaIdUsuarioLogado() {
     Usuario usuario = getUsuarioAutenticado();

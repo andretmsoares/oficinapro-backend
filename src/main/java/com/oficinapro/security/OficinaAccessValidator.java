@@ -37,9 +37,9 @@ public class OficinaAccessValidator {
    *
    * <p>Usuários ADMIN do SaaS não possuem oficina.
    *
-   * <p>Não deve engolir a exceção do provider: fazer isso e devolver {@code null} aqui já causou
-   * um bug real — o {@code null} seguia para {@code findByOficinaId(null)} (lista vazia disfarçada
-   * de sucesso) ou para {@code oficinaId.equals(...)} (NullPointerException virando 500), em vez de
+   * <p>Não deve engolir a exceção do provider: fazer isso e devolver {@code null} aqui já causou um
+   * bug real — o {@code null} seguia para {@code findByOficinaId(null)} (lista vazia disfarçada de
+   * sucesso) ou para {@code oficinaId.equals(...)} (NullPointerException virando 500), em vez de
    * negar o acesso com 403 como deveria.
    */
   public Long getOficinaIdUsuarioLogado() {

@@ -79,7 +79,9 @@ public class OrdemDeServicoController {
     @ApiResponse(responseCode = "200", description = "OS encontrada"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
-    @ApiResponse(responseCode = "404", description = "OS não encontrada, ou pertence a outra oficina")
+    @ApiResponse(
+        responseCode = "404",
+        description = "OS não encontrada, ou pertence a outra oficina")
   })
   @GetMapping("/{id}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")

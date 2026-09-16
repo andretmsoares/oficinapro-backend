@@ -89,9 +89,12 @@ public class ClienteController {
 
   @Operation(
       summary = "Buscar clientes por nome",
-      description = "Busca, na oficina do GERENTE autenticado, clientes cujo nome contenha o termo.")
+      description =
+          "Busca, na oficina do GERENTE autenticado, clientes cujo nome contenha o termo.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de clientes encontrados (pode ser vazia)"),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de clientes encontrados (pode ser vazia)"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
@@ -150,7 +153,9 @@ public class ClienteController {
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
     @ApiResponse(responseCode = "404", description = "Cliente não encontrado"),
-    @ApiResponse(responseCode = "409", description = "Documento já usado por outro cliente da oficina")
+    @ApiResponse(
+        responseCode = "409",
+        description = "Documento já usado por outro cliente da oficina")
   })
   @PutMapping("/{id}")
   @PreAuthorize("hasAnyRole('GERENTE')")

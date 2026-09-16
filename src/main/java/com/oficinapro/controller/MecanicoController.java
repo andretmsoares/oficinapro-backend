@@ -86,9 +86,12 @@ public class MecanicoController {
 
   @Operation(
       summary = "Buscar mecânicos por nome",
-      description = "Busca, na oficina do GERENTE autenticado, mecânicos cujo nome contenha o termo.")
+      description =
+          "Busca, na oficina do GERENTE autenticado, mecânicos cujo nome contenha o termo.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de mecânicos encontrados (pode ser vazia)"),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de mecânicos encontrados (pode ser vazia)"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
