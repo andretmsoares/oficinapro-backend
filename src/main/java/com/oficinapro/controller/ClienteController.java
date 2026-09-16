@@ -28,42 +28,21 @@ public class ClienteController {
   private final ClienteService clienteService;
 
   @Operation(
-      summary = "Listar todos os clientes (ADMIN)",
+      summary = "Listar clientes da própria oficina",
       description =
-          "Retorna, paginado, o cadastro de clientes de TODAS as oficinas da plataforma."
-              + " Exclusivo do ADMIN do SaaS. Endpoint sensível: dado que o ADMIN não"
-              + " deveria acessar informação operacional das oficinas, o uso dele deve"
-              + " ser evitado — ver docs/permissions.md.")
+          "Retorna, paginado e ordenado por nome, os clientes da oficina do usuário"
+              + " autenticado. A oficina vem do token — não é possível informá-la na"
+              + " requisição.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode listar todos")
+    @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasAnyRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<Page<ClienteResponseDTO>> listar(
       @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(clienteService.listar(pageable));
-  }
-
-  @Operation(
-      summary = "Listar clientes de uma oficina",
-      description =
-          "Retorna, paginado e ordenado por nome, os clientes cadastrados na oficina"
-              + " informada. O GERENTE só pode consultar a própria oficina.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<Page<ClienteResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
-      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-    return ResponseEntity.ok(clienteService.listarPorOficinaId(oficinaId, pageable));
   }
 
   @Operation(
@@ -81,7 +60,7 @@ public class ClienteController {
         description = "Cliente não encontrado, ou pertence a outra oficina")
   })
   @GetMapping("/{id}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<ClienteResponseDTO> buscarPorId(
       @Parameter(description = "ID do cliente") @PathVariable Long id) {
     return ResponseEntity.ok(clienteService.buscarPorId(id));
@@ -99,7 +78,7 @@ public class ClienteController {
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping("/nome/{nome}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<List<ClienteResponseDTO>> buscarPorNome(
       @Parameter(description = "Termo de busca pelo nome") @PathVariable String nome) {
     return ResponseEntity.ok(clienteService.buscarPorNome(nome));
@@ -117,7 +96,7 @@ public class ClienteController {
     @ApiResponse(responseCode = "404", description = "Nenhum cliente com este documento na oficina")
   })
   @GetMapping("/documento/{documento}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<ClienteResponseDTO> buscarPorDocumento(
       @Parameter(description = "CPF ou CNPJ, apenas dígitos") @PathVariable String documento) {
     return ResponseEntity.ok(clienteService.buscarPorDocumento(documento));

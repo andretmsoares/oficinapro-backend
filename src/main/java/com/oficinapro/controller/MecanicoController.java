@@ -28,40 +28,21 @@ public class MecanicoController {
   private final MecanicoService mecanicoService;
 
   @Operation(
-      summary = "Listar todos os mecânicos (ADMIN)",
+      summary = "Listar mecânicos da própria oficina",
       description =
-          "Retorna, paginado, o cadastro de mecânicos de TODAS as oficinas da plataforma."
-              + " Exclusivo do ADMIN do SaaS. Endpoint sensível — ver docs/permissions.md.")
+          "Retorna, paginado e ordenado por nome, os mecânicos da oficina do usuário"
+              + " autenticado. A oficina vem do token — não é possível informá-la na"
+              + " requisição.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Página de mecânicos retornada com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode listar todos")
+    @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasAnyRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<Page<MecanicoResponseDTO>> listar(
       @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(mecanicoService.listar(pageable));
-  }
-
-  @Operation(
-      summary = "Listar mecânicos de uma oficina",
-      description =
-          "Retorna, paginado e ordenado por nome, os mecânicos da oficina informada. O"
-              + " GERENTE só pode consultar a própria oficina.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Página de mecânicos retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<Page<MecanicoResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
-      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-    return ResponseEntity.ok(mecanicoService.listarPorOficinaId(oficinaId, pageable));
   }
 
   @Operation(

@@ -103,13 +103,12 @@ public class OrdemDeServicoController {
         responseCode = "403",
         description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
   })
-  @GetMapping("/oficina/{oficinaId}/fluxo-mensal")
-  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
+  @GetMapping("/fluxo-mensal")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
       @Parameter(description = "Mês, de 1 a 12") @RequestParam int mes,
       @Parameter(description = "Ano com 4 dígitos") @RequestParam int ano) {
-    return ResponseEntity.ok(service.fluxoMensal(oficinaId, mes, ano));
+    return ResponseEntity.ok(service.fluxoMensal(mes, ano));
   }
 
   @Operation(
@@ -313,25 +312,6 @@ public class OrdemDeServicoController {
   public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorUnidade(
       @Parameter(description = "ID da unidade") @PathVariable Long unidadeId) {
     return ResponseEntity.ok(service.listarPorUnidade(unidadeId));
-  }
-
-  @Operation(
-      summary = "Listar OS de uma oficina",
-      description =
-          "Retorna as ordens de serviço da oficina informada. Restrito à própria"
-              + " oficina do usuário autenticado.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de OS retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId) {
-    return ResponseEntity.ok(service.listarPorOficina(oficinaId));
   }
 
   @Operation(

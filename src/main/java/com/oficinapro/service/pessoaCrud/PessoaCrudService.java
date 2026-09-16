@@ -8,8 +8,6 @@ import org.springframework.data.domain.Pageable;
 public interface PessoaCrudService<C, U, RES, T extends Pessoa> {
   Page<RES> listar(Pageable pageable);
 
-  Page<RES> listarPorOficinaId(Long oficinaId, Pageable pageable);
-
   T buscarPorEntidadeId(Long id);
 
   RES buscarPorId(Long id);
@@ -27,4 +25,6 @@ public interface PessoaCrudService<C, U, RES, T extends Pessoa> {
   List<RES> buscarPorNomeAdmin(String nome);
 
   List<RES> buscarPorDocumentoAdmin(String documento);
+
+  Page<RES> listarTodos(Pageable pageable);
 }

@@ -15,6 +15,8 @@ import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,25 @@ public class UsuarioServiceImpl
     super(usuarioRepository, oficinaService, pessoaService, oficinaAccessValidator);
     this.usuarioRepository = usuarioRepository;
     this.passwordEncoder = passwordEncoder;
+  }
+
+  // Único ponto do sistema onde listar() ainda se ramifica por role. O ADMIN do
+  // SaaS administra as contas de acesso — sem isto ele não consegue nem achar o
+  // GERENTE de um tenant para redefinir acesso. O desvio existe aqui e em mais
+  // lugar nenhum: para dado operacional (clientes, mecânicos, veículos, OS) o
+  // ADMIN vê apenas contagem.
+  //
+  // O ramo do ADMIN não pode cair no super.listar(): ele chama
+  // getOficinaIdUsuarioLogado(), e o ADMIN não pertence a nenhuma oficina.
+  @Override
+  @Transactional(readOnly = true)
+  public Page<UsuarioResponseDTO> listar(Pageable pageable) {
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
+
+    if (logado.getRole() == Role.ADMIN) {
+      return usuarioRepository.findAll(pageable).map(this::toResponse);
+    }
+    return super.listar(pageable);
   }
 
   @Override

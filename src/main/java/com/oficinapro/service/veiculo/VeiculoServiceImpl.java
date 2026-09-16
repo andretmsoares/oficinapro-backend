@@ -2,11 +2,9 @@ package com.oficinapro.service.veiculo;
 
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
-import com.oficinapro.enums.Role;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import com.oficinapro.model.Oficina;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
@@ -32,21 +30,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Override
   @Transactional(readOnly = true)
   public Page<VeiculoResponseDTO> listar(Pageable pageable) {
-    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
-
-    Page<Veiculo> page =
-        logado.getRole() == Role.ADMIN
-            ? veiculoRepository.findAll(pageable)
-            : veiculoRepository.findByOficinaId(
-                oficinaAccessValidator.getOficinaIdUsuarioLogado(), pageable);
-
-    return page.map(this::toResponse);
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
     return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
   }
 

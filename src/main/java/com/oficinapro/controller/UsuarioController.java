@@ -29,40 +29,21 @@ public class UsuarioController {
   private final UsuarioService usuarioService;
 
   @Operation(
-      summary = "Listar todos os usuários",
+      summary = "Listar usuários",
       description =
-          "Retorna, paginado, todos os usuários de todas as oficinas da plataforma."
-              + " Exclusivo do ADMIN do SaaS.")
+          "Para o ADMIN do SaaS, retorna os usuários de todas as oficinas da plataforma."
+              + " Para o GERENTE, apenas os da própria oficina — a oficina vem do token,"
+              + " não da requisição.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Página de usuários retornada com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode listar todos")
+    @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
   public ResponseEntity<Page<UsuarioResponseDTO>> listar(
       @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(usuarioService.listar(pageable));
-  }
-
-  @Operation(
-      summary = "Listar usuários de uma oficina",
-      description =
-          "Retorna, paginado, os usuários da oficina informada. O ADMIN pode consultar"
-              + " qualquer oficina; o GERENTE só a própria.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Página de usuários retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou GERENTE tentando acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-  public ResponseEntity<Page<UsuarioResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
-      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-    return ResponseEntity.ok(usuarioService.listarPorOficinaId(oficinaId, pageable));
   }
 
   @Operation(

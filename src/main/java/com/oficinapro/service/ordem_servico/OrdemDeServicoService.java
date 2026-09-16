@@ -22,8 +22,6 @@ public interface OrdemDeServicoService {
 
   List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
 
-  List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId);
-
   List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
 
   OrdemDeServicoResponseDTO buscarPorId(Long id);
@@ -44,7 +42,7 @@ public interface OrdemDeServicoService {
 
   OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
 
-  List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId, int mes, int ano);
-
   void deletar(Long id);
+
+  List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano);
 }

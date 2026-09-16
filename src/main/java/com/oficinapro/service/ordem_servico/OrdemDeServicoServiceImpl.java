@@ -76,12 +76,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   }
 
   private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
-    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
-    if (logado.getRole() == Role.ADMIN) {
-      return lista;
-    }
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
-
     return lista.stream()
         .filter(os -> os.getOficina() != null && oficinaId.equals(os.getOficina().getId()))
         .toList();
@@ -131,15 +126,6 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     List<OrdemDeServico> lista =
         filtrarPorEscopo(ordemServicoRepository.findByClienteId(clienteId));
     return lista.stream().map(this::toResponseDTO).toList();
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-    return ordemServicoRepository.findByOficinaId(oficinaId).stream()
-        .map(this::toResponseDTO)
-        .toList();
   }
 
   @Override
@@ -338,8 +324,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId, int mes, int ano) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+  public List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     YearMonth periodo = YearMonth.of(ano, mes);
 

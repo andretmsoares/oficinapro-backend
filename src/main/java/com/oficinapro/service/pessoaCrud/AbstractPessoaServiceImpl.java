@@ -3,7 +3,6 @@ package com.oficinapro.service.pessoaCrud;
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Pessoa;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.PessoaCrudRepository;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
@@ -54,21 +53,18 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
   protected void validateBeforeUpdate(Long id, U request) {}
 
+  @Transactional(readOnly = true)
   @Override
   public Page<RES> listar(Pageable pageable) {
-    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
-    if (logado.getRole() == Role.ADMIN) {
-      return repository.findAll(pageable).map(this::toResponse);
-    }
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
     return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
   }
 
   @Transactional(readOnly = true)
   @Override
-  public Page<RES> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-    return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+  public Page<RES> listarTodos(Pageable pageable) {
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+    return repository.findAll(pageable).map(this::toResponse);
   }
 
   @Transactional(readOnly = true)

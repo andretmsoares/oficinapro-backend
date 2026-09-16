@@ -31,17 +31,18 @@ public class VeiculoController {
   @Operation(
       summary = "Listar veículos da própria oficina",
       description =
-          "Retorna, paginado e ordenado por modelo, os veículos da oficina do usuário"
-              + " autenticado (GERENTE ou MECANICO).")
+          "Retorna, paginado e ordenado por nome, os veículos da oficina do usuário"
+              + " autenticado. A oficina vem do token — não é possível informá-la na"
+              + " requisição.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Página de veículos retornada com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<Page<VeiculoResponseDTO>> listar(
-      @PageableDefault(size = 20, sort = "modelo") Pageable pageable) {
+      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(veiculoService.listar(pageable));
   }
 
@@ -83,26 +84,6 @@ public class VeiculoController {
       @Parameter(description = "Placa, com ou sem hífen (ex.: ABC1D23 ou ABC-1D23)") @PathVariable
           String placa) {
     return ResponseEntity.ok(veiculoService.buscarPorPlaca(placa));
-  }
-
-  @Operation(
-      summary = "Listar veículos de uma oficina",
-      description =
-          "Retorna, paginado e ordenado por modelo, os veículos da oficina informada."
-              + " Restrito à própria oficina do usuário autenticado.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Página de veículos retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
-  public ResponseEntity<Page<VeiculoResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId,
-      @PageableDefault(size = 20, sort = "modelo") Pageable pageable) {
-    return ResponseEntity.ok(veiculoService.listarPorOficinaId(oficinaId, pageable));
   }
 
   @Operation(
