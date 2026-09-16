@@ -57,16 +57,6 @@ public class UnidadeServiceImpl implements UnidadeService {
   }
 
   @Override
-  @Transactional(readOnly = true)
-  public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-
-    oficinaService.buscarPorEntidadeId(oficinaId);
-
-    return unidadeRepository.findByOficinaId(oficinaId).stream().map(this::toResponse).toList();
-  }
-
-  @Override
   @Transactional
   public UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request) {
     oficinaAccessValidator.validarAcessoOficina(oficinaId);

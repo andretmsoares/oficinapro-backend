@@ -13,8 +13,6 @@ public interface UnidadeService {
 
   Unidade buscarPorEntidadeId(Long id);
 
-  List<UnidadeResponseDTO> listarPorOficina(Long oficinaId);
-
   UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request);
 
   UnidadeResponseDTO atualizar(Long id, UnidadeRequestDTO request);

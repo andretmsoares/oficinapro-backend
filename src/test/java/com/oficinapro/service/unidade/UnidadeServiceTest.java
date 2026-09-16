@@ -148,24 +148,6 @@ class UnidadeServiceTest {
   }
 
   // ---------------------------------------------------------------
-  // listarPorOficina()
-  // ---------------------------------------------------------------
-
-  @Test
-  @DisplayName("ADMIN: deve listar unidades de uma oficina específica com sucesso")
-  void deveListarUnidadesPorOficinaComoAdmin() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
-    when(unidadeRepository.findByOficinaId(1L)).thenReturn(List.of(unidade));
-
-    List<UnidadeResponseDTO> resultado = unidadeService.listarPorOficina(1L);
-
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.get(0).id()).isEqualTo(1L);
-    verify(unidadeRepository).findByOficinaId(1L);
-  }
-
-  // ---------------------------------------------------------------
   // criar()
   // ---------------------------------------------------------------
 

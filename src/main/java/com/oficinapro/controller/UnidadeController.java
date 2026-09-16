@@ -35,7 +35,7 @@ public class UnidadeController {
     @ApiResponse(responseCode = "403", description = "Sem permissão")
   })
   @GetMapping
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<List<UnidadeResponseDTO>> listar() {
     return ResponseEntity.ok(unidadeService.listar());
   }
@@ -54,31 +54,11 @@ public class UnidadeController {
         description = "Unidade não encontrada, ou pertence a outra oficina")
   })
   @GetMapping("/{id}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', MECANICO)")
   public ResponseEntity<UnidadeResponseDTO> buscarPorId(
       @Parameter(description = "ID da unidade") @PathVariable Long id) {
 
     return ResponseEntity.ok(unidadeService.buscarPorId(id));
-  }
-
-  @Operation(
-      summary = "Listar unidades de uma oficina",
-      description =
-          "Retorna as unidades da oficina informada. Restrito à própria oficina do"
-              + " GERENTE autenticado.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lista de unidades retornada com sucesso"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(
-        responseCode = "403",
-        description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
-  })
-  @GetMapping("/oficina/{oficinaId}")
-  @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<List<UnidadeResponseDTO>> listarPorOficina(
-      @Parameter(description = "ID da oficina") @PathVariable Long oficinaId) {
-
-    return ResponseEntity.ok(unidadeService.listarPorOficina(oficinaId));
   }
 
   @Operation(
