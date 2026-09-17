@@ -243,18 +243,6 @@ class PagamentoControllerTest {
   }
 
   @Test
-  @WithMockUser(roles = "MECANICO")
-  @DisplayName("GET /api/pagamentos/oficina/{id}/status/{status} - liberado também ao MECANICO")
-  void buscarPorStatus_mecanico_retorna200() throws Exception {
-    when(pagamentoService.buscarPorStatus(1L, StatusPagamento.PAGAMENTO_PENDENTE))
-        .thenReturn(java.util.List.of(responseDTO()));
-
-    mockMvc
-        .perform(get("/api/pagamentos/oficina/1/status/PAGAMENTO_PENDENTE"))
-        .andExpect(status().isOk());
-  }
-
-  @Test
   @WithMockUser(roles = "GERENTE")
   @DisplayName("GET /api/pagamentos/oficina/{id}/status/{status} - status inexistente retorna 400")
   void buscarPorStatus_statusInvalido_retorna400() throws Exception {

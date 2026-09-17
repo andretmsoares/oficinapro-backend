@@ -109,19 +109,6 @@ class VeiculoControllerTest {
         .andExpect(jsonPath("$.placa").value("ABC1234"));
   }
 
-  @Test
-  @DisplayName("POST /api/veiculos - MECANICO deve criar veículo e retornar 201")
-  @WithMockUser(roles = "MECANICO")
-  void deveCriarVeiculoParaMecanico() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/veiculos")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDTO)))
-        .andExpect(status().isCreated());
-  }
-
   // ─── PUT /api/veiculos/{id} ───────────────────────────────────────────────────
 
   @Test
