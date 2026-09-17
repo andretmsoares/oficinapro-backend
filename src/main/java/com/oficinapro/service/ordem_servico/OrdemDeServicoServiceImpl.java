@@ -9,10 +9,10 @@ import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
@@ -40,7 +40,6 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final VeiculoService veiculoService;
   private final ClienteService clienteService;
   private final MecanicoService mecanicoService;
-  private final AuthenticatedUserProvider authenticatedUserProvider;
   private final PagamentoService pagamentoService;
   private final OficinaAccessValidator oficinaAccessValidator;
 
@@ -64,7 +63,6 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
       VeiculoService veiculoService,
       ClienteService clienteService,
       MecanicoService mecanicoService,
-      AuthenticatedUserProvider authenticatedUserProvider,
       @Lazy PagamentoService pagamentoService,
       OficinaAccessValidator oficinaAccessValidator) {
     this.ordemServicoRepository = ordemServicoRepository;
@@ -73,18 +71,12 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     this.veiculoService = veiculoService;
     this.clienteService = clienteService;
     this.mecanicoService = mecanicoService;
-    this.authenticatedUserProvider = authenticatedUserProvider;
     this.pagamentoService = pagamentoService;
     this.oficinaAccessValidator = oficinaAccessValidator;
   }
 
   private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-    if (logado.getRole() == Role.ADMIN) {
-      return lista;
-    }
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
-
     return lista.stream()
         .filter(os -> os.getOficina() != null && oficinaId.equals(os.getOficina().getId()))
         .toList();
@@ -93,13 +85,9 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Override
   @Transactional(readOnly = true)
   public List<OrdemDeServicoResponseDTO> listar() {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    List<OrdemDeServico> lista =
-        logado.getRole() == Role.ADMIN
-            ? ordemServicoRepository.findAll()
-            : ordemServicoRepository.findByOficinaId(
-                oficinaAccessValidator.getOficinaIdUsuarioLogado());
+    List<OrdemDeServico> lista = ordemServicoRepository.findByOficinaId(oficinaId);
 
     return lista.stream().map(this::toResponseDTO).toList();
   }
@@ -138,15 +126,6 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     List<OrdemDeServico> lista =
         filtrarPorEscopo(ordemServicoRepository.findByClienteId(clienteId));
     return lista.stream().map(this::toResponseDTO).toList();
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-    return ordemServicoRepository.findByOficinaId(oficinaId).stream()
-        .map(this::toResponseDTO)
-        .toList();
   }
 
   @Override
@@ -226,7 +205,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
     StatusOrdemDeServico novo = dto.status();
 
-    Usuario usuario = authenticatedUserProvider.getUsuarioAutenticado();
+    Usuario usuario = oficinaAccessValidator.getUsuarioAutenticado();
 
     validarTransicaoStatus(os, novo, usuario);
 
@@ -335,13 +314,18 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public void deletar(Long id) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(id);
+    int comparacao = pagamento.valorPago().compareTo(BigDecimal.ZERO);
+    if (comparacao > 0) {
+      throw new OrdemDeServicoImpossibleDeleteException();
+    }
     ordemServicoRepository.delete(os);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId, int mes, int ano) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+  public List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     YearMonth periodo = YearMonth.of(ano, mes);
 
@@ -396,7 +380,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private boolean ehStatusDeConclusao(StatusOrdemDeServico status) {
     return status == StatusOrdemDeServico.FINALIZADA
         || status == StatusOrdemDeServico.ENTREGUE
-        || status == StatusOrdemDeServico.FECHADA;
+        || status == StatusOrdemDeServico.FECHADA
+        || status == StatusOrdemDeServico.CANCELADA;
   }
 
   private void validarTransicaoStatus(

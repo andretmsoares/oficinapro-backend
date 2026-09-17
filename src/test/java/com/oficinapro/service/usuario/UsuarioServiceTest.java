@@ -16,7 +16,6 @@ import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import java.util.List;
@@ -40,7 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de AuthenticatedUserProvider
+// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
 // preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
 // derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
 // problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
@@ -57,8 +56,6 @@ class UsuarioServiceTest {
   @Mock private PessoaService pessoaService;
 
   @Mock private PasswordEncoder passwordEncoder;
-
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Adicionado no refactor: o isolamento por oficina saiu dos services e passou
   // a viver em OficinaAccessValidator, exigido pelo construtor do super().
@@ -137,7 +134,7 @@ class UsuarioServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findAll(pageable)).thenReturn(page);
 
     Page<UsuarioResponseDTO> resultado = service.listar(pageable);
@@ -158,7 +155,7 @@ class UsuarioServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(usuarioRepository.findByOficinaId(1L, pageable)).thenReturn(page);
@@ -178,7 +175,7 @@ class UsuarioServiceTest {
   @Test
   @DisplayName("buscarPorId() como ADMIN deve encontrar usuário de qualquer oficina")
   void buscarPorId_comoAdmin_encontrado_retornaDTO() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
 
     UsuarioResponseDTO resultado = service.buscarPorId(1L);
@@ -219,7 +216,7 @@ class UsuarioServiceTest {
     usuarioAlheio.setRole(Role.GERENTE);
 
     // administrativoUser pertence à oficina 1; usuarioAlheio à oficina 2
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
     when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuarioAlheio));
     // O isolamento é delegado ao validador, que devolve a exceção de "não
     // encontrado" para não revelar que o registro existe em outra oficina.
@@ -248,7 +245,7 @@ class UsuarioServiceTest {
     salvo.setPassword("$2a$10$hashNovo");
     salvo.setRole(Role.GERENTE);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "99988877766")).thenReturn(false);
     when(usuarioRepository.existsByUsername("novo.usuario")).thenReturn(false);
@@ -271,7 +268,7 @@ class UsuarioServiceTest {
   @DisplayName(
       "criar() deve lançar UsuarioAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaUsuarioAlreadyExistsException() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "99988877766")).thenReturn(true);
 
@@ -284,7 +281,7 @@ class UsuarioServiceTest {
   @Test
   @DisplayName("criar() deve lançar UsernameAlreadyExistsException quando username já está em uso")
   void criar_usernameDuplicado_lancaUsernameAlreadyExistsException() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "99988877766")).thenReturn(false);
     when(usuarioRepository.existsByUsername("novo.usuario")).thenReturn(true);
@@ -304,7 +301,7 @@ class UsuarioServiceTest {
         new UsuarioRequestDTO(
             "Novo Admin", "83977776666", "55544433322", 1L, "novo.admin", "senha1234", Role.ADMIN);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "55544433322")).thenReturn(false);
     when(usuarioRepository.existsByUsername("novo.admin")).thenReturn(false);
@@ -350,7 +347,7 @@ class UsuarioServiceTest {
     // Nota: AbstractPessoaServiceImpl.atualizar() chama buscarPorEntidadeId(id) diretamente
     // e, após, validateBeforeUpdate() que também chama buscarPorEntidadeId(id) internamente.
     // Ambas as chamadas a findById(1L) retornam o mesmo stub.
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
     when(usuarioRepository.existsByUsernameAndIdNot("usuario.original", 1L)).thenReturn(false);
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
@@ -397,7 +394,7 @@ class UsuarioServiceTest {
             null,
             Role.GERENTE);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
     // pessoaService verifica antes de validateBeforeUpdate
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
@@ -425,7 +422,7 @@ class UsuarioServiceTest {
             null,
             Role.GERENTE);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "99988877766", 1L))
         .thenReturn(true);
@@ -441,7 +438,7 @@ class UsuarioServiceTest {
   @Test
   @DisplayName("deletar() como ADMIN deve remover usuário com sucesso")
   void deletar_comoAdmin_sucesso() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
 
     service.deletar(1L);
@@ -460,23 +457,6 @@ class UsuarioServiceTest {
     verify(usuarioRepository, never()).delete(any());
   }
 
-  // ─────────────────────────── listarPorOficinaId ───────────────────────────
-
-  @Test
-  @DisplayName("listarPorOficinaId() como ADMIN deve retornar usuários de qualquer oficina")
-  void listarPorOficinaId_comoAdmin_sucesso() {
-    Pageable pageable = PageRequest.of(0, 10);
-    Page<Usuario> page = new PageImpl<>(List.of(usuarioAlvo));
-
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(usuarioRepository.findByOficinaId(1L, pageable)).thenReturn(page);
-
-    Page<UsuarioResponseDTO> resultado = service.listarPorOficinaId(1L, pageable);
-
-    assertThat(resultado.getContent()).hasSize(1);
-    assertThat(resultado.getContent().getFirst().oficinaId()).isEqualTo(1L);
-  }
-
   // ────────────── ADMIN do SaaS: sem filiação com oficina ──────────────
 
   @Test
@@ -493,7 +473,7 @@ class UsuarioServiceTest {
     salvo.setRole(Role.ADMIN);
     salvo.setOficina(null);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.existsByUsername("admin.saas")).thenReturn(false);
     when(passwordEncoder.encode("senha1234")).thenReturn("$2a$10$hashAdmin");
     when(usuarioRepository.save(any(Usuario.class))).thenReturn(salvo);
@@ -518,7 +498,7 @@ class UsuarioServiceTest {
         new UsuarioRequestDTO(
             "Admin SaaS", "83900000000", null, 1L, "admin.saas", "senha1234", Role.ADMIN);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(usuarioRepository.existsByUsername("admin.saas")).thenReturn(false);
 
@@ -535,7 +515,7 @@ class UsuarioServiceTest {
         new UsuarioRequestDTO(
             "Sem Oficina", "83900000000", null, null, "sem.oficina", "senha1234", Role.GERENTE);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.existsByUsername("sem.oficina")).thenReturn(false);
 
     assertThatThrownBy(() -> service.criar(requestSemOficina))
@@ -551,7 +531,7 @@ class UsuarioServiceTest {
         new UsuarioRequestDTO(
             "Novo Admin", "83900000000", null, null, "novo.admin", "senha1234", Role.ADMIN);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
 
     assertThatThrownBy(() -> service.criar(requestSemOficina))
         .isInstanceOf(AccessDeniedException.class);
@@ -566,7 +546,7 @@ class UsuarioServiceTest {
     mecanicoUser.setRole(Role.MECANICO);
     mecanicoUser.setOficina(oficina);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(mecanicoUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(mecanicoUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "99988877766")).thenReturn(false);
     when(usuarioRepository.existsByUsername("novo.usuario")).thenReturn(false);
@@ -590,7 +570,7 @@ class UsuarioServiceTest {
             null,
             Role.ADMIN);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
     when(usuarioRepository.existsByUsernameAndIdNot("usuario.original", 1L)).thenReturn(false);
     when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioAlvo);

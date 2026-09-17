@@ -2,7 +2,6 @@ package com.oficinapro.model;
 
 import com.oficinapro.enums.StatusOrdemDeServico;
 import jakarta.persistence.*;
-import jakarta.persistence.Entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -19,6 +18,10 @@ public class OrdemDeServico {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  @Version
+  @Column(nullable = false)
+  private Long version;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(

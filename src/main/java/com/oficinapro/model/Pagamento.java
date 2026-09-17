@@ -18,6 +18,10 @@ public class Pagamento {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Version
+  @Column(nullable = false)
+  private Long version;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "os_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pagamento_os"))
   private OrdemDeServico ordemDeServico;

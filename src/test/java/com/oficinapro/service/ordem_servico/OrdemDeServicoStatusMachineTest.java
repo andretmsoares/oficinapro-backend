@@ -21,7 +21,6 @@ import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.OrdemDeServicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
@@ -108,7 +107,6 @@ class OrdemDeServicoStatusMachineTest {
   @Mock private VeiculoService veiculoService;
   @Mock private ClienteService clienteService;
   @Mock private MecanicoService mecanicoService;
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
   @Mock private PagamentoService pagamentoService;
   @Mock private OficinaAccessValidator oficinaAccessValidator;
 
@@ -155,7 +153,7 @@ class OrdemDeServicoStatusMachineTest {
     if (role != Role.ADMIN) {
       usuario.setOficina(oficina);
     }
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(usuario);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(usuario);
   }
 
   private void pagamentoComStatus(StatusPagamento status, BigDecimal valorPago) {

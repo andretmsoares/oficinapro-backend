@@ -2,14 +2,11 @@ package com.oficinapro.service.veiculo;
 
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
-import com.oficinapro.enums.Role;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
 import com.oficinapro.model.Oficina;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +21,6 @@ public class VeiculoServiceImpl implements VeiculoService {
 
   private final VeiculoRepository veiculoRepository;
   private final OficinaService oficinaService;
-  private final AuthenticatedUserProvider authenticatedUserProvider;
   private final OficinaAccessValidator oficinaAccessValidator;
 
   private String normalizarPlaca(String placa) {
@@ -34,21 +30,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Override
   @Transactional(readOnly = true)
   public Page<VeiculoResponseDTO> listar(Pageable pageable) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    Page<Veiculo> page =
-        logado.getRole() == Role.ADMIN
-            ? veiculoRepository.findAll(pageable)
-            : veiculoRepository.findByOficinaId(
-                oficinaAccessValidator.getOficinaIdUsuarioLogado(), pageable);
-
-    return page.map(this::toResponse);
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
     return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
   }
 
@@ -73,7 +55,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Transactional(readOnly = true)
   public VeiculoResponseDTO buscarPorPlaca(String placa) {
 
-    Long oficinaId = authenticatedUserProvider.getOficinaIdUsuarioLogado();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     Veiculo veiculo =
         veiculoRepository

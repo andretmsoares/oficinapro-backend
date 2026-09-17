@@ -20,4 +20,8 @@ public interface OficinaService {
   OficinaResponseDTO atualizar(Long id, OficinaRequestDTO request);
 
   void deletar(Long id);
+
+  void desativar(Long id);
+
+  void ativar(Long id);
 }

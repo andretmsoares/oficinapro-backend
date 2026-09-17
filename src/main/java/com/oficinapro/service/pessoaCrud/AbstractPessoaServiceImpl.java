@@ -3,9 +3,7 @@ package com.oficinapro.service.pessoaCrud;
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Pessoa;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.PessoaCrudRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -20,19 +18,16 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   protected final PessoaCrudRepository<T> repository;
   protected final OficinaServiceImpl oficinaService;
   protected final PessoaService pessoaService;
-  protected final AuthenticatedUserProvider authenticatedUserProvider;
   protected final OficinaAccessValidator oficinaAccessValidator;
 
   protected AbstractPessoaServiceImpl(
       PessoaCrudRepository<T> repository,
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
-      AuthenticatedUserProvider authenticatedUserProvider,
       OficinaAccessValidator oficinaAccessValidator) {
     this.repository = repository;
     this.oficinaService = oficinaService;
     this.pessoaService = pessoaService;
-    this.authenticatedUserProvider = authenticatedUserProvider;
     this.oficinaAccessValidator = oficinaAccessValidator;
   }
 
@@ -58,21 +53,18 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
   protected void validateBeforeUpdate(Long id, U request) {}
 
+  @Transactional(readOnly = true)
   @Override
   public Page<RES> listar(Pageable pageable) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-    if (logado.getRole() == Role.ADMIN) {
-      return repository.findAll(pageable).map(this::toResponse);
-    }
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
     return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
   }
 
   @Transactional(readOnly = true)
   @Override
-  public Page<RES> listarPorOficinaId(Long oficinaId, Pageable pageable) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-    return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+  public Page<RES> listarTodos(Pageable pageable) {
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+    return repository.findAll(pageable).map(this::toResponse);
   }
 
   @Transactional(readOnly = true)
@@ -109,7 +101,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   @Override
   public RES buscarPorDocumento(String documento) {
 
-    Long oficinaId = authenticatedUserProvider.getOficinaIdUsuarioLogado();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     T entity =
         repository
@@ -117,6 +109,24 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
             .orElseThrow(this::notFoundException);
 
     return toResponse(entity);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<RES> buscarPorNomeAdmin(String nome) {
+
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    return repository.findByNome(nome).stream().map(this::toResponse).toList();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<RES> buscarPorDocumentoAdmin(String documento) {
+
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    return repository.findByDocumento(documento).stream().map(this::toResponse).toList();
   }
 
   @Transactional

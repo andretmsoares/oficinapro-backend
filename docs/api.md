@@ -333,12 +333,15 @@ Formatar para exibição é responsabilidade do cliente.
 Configurado em `OpenApiConfig`, com o esquema `bearerAuth` aplicado globalmente. Rotas
 públicas se desmarcam com `@SecurityRequirements` — como faz o `/api/auth/login`.
 
-Lacunas conhecidas:
+Todos os 12 controllers têm `@Tag`, `@Operation` em cada endpoint e `@ApiResponses`
+cobrindo os status realistas (incluindo `403`/`404` de isolamento por oficina, `409` de
+conflito e lock otimista, `422` de regra de estado da OS). O Swagger UI já é
+autossuficiente para explorar a API.
 
-1. **Só o `AuthController` tem `@Tag`, `@Operation` e `@ApiResponses` completos.** Os
-   outros 11 aparecem com nome de classe e sem descrição de resposta.
-2. **Erros documentados como `Map` genérico.** Não há um `ErroResponseDTO` tipado, então
-   o schema de erro não aparece no OpenAPI — é o que este documento supre na §3.
+Lacuna que ainda resta:
 
-Enriquecer os 11 controllers restantes é a forma de tornar o OpenAPI autossuficiente e
-reduzir este arquivo.
+1. **Erros documentados como `Map` genérico.** Não há um `ErroResponseDTO` tipado, então
+   o *schema* do corpo de erro não aparece no OpenAPI — só a descrição textual em cada
+   `@ApiResponse`. É o que este documento supre na §3. Criar o DTO e referenciá-lo com
+   `@Content(schema = @Schema(implementation = ErroResponseDTO.class))` eliminaria essa
+   lacuna, mas exige tocar todo `GlobalExceptionHandler`.

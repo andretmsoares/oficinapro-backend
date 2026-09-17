@@ -7,6 +7,9 @@ import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
+import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
+import com.oficinapro.exception.oficina.OficinaDisabledException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.exception.ordem_servico.*;
 import com.oficinapro.exception.pagamento.PagamentoAlreadyExistsException;
@@ -19,6 +22,7 @@ import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
@@ -30,6 +34,7 @@ import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -203,6 +208,24 @@ public class GlobalExceptionHandler {
     return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
   }
 
+  @ExceptionHandler(OrdemDeServicoImpossibleDeleteException.class)
+  public ResponseEntity<Map<String, Object>> handleOrdemDeServicoImpossibleDelete(
+      OrdemDeServicoImpossibleDeleteException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
+  @ExceptionHandler(OficinaAlreadyActivatedException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaAlreadyActivated(
+      OficinaAlreadyActivatedException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
+  @ExceptionHandler(OficinaAlreadyDisabledException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaAlreadyDisabled(
+      OficinaAlreadyDisabledException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
   @ExceptionHandler(DescontoInvalidoException.class)
   public ResponseEntity<Map<String, Object>> handleDescontoValueInvalid(
       DescontoInvalidoException exception) {
@@ -225,6 +248,18 @@ public class GlobalExceptionHandler {
     return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
   }
 
+  @ExceptionHandler(UsuarioAcessDeniedException.class)
+  public ResponseEntity<Map<String, Object>> handleUsuarioAcessDenied(
+      UsuarioAcessDeniedException exception) {
+    return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+  }
+
+  @ExceptionHandler(OficinaDisabledException.class)
+  public ResponseEntity<Map<String, Object>> handleOficinaDisabled(
+      OficinaDisabledException exception) {
+    return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+  }
+
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
       DataIntegrityViolationException ex) {
@@ -232,6 +267,15 @@ public class GlobalExceptionHandler {
     return buildResponse(
         HttpStatus.CONFLICT,
         "Conflito de dados. Não foi possível realizar a operação porque os dados violam uma regra de integridade.");
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<Map<String, Object>> handleOptimisticLockingFailure(
+      OptimisticLockingFailureException ex) {
+
+    return buildResponse(
+        HttpStatus.CONFLICT,
+        "O registro foi alterado por outro usuário. Atualize os dados e tente novamente.");
   }
 
   @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
@@ -261,8 +305,6 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
   public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
       MethodArgumentTypeMismatchException ex) {
-
-    String message = "Valor inválido para o parâmetro '%s'.".formatted(ex.getName());
 
     return buildResponse(HttpStatus.BAD_REQUEST, "Parâmetro inválido");
   }

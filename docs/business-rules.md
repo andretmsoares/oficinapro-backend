@@ -64,11 +64,13 @@ especificamente para impedir que uma das duas origens volte a ser ignorada.
 ItemOsPeca.valorTotal = quantidade × valorUnitario, arredondado a 2 casas (HALF_UP)
 ```
 
-`quantidade` é `NUMERIC(12,3)` — aceita fração (0,5 litro de óleo). O arredondamento é
-aplicado no resultado, então `3 × 33,333 = 99,999` é gravado como `100,00`.
+`quantidade` é sempre **inteira** — peça é contada em unidades (2 pastilhas, 1 correia),
+nunca em fração. Validado com `@Digits(fraction = 0)` tanto na criação quanto na
+atualização. A coluna no banco é `NUMERIC(12,3)` por herança da migration original, mas
+não representa fração válida — é só precisão não utilizada.
 
-Validações do DTO: `quantidade >= 0.001`, `valorUnitario >= 0.01`, nome obrigatório com
-no máximo 255 caracteres.
+Validações do DTO: `quantidade` inteira e positiva, `valorUnitario >= 0.01`, nome
+obrigatório com no máximo 255 caracteres.
 
 ### Valor de mão de obra
 

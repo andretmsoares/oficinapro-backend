@@ -1,5 +1,6 @@
 package com.oficinapro.security;
 
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Usuario;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
@@ -22,12 +23,17 @@ public class AuthenticatedUserProvider {
     return usuario;
   }
 
+  /**
+   * {@link UsuarioAcessDeniedException} é unchecked (RuntimeException) de propósito: usar {@code
+   * java.nio.file.AccessDeniedException} aqui já causou um bug real — por ser checked, ela forçou
+   * try/catch em cima na pilha (controller e service), e o catch acabou engolindo a exceção em vez
+   * de propagá-la, fazendo endpoints devolverem 200 com corpo vazio em vez de 403.
+   */
   public Long getOficinaIdUsuarioLogado() {
     Usuario usuario = getUsuarioAutenticado();
 
     if (usuario.getOficina() == null) {
-      throw new AuthenticationCredentialsNotFoundException(
-          "Usuário não está vinculado a uma oficina");
+      throw new UsuarioAcessDeniedException();
     }
 
     return usuario.getOficina().getId();

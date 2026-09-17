@@ -10,8 +10,6 @@ public interface VeiculoService {
 
   Page<VeiculoResponseDTO> listar(Pageable pageable);
 
-  Page<VeiculoResponseDTO> listarPorOficinaId(Long oficinaId, Pageable pageable);
-
   Veiculo buscarPorEntidadeId(Long id);
 
   VeiculoResponseDTO buscarPorId(Long id);

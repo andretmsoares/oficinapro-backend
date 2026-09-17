@@ -8,6 +8,10 @@ import java.util.List;
 
 public interface OrdemDeServicoService {
 
+  // A negação de acesso é sinalizada por org.springframework.security.access.AccessDeniedException,
+  // que é unchecked. Declarar "throws" aqui já apontou para java.nio.file.AccessDeniedException por
+  // engano — uma exceção checked de I/O, sem relação com autorização — e isso forçou try/catch no
+  // controller, que acabou engolindo o erro e devolvendo 200 com corpo vazio em vez de 403.
   List<OrdemDeServicoResponseDTO> listar();
 
   List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
@@ -17,8 +21,6 @@ public interface OrdemDeServicoService {
   List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId);
 
   List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
-
-  List<OrdemDeServicoResponseDTO> listarPorOficina(Long oficinaId);
 
   List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
 
@@ -40,7 +42,7 @@ public interface OrdemDeServicoService {
 
   OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
 
-  List<FluxoMensalOSResponseDTO> fluxoMensal(Long oficinaId, int mes, int ano);
-
   void deletar(Long id);
+
+  List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano);
 }

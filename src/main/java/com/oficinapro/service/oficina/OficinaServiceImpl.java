@@ -4,6 +4,8 @@ import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.exception.oficina.CnpjAlreadyExistsException;
+import com.oficinapro.exception.oficina.OficinaAlreadyActivatedException;
+import com.oficinapro.exception.oficina.OficinaAlreadyDisabledException;
 import com.oficinapro.exception.oficina.OficinaNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
@@ -111,6 +113,42 @@ public class OficinaServiceImpl implements OficinaService {
   private OficinaResponseDTO toResponse(Oficina oficina) {
 
     return new OficinaResponseDTO(
-        oficina.getId(), oficina.getNome(), oficina.getCnpj(), oficina.getTelefone());
+        oficina.getId(),
+        oficina.getNome(),
+        oficina.getCnpj(),
+        oficina.getTelefone(),
+        oficina.getAtivo());
+  }
+
+  @Transactional
+  @Override
+  public void desativar(Long id) {
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    Oficina oficina = this.buscarPorEntidadeId(id);
+
+    if (!oficina.getAtivo()) {
+      throw new OficinaAlreadyDisabledException();
+    }
+
+    oficina.setAtivo(false);
+
+    oficinaRepository.save(oficina);
+  }
+
+  @Transactional
+  @Override
+  public void ativar(Long id) {
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    Oficina oficina = this.buscarPorEntidadeId(id);
+
+    if (oficina.getAtivo()) {
+      throw new OficinaAlreadyActivatedException();
+    }
+
+    oficina.setAtivo(true);
+
+    oficinaRepository.save(oficina);
   }
 }

@@ -9,7 +9,6 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaService;
 import java.util.List;
@@ -23,13 +22,12 @@ public class UnidadeServiceImpl implements UnidadeService {
 
   private final UnidadeRepository unidadeRepository;
   private final OficinaService oficinaService;
-  private final AuthenticatedUserProvider authenticatedUserProvider;
   private final OficinaAccessValidator oficinaAccessValidator;
 
   @Override
   @Transactional(readOnly = true)
   public List<UnidadeResponseDTO> listar() {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
 
     List<Unidade> unidades =
         logado.getRole() == Role.ADMIN
@@ -56,16 +54,6 @@ public class UnidadeServiceImpl implements UnidadeService {
         new UnidadeNotFoundException(id));
 
     return unidade;
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public List<UnidadeResponseDTO> listarPorOficina(Long oficinaId) {
-    oficinaAccessValidator.validarAcessoOficina(oficinaId);
-
-    oficinaService.buscarPorEntidadeId(oficinaId);
-
-    return unidadeRepository.findByOficinaId(oficinaId).stream().map(this::toResponse).toList();
   }
 
   @Override

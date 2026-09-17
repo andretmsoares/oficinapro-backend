@@ -13,6 +13,9 @@ import com.oficinapro.dto.ordemDeServico.OrdemDeServicoResponseDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
@@ -21,7 +24,6 @@ import com.oficinapro.model.Unidade;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.OrdemDeServicoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.cliente.ClienteService;
 import com.oficinapro.service.mecanico.MecanicoService;
 import com.oficinapro.service.oficina.OficinaService;
@@ -44,7 +46,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: depois do refactor, buscarPorEntidadeId/criar/atualizar deixaram
-// de chamar AuthenticatedUserProvider (quem valida o escopo agora é o
+// de chamar oficinaAccessValidator (quem valida o escopo agora é o
 // OficinaAccessValidator). Vários testes daqui ainda preparam aquele stub, e com
 // strict stubs isso derrubaria a classe inteira por UnnecessaryStubbingException em
 // vez de apontar um problema real de comportamento.
@@ -63,8 +65,6 @@ class OrdemDeServicoServiceTest {
   @Mock private ClienteService clienteService;
 
   @Mock private MecanicoService mecanicoService;
-
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Dependências adicionadas no refactor. Sem estes dois mocks os campos ficam
   // nulos e praticamente todo teste desta classe estoura NullPointerException:
@@ -87,7 +87,7 @@ class OrdemDeServicoServiceTest {
 
   @BeforeEach
   void setUp() {
-    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999", true);
 
     unidade = new Unidade(oficina, "Unidade Central", "Rua das Flores, 100", "83911112222");
     ReflectionTestUtils.setField(unidade, "id", 1L);
@@ -133,24 +133,24 @@ class OrdemDeServicoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("ADMIN: deve chamar findAll() e retornar todas as OS")
-  void deveListarTodasAsOSComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(ordemServicoRepository.findAll()).thenReturn(List.of(os));
+  @DisplayName("ADMIN: deve negar acesso à listagem de OS")
+  void deveNegarListagemDeOSComoAdmin() {
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
 
-    List<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar();
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
+        .thenThrow(new UsuarioAcessDeniedException());
 
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.get(0).status()).isEqualTo(StatusOrdemDeServico.ABERTA);
-    assertThat(resultado.get(0).valorTotal()).isEqualByComparingTo(BigDecimal.ZERO);
-    verify(ordemServicoRepository).findAll();
+    assertThatThrownBy(() -> ordemDeServicoService.listar())
+        .isInstanceOf(UsuarioAcessDeniedException.class);
+
+    verify(ordemServicoRepository, never()).findAll();
     verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
   }
 
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
   void deveListarOSDaPropriaOficinaComoAdministrativo() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));
@@ -170,7 +170,7 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve buscar OS por ID e retornar o DTO correto")
   void deveBuscarOSPorIdComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     OrdemDeServicoResponseDTO resultado = ordemDeServicoService.buscarPorId(1L);
@@ -191,7 +191,7 @@ class OrdemDeServicoServiceTest {
     OrdemDeServicoRequestDTO request =
         new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Troca de óleo");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
     when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
@@ -232,7 +232,7 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirMecanicoAOSComSucesso() {
     AtribuirMecanicoRequestDTO dto = new AtribuirMecanicoRequestDTO(1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(mecanicoService.buscarPorEntidadeId(1L)).thenReturn(mecanico);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -253,7 +253,7 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirClienteAOSComSucesso() {
     AtribuirClienteRequestDTO dto = new AtribuirClienteRequestDTO(1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(clienteService.buscarPorEntidadeId(1L)).thenReturn(cliente);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -276,7 +276,7 @@ class OrdemDeServicoServiceTest {
     OrdemDeServicoRequestDTO request =
         new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Revisão completa");
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
     when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
@@ -294,7 +294,7 @@ class OrdemDeServicoServiceTest {
     // OS pertence à oficina 1, request tenta mover para oficina 2
     OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(2L, 1L, 1L, null, null, null);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     assertThatThrownBy(() -> ordemDeServicoService.atualizar(1L, request))
@@ -307,14 +307,70 @@ class OrdemDeServicoServiceTest {
   // deletar()
   // ---------------------------------------------------------------
 
+  /** Pagamento da OS 1 com o valor recebido informado. */
+  private com.oficinapro.dto.pagamento.PagamentoResponseDTO pagamentoCom(String valorPago) {
+    return new com.oficinapro.dto.pagamento.PagamentoResponseDTO(
+        50L,
+        1L,
+        new BigDecimal(valorPago),
+        "",
+        null,
+        com.oficinapro.enums.StatusPagamento.PAGAMENTO_PENDENTE);
+  }
+
   @Test
-  @DisplayName("ADMIN: deve deletar OS com sucesso")
-  void deveDeletarOSComSucessoComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+  @DisplayName("deve deletar OS que ainda não recebeu nenhum pagamento")
+  void deveDeletarOSSemPagamentoRecebido() {
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0.00"));
 
     ordemDeServicoService.deletar(1L);
 
     verify(ordemServicoRepository).delete(os);
+  }
+
+  @Test
+  @DisplayName("não deve deletar OS que já recebeu pagamento")
+  void naoDeveDeletarOSComPagamentoRecebido() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("500.00"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .as(
+            "Excluir a OS apagava em cascata o pagamento e todos os registros de"
+                + " recebimento. Uma OS quitada de R$ 5.000 sumia sem deixar rastro,"
+                + " justamente num sistema sem auditoria.")
+        .isInstanceOf(OrdemDeServicoImpossibleDeleteException.class);
+
+    verify(ordemServicoRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("não deve deletar OS com pagamento parcial, por menor que seja")
+  void naoDeveDeletarOSComPagamentoParcialMinimo() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0.01"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .as("o limite é qualquer valor acima de zero, não um patamar mínimo")
+        .isInstanceOf(OrdemDeServicoImpossibleDeleteException.class);
+
+    verify(ordemServicoRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("deve validar o acesso à oficina antes de considerar a exclusão")
+  void deveValidarAcessoAntesDeExcluir() {
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    doThrow(new OrdemDeServicoNotFoundException(1L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(any(), any(RuntimeException.class));
+
+    assertThatThrownBy(() -> ordemDeServicoService.deletar(1L))
+        .isInstanceOf(OrdemDeServicoNotFoundException.class);
+
+    verify(pagamentoService, never()).buscarPorOsId(any());
+    verify(ordemServicoRepository, never()).delete(any());
   }
 }

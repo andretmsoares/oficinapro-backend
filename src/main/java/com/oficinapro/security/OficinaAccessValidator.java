@@ -1,6 +1,8 @@
 package com.oficinapro.security;
 
 import com.oficinapro.enums.Role;
+import com.oficinapro.exception.oficina.OficinaDisabledException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Usuario;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -34,17 +36,14 @@ public class OficinaAccessValidator {
    * Retorna a oficina do usuário logado.
    *
    * <p>Usuários ADMIN do SaaS não possuem oficina.
+   *
+   * <p>Não deve engolir a exceção do provider: fazer isso e devolver {@code null} aqui já causou um
+   * bug real — o {@code null} seguia para {@code findByOficinaId(null)} (lista vazia disfarçada de
+   * sucesso) ou para {@code oficinaId.equals(...)} (NullPointerException virando 500), em vez de
+   * negar o acesso com 403 como deveria.
    */
   public Long getOficinaIdUsuarioLogado() {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    Long oficinaId = logado.getOficina() != null ? logado.getOficina().getId() : null;
-
-    if (oficinaId == null) {
-      throw new AccessDeniedException("Usuário não está vinculado a nenhuma oficina");
-    }
-
-    return oficinaId;
+    return authenticatedUserProvider.getOficinaIdUsuarioLogado();
   }
 
   /**
@@ -53,11 +52,6 @@ public class OficinaAccessValidator {
    * <p>ADMIN do SaaS pode operar sobre qualquer oficina.
    */
   public void validarAcessoOficina(Long oficinaId) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    if (logado.getRole() == Role.ADMIN) {
-      return;
-    }
 
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
@@ -73,11 +67,6 @@ public class OficinaAccessValidator {
    * service chamador.
    */
   public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
-
-    if (logado.getRole() == Role.ADMIN) {
-      return;
-    }
 
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
@@ -92,5 +81,26 @@ public class OficinaAccessValidator {
       Long id,
       java.util.function.Function<Long, RuntimeException> notFoundException) {
     validarAcessoAoRegistro(oficinaDoRegistro, notFoundException.apply(id));
+  }
+
+  /**
+   * Bloqueia o login (e qualquer operação que dependa dele) de um usuário cuja oficina foi
+   * desativada. O ADMIN do SaaS não tem oficina e está sempre isento desta checagem.
+   *
+   * <p>{@code ativo == null} é tratado como desativado: um registro legado sem o flag preenchido
+   * não pode virar brecha de acesso.
+   */
+  public void validarOficinaAtiva(Usuario usuario) {
+    if (usuario.getRole() == Role.ADMIN) {
+      return;
+    }
+
+    if (usuario.getOficina() == null) {
+      throw new UsuarioAcessDeniedException();
+    }
+
+    if (!Boolean.TRUE.equals(usuario.getOficina().getAtivo())) {
+      throw new OficinaDisabledException();
+    }
   }
 }

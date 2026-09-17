@@ -109,19 +109,6 @@ class VeiculoControllerTest {
         .andExpect(jsonPath("$.placa").value("ABC1234"));
   }
 
-  @Test
-  @DisplayName("POST /api/veiculos - MECANICO deve retornar 403 (sem permissão de criação)")
-  @WithMockUser(roles = "MECANICO")
-  void deveNegarCriacaoParaMecanico() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/veiculos")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDTO)))
-        .andExpect(status().isForbidden());
-  }
-
   // ─── PUT /api/veiculos/{id} ───────────────────────────────────────────────────
 
   @Test

@@ -15,7 +15,6 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.VeiculoRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.service.oficina.OficinaService;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +35,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 // LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de AuthenticatedUserProvider
+// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
 // preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
 // derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
 // problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
@@ -46,8 +45,6 @@ class VeiculoServiceTest {
   @Mock private VeiculoRepository veiculoRepository;
 
   @Mock private OficinaService oficinaService;
-
-  @Mock private AuthenticatedUserProvider authenticatedUserProvider;
 
   // Adicionado no refactor: o isolamento por oficina saiu dos services e passou
   // a viver em OficinaAccessValidator.
@@ -63,7 +60,7 @@ class VeiculoServiceTest {
 
   @BeforeEach
   void setUp() {
-    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999");
+    oficina = new Oficina(1L, "Oficina Test", "12345678000195", "83999999999", true);
 
     veiculo = new Veiculo();
     ReflectionTestUtils.setField(veiculo, "id", 1L);
@@ -88,24 +85,9 @@ class VeiculoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("ADMIN: deve chamar findAll(pageable) e retornar todos os veículos")
-  void deveListarTodosOsVeiculosComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(veiculoRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(veiculo)));
-
-    Page<VeiculoResponseDTO> resultado = veiculoService.listar(pageable);
-
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.getContent().get(0).id()).isEqualTo(1L);
-    assertThat(resultado.getContent().get(0).modelo()).isEqualTo("Civic");
-    verify(veiculoRepository).findAll(pageable);
-    verify(veiculoRepository, never()).findByOficinaId(anyLong(), any(Pageable.class));
-  }
-
-  @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas veículos da sua oficina")
   void deveListarVeiculosDaPropriaOficinaComoAdministrativo() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(veiculoRepository.findByOficinaId(1L, pageable))
@@ -126,7 +108,7 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("ADMIN: deve buscar veículo por ID e retornar o DTO correto")
   void deveBuscarVeiculoPorIdComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
 
     VeiculoResponseDTO resultado = veiculoService.buscarPorId(1L);
@@ -141,7 +123,7 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("GERENTE: deve lançar VeiculoNotFoundException ao acessar veículo de outra oficina")
   void deveLancarExcecaoAoBuscarVeiculoDeOutraOficinaComoAdministrativo() {
-    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888");
+    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888", true);
 
     Veiculo veiculoOutraOficina = new Veiculo();
     ReflectionTestUtils.setField(veiculoOutraOficina, "id", 2L);
@@ -152,7 +134,7 @@ class VeiculoServiceTest {
     veiculoOutraOficina.setPlaca("XYZ9876");
 
     // normalUser pertence à oficina 1; veiculoOutraOficina pertence à oficina 2
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(veiculoRepository.findById(2L)).thenReturn(Optional.of(veiculoOutraOficina));
     // O isolamento é delegado ao validador, que devolve "não encontrado" para não
     // revelar que o veículo existe em outra oficina.
@@ -175,9 +157,9 @@ class VeiculoServiceTest {
       "GERENTE: deve normalizar a placa (remove hífen e converte para maiúsculas) antes de buscar")
   void deveBuscarVeiculoPorPlacaComNormalizacaoComoGerente() {
     // A busca por placa é sempre escopada na oficina do usuário logado, obtida do
-    // AuthenticatedUserProvider. Por isso o cenário é de GERENTE e não de ADMIN:
+    // oficinaAccessValidator. Por isso o cenário é de GERENTE e não de ADMIN:
     // o ADMIN do SaaS não tem oficina, e o endpoint é restrito a GERENTE/MECANICO.
-    when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     // placa normalizada: "ABC-1234" -> "ABC1234"
     when(veiculoRepository.findByPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
 
@@ -197,7 +179,7 @@ class VeiculoServiceTest {
   void deveCriarVeiculoComSucessoComoAdmin() {
     VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234", 1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(veiculoRepository.existsByOficinaIdAndPlaca(1L, "ABC1234")).thenReturn(false);
     when(veiculoRepository.save(any(Veiculo.class))).thenReturn(veiculo);
@@ -216,7 +198,7 @@ class VeiculoServiceTest {
   void deveLancarExcecaoAoCriarComPlacaDuplicada() {
     VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234", 1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(veiculoRepository.existsByOficinaIdAndPlaca(1L, "ABC1234")).thenReturn(true);
 
@@ -236,7 +218,7 @@ class VeiculoServiceTest {
     // mesma placa → não verifica duplicidade
     VeiculoRequestDTO request = new VeiculoRequestDTO("Civic EX", 2021, "Honda", "ABC1234", 1L);
 
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
     when(veiculoRepository.save(any(Veiculo.class))).thenReturn(veiculo);
 
@@ -255,7 +237,7 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("ADMIN: deve deletar veículo com sucesso")
   void deveDeletarVeiculoComSucessoComoAdmin() {
-    when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
 
     veiculoService.deletar(1L);

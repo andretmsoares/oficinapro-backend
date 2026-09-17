@@ -73,6 +73,51 @@ public class OficinaController {
     return ResponseEntity.ok(oficinaService.atualizar(id, request));
   }
 
+  @Operation(
+      summary = "Ativar oficina",
+      description =
+          "Reativa uma oficina previamente desativada, restaurando o acesso de seus"
+              + " usuários. Não altera nenhum outro dado da oficina.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Oficina ativada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS pode ativar oficinas"),
+    @ApiResponse(responseCode = "404", description = "Oficina não encontrada"),
+    @ApiResponse(responseCode = "409", description = "Oficina já está ativa")
+  })
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{id}/ativar")
+  public ResponseEntity<Void> ativar(@PathVariable Long id) {
+
+    oficinaService.ativar(id);
+
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(
+      summary = "Desativar oficina",
+      description =
+          "Desativa uma oficina (exclusão lógica). Usuários vinculados a ela deixam de"
+              + " conseguir fazer login enquanto a oficina estiver desativada. Os dados"
+              + " não são apagados e podem ser restaurados com o endpoint de ativação.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Oficina desativada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(
+        responseCode = "403",
+        description = "Apenas o ADMIN do SaaS pode desativar oficinas"),
+    @ApiResponse(responseCode = "404", description = "Oficina não encontrada"),
+    @ApiResponse(responseCode = "409", description = "Oficina já está desativada")
+  })
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{id}/desativar")
+  public ResponseEntity<Void> desativar(@PathVariable Long id) {
+
+    oficinaService.desativar(id);
+
+    return ResponseEntity.noContent().build();
+  }
+
   @Operation(summary = "Excluir oficina", description = "Exclui uma oficina pelo ID")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "Oficina excluída com sucesso"),

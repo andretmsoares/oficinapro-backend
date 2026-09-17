@@ -207,8 +207,6 @@ public class PagamentoServiceImpl implements PagamentoService {
 
   private Pagamento buscarPorEntidadeOsId(Long osId) {
 
-    OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(osId);
-
     Pagamento pagamento = repository.findByOrdemDeServicoId(osId);
 
     if (pagamento == null) {

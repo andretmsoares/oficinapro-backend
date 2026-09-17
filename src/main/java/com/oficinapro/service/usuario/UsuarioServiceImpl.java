@@ -11,11 +11,12 @@ import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
-import com.oficinapro.security.AuthenticatedUserProvider;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,24 +30,35 @@ public class UsuarioServiceImpl
 
   private final UsuarioRepository usuarioRepository;
   private final PasswordEncoder passwordEncoder;
-  private final AuthenticatedUserProvider authenticatedUserProvider;
 
   public UsuarioServiceImpl(
       UsuarioRepository usuarioRepository,
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
       PasswordEncoder passwordEncoder,
-      AuthenticatedUserProvider authenticatedUserProvider,
       OficinaAccessValidator oficinaAccessValidator) {
-    super(
-        usuarioRepository,
-        oficinaService,
-        pessoaService,
-        authenticatedUserProvider,
-        oficinaAccessValidator);
+    super(usuarioRepository, oficinaService, pessoaService, oficinaAccessValidator);
     this.usuarioRepository = usuarioRepository;
     this.passwordEncoder = passwordEncoder;
-    this.authenticatedUserProvider = authenticatedUserProvider;
+  }
+
+  // Único ponto do sistema onde listar() ainda se ramifica por role. O ADMIN do
+  // SaaS administra as contas de acesso — sem isto ele não consegue nem achar o
+  // GERENTE de um tenant para redefinir acesso. O desvio existe aqui e em mais
+  // lugar nenhum: para dado operacional (clientes, mecânicos, veículos, OS) o
+  // ADMIN vê apenas contagem.
+  //
+  // O ramo do ADMIN não pode cair no super.listar(): ele chama
+  // getOficinaIdUsuarioLogado(), e o ADMIN não pertence a nenhuma oficina.
+  @Override
+  @Transactional(readOnly = true)
+  public Page<UsuarioResponseDTO> listar(Pageable pageable) {
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
+
+    if (logado.getRole() == Role.ADMIN) {
+      return usuarioRepository.findAll(pageable).map(this::toResponse);
+    }
+    return super.listar(pageable);
   }
 
   @Override
@@ -69,7 +81,7 @@ public class UsuarioServiceImpl
     }
 
     Usuario alvo = buscarPorEntidadeId(id);
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
 
     if (alvo.getRole() == Role.ADMIN && logado.getRole() != Role.ADMIN) {
       throw new AccessDeniedException("Apenas ADMIN pode editar uma conta com role ADMIN");
@@ -102,7 +114,7 @@ public class UsuarioServiceImpl
    * profundidade).
    */
   private void validarPermissaoParaAtribuirRole(Role roleAlvo) {
-    Usuario logado = authenticatedUserProvider.getUsuarioAutenticado();
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
     Role roleLogado = logado.getRole();
 
     boolean podeGerenciarUsuarios = roleLogado == Role.ADMIN || roleLogado == Role.GERENTE;

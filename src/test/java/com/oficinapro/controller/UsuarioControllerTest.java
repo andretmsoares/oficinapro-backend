@@ -3,6 +3,8 @@ package com.oficinapro.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -21,7 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -65,7 +69,9 @@ class UsuarioControllerTest {
   @DisplayName("GET /api/usuarios - ADMIN deve retornar 200 com página de usuários")
   @WithMockUser(roles = "ADMIN")
   void deveListarUsuariosComoAdmin() throws Exception {
-    when(usuarioService.listar(any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+    Page<UsuarioResponseDTO> page = new PageImpl<>(List.of(responseDTO));
+
+    when(usuarioService.listar(any(Pageable.class))).thenReturn(page);
 
     mockMvc
         .perform(get("/api/usuarios"))
@@ -73,13 +79,27 @@ class UsuarioControllerTest {
         .andExpect(jsonPath("$.content[0].id").value(1))
         .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
         .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+
+    verify(usuarioService).listar(any(Pageable.class));
   }
 
   @Test
-  @DisplayName("GET /api/usuarios - GERENTE deve retornar 403 (somente ADMIN pode listar todos)")
+  @DisplayName(
+      "GET /api/usuarios - GERENTE deve retornar 200 com página de usuários da própria oficina")
   @WithMockUser(roles = "GERENTE")
-  void deveNegarAcessoParaGerente() throws Exception {
-    mockMvc.perform(get("/api/usuarios")).andExpect(status().isForbidden());
+  void deveListarUsuariosComoGerente() throws Exception {
+    Page<UsuarioResponseDTO> page = new PageImpl<>(List.of(responseDTO));
+
+    when(usuarioService.listar(any(Pageable.class))).thenReturn(page);
+
+    mockMvc
+        .perform(get("/api/usuarios"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(1))
+        .andExpect(jsonPath("$.content[0].nome").value("Ana Admin"))
+        .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+
+    verify(usuarioService).listar(any(Pageable.class));
   }
 
   // ─── GET /api/usuarios/{id} ───────────────────────────────────────────────────
@@ -147,5 +167,73 @@ class UsuarioControllerTest {
     doNothing().when(usuarioService).deletar(1L);
 
     mockMvc.perform(delete("/api/usuarios/1").with(csrf())).andExpect(status().isNoContent());
+  }
+
+  // ─────────── busca global do ADMIN (rotas /admin/**) ───────────
+  //
+  // As rotas antigas /nome e /documento escopavam pela oficina do usuário logado
+  // e por isso falhavam sempre para o ADMIN, que não pertence a oficina alguma.
+  // Passaram a ser de GERENTE, e o ADMIN ganhou rotas próprias, sem escopo.
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/admin/nome/{nome} - ADMIN busca em todas as oficinas")
+  void buscarPorNomeAdmin_admin_retorna200() throws Exception {
+    when(usuarioService.buscarPorNomeAdmin("Ana")).thenReturn(List.of(responseDTO));
+
+    mockMvc
+        .perform(get("/api/usuarios/admin/nome/Ana"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1));
+  }
+
+  @Test
+  @WithMockUser(roles = "GERENTE")
+  @DisplayName("GET /api/usuarios/admin/nome/{nome} - GERENTE recebe 403")
+  void buscarPorNomeAdmin_gerente_retorna403() throws Exception {
+    mockMvc.perform(get("/api/usuarios/admin/nome/Ana")).andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorNomeAdmin(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/admin/documento/{doc} - ADMIN busca em todas as oficinas")
+  void buscarPorDocumentoAdmin_admin_retorna200() throws Exception {
+    when(usuarioService.buscarPorDocumentoAdmin("12345678901")).thenReturn(List.of(responseDTO));
+
+    mockMvc
+        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1));
+  }
+
+  @Test
+  @WithMockUser(roles = "MECANICO")
+  @DisplayName("GET /api/usuarios/admin/documento/{doc} - MECANICO recebe 403")
+  void buscarPorDocumentoAdmin_mecanico_retorna403() throws Exception {
+    mockMvc
+        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorDocumentoAdmin(any());
+  }
+
+  @Test
+  @WithMockUser(roles = "GERENTE")
+  @DisplayName("GET /api/usuarios/nome/{nome} - a rota escopada agora é do GERENTE")
+  void buscarPorNome_gerente_retorna200() throws Exception {
+    when(usuarioService.buscarPorNome("Ana")).thenReturn(List.of(responseDTO));
+
+    mockMvc.perform(get("/api/usuarios/nome/Ana")).andExpect(status().isOk());
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  @DisplayName("GET /api/usuarios/nome/{nome} - ADMIN recebe 403 na rota escopada por oficina")
+  void buscarPorNome_admin_retorna403() throws Exception {
+    mockMvc.perform(get("/api/usuarios/nome/Ana")).andExpect(status().isForbidden());
+
+    verify(usuarioService, never()).buscarPorNome(any());
   }
 }
