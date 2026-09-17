@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.diffplug.spotless' version '7.2.1'
+	id 'jacoco'
 }
 
 group = 'com.oficinaPro'
@@ -52,20 +53,24 @@ dependencies {
 	testImplementation 'com.h2database:h2'
 }
 
+jacoco {
+	toolVersion = "0.8.13"
+}
+
 spotless {
-    java {
-        googleJavaFormat()
-        removeUnusedImports()
-        importOrder()
-    }
+	java {
+		googleJavaFormat()
+		removeUnusedImports()
+		importOrder()
+	}
 }
 
 tasks.named('build') {
-    dependsOn 'spotlessApply'
+	dependsOn 'spotlessApply'
 }
 
 tasks.named('check') {
-    dependsOn 'spotlessCheck'
+	dependsOn 'spotlessCheck'
 }
 
 tasks.named('test') {
@@ -78,6 +83,38 @@ tasks.named('test') {
 			'-Xms256m',
 			'-Xmx1024m'
 	)
+
+	// Gera o relatório JaCoCo depois dos testes
+	finalizedBy 'jacocoTestReport'
 }
 
 
+tasks.named('jacocoTestReport') {
+	dependsOn 'test'
+
+	reports {
+		html.required = true
+		xml.required = true
+		csv.required = false
+	}
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+	dependsOn 'jacocoTestReport'
+
+	violationRules {
+		rule {
+			element = 'BUNDLE'
+
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.70
+			}
+		}
+	}
+}
+
+tasks.named('check') {
+	dependsOn 'jacocoTestCoverageVerification'
+}
