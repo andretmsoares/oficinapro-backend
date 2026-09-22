@@ -71,10 +71,6 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   @Override
   public T buscarPorEntidadeId(Long id) {
     T entity = repository.findById(id).orElseThrow(this::notFoundException);
-    // Usa a exceção da própria subclasse: antes isto era um UsuarioNotFoundException
-    // fixo, então buscar um cliente de outra oficina respondia "Usuário não
-    // encontrado". Além de errado, revelava que o registro foi barrado pelo
-    // isolamento e não por não existir.
     oficinaAccessValidator.validarAcessoAoRegistro(
         entity.getOficina() != null ? entity.getOficina().getId() : null, notFoundException());
     return entity;

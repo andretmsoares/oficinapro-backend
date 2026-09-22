@@ -12,6 +12,8 @@ import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.security.OficinaAccessValidator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,18 @@ public class OficinaServiceImpl implements OficinaService {
   public List<OficinaResponseDTO> listar() {
     oficinaAccessValidator.validarRole(Role.ADMIN);
     return oficinaRepository.findAll().stream().map(this::toResponse).toList();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<OficinaResponseDTO> buscar(String search, Pageable pageable) {
+    oficinaAccessValidator.validarRole(Role.ADMIN);
+
+    String termo = search == null ? "" : search.trim();
+
+    return oficinaRepository
+        .findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(termo, termo, pageable)
+        .map(this::toResponse);
   }
 
   @Transactional(readOnly = true)

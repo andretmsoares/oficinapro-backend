@@ -54,6 +54,12 @@ class OficinaAccessValidatorTest {
     when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(usuario(role, oficinaId));
   }
 
+  private void logadoComOficina(Role role, Long oficinaId) {
+    logado(role, oficinaId);
+
+    when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(oficinaId);
+  }
+
   @Nested
   @DisplayName("validarRole")
   class ValidarRole {
@@ -129,7 +135,7 @@ class OficinaAccessValidatorTest {
     @DisplayName("permite o GERENTE operar sobre a própria oficina")
     void devePermitirGerenteNaPropriaOficina() {
 
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logadoComOficina(Role.GERENTE, OFICINA_A);
 
       assertThatCode(() -> validator.validarAcessoOficina(OFICINA_A)).doesNotThrowAnyException();
     }
@@ -137,7 +143,7 @@ class OficinaAccessValidatorTest {
     @Test
     @DisplayName("nega o GERENTE ao tentar operar sobre outra oficina")
     void deveNegarGerenteEmOficinaDeTerceiro() {
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logadoComOficina(Role.GERENTE, OFICINA_A);
 
       assertThatThrownBy(() -> validator.validarAcessoOficina(OFICINA_B))
           .isInstanceOf(AccessDeniedException.class)
@@ -147,20 +153,19 @@ class OficinaAccessValidatorTest {
     @Test
     @DisplayName("nega o MECANICO ao tentar operar sobre outra oficina")
     void deveNegarMecanicoEmOficinaDeTerceiro() {
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logado(Role.MECANICO, OFICINA_A);
 
       assertThatThrownBy(() -> validator.validarAcessoOficina(OFICINA_B))
           .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    @DisplayName("ADMIN do SaaS não pode acessar uma oficina")
-    void adminNaoPodeAcessarOficina() {
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado())
-          .thenThrow(new UsuarioAcessDeniedException());
+    @DisplayName("ADMIN do SaaS pode acessar qualquer oficina")
+    void adminPodeAcessarQualquerOficina() {
 
-      assertThatThrownBy(() -> validator.validarAcessoOficina(OFICINA_B))
-          .isInstanceOf(UsuarioAcessDeniedException.class);
+      logado(Role.ADMIN, null);
+
+      assertThatCode(() -> validator.validarAcessoOficina(OFICINA_B)).doesNotThrowAnyException();
     }
   }
 
@@ -172,7 +177,7 @@ class OficinaAccessValidatorTest {
     @DisplayName("permite quando o registro pertence à oficina do usuário")
     void devePermitirRegistroDaPropriaOficina() {
 
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logadoComOficina(Role.GERENTE, OFICINA_A);
 
       assertThatCode(
               () ->
@@ -188,7 +193,7 @@ class OficinaAccessValidatorTest {
 
       RuntimeException notFound = new IllegalStateException("registro inexistente");
 
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logado(Role.GERENTE, OFICINA_A);
 
       assertThatThrownBy(() -> validator.validarAcessoAoRegistro(OFICINA_B, notFound))
           .as(
@@ -202,7 +207,7 @@ class OficinaAccessValidatorTest {
     void deveLancarNotFoundQuandoRegistroNaoPossuiOficina() {
       RuntimeException notFound = new IllegalStateException("registro inexistente");
 
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logado(Role.GERENTE, OFICINA_A);
 
       assertThatThrownBy(() -> validator.validarAcessoAoRegistro(null, notFound))
           .isSameAs(notFound);
@@ -211,7 +216,7 @@ class OficinaAccessValidatorTest {
     @Test
     @DisplayName("usa a fábrica por id na sobrecarga com Function")
     void deveUsarFabricaPorIdNaSobrecarga() {
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado()).thenReturn(OFICINA_A);
+      logado(Role.GERENTE, OFICINA_A);
 
       assertThatThrownBy(
               () ->
@@ -222,102 +227,102 @@ class OficinaAccessValidatorTest {
     }
 
     @Test
-    @DisplayName("ADMIN do SaaS atravessa a validação de registro (comportamento atual)")
-    void adminAtravessaValidacaoDeRegistro() {
-      when(authenticatedUserProvider.getOficinaIdUsuarioLogado())
-          .thenThrow(new UsuarioAcessDeniedException());
+    @DisplayName("ADMIN do SaaS pode acessar registro de qualquer oficina")
+    void adminPodeAcessarRegistroDeQualquerOficina() {
 
-      assertThatThrownBy(
+      logado(Role.ADMIN, null);
+
+      assertThatCode(
               () ->
                   validator.validarAcessoAoRegistro(
-                      OFICINA_B, new IllegalStateException("registro inexistente")))
-          .isInstanceOf(UsuarioAcessDeniedException.class);
-    }
-  }
-
-  @Nested
-  @DisplayName("getUsuarioAutenticado")
-  class GetUsuarioAutenticado {
-
-    @ParameterizedTest
-    @EnumSource(Role.class)
-    @DisplayName("delega ao AuthenticatedUserProvider para qualquer role")
-    void deveDelegarAoProvider(Role role) {
-      Usuario esperado = usuario(role, role == Role.ADMIN ? null : OFICINA_A);
-      when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(esperado);
-
-      assertThat(validator.getUsuarioAutenticado()).isSameAs(esperado);
-    }
-  }
-
-  @Nested
-  @DisplayName("validarOficinaAtiva")
-  class ValidarOficinaAtiva {
-
-    private Usuario comOficina(Role role, Boolean ativo) {
-      Usuario usuario = new Usuario();
-      usuario.setId(10L);
-      usuario.setUsername("teste");
-      usuario.setRole(role);
-
-      Oficina oficina = new Oficina();
-      oficina.setId(OFICINA_A);
-      oficina.setAtivo(ativo);
-      usuario.setOficina(oficina);
-
-      return usuario;
-    }
-
-    @Test
-    @DisplayName("permite o acesso quando a oficina está ativa")
-    void devePermitirQuandoOficinaAtiva() {
-      assertThatCode(() -> validator.validarOficinaAtiva(comOficina(Role.GERENTE, true)))
+                      OFICINA_B, new IllegalStateException("não deveria ser lançada")))
           .doesNotThrowAnyException();
     }
 
-    @ParameterizedTest
-    @EnumSource(
-        value = Role.class,
-        names = {"GERENTE", "MECANICO"})
-    @DisplayName("bloqueia qualquer papel de oficina quando ela está desativada")
-    void deveBloquearQuandoOficinaDesativada(Role role) {
-      assertThatThrownBy(() -> validator.validarOficinaAtiva(comOficina(role, false)))
-          .isInstanceOf(OficinaDisabledException.class);
+    @Nested
+    @DisplayName("getUsuarioAutenticado")
+    class GetUsuarioAutenticado {
+
+      @ParameterizedTest
+      @EnumSource(Role.class)
+      @DisplayName("delega ao AuthenticatedUserProvider para qualquer role")
+      void deveDelegarAoProvider(Role role) {
+        Usuario esperado = usuario(role, role == Role.ADMIN ? null : OFICINA_A);
+        when(authenticatedUserProvider.getUsuarioAutenticado()).thenReturn(esperado);
+
+        assertThat(validator.getUsuarioAutenticado()).isSameAs(esperado);
+      }
     }
 
-    @Test
-    @DisplayName("trata ativo nulo como desativado, em vez de deixar passar")
-    void deveTratarAtivoNuloComoDesativado() {
-      assertThatThrownBy(() -> validator.validarOficinaAtiva(comOficina(Role.GERENTE, null)))
-          .as(
-              "Registro legado sem o flag preenchido não pode virar brecha de acesso."
-                  + " A implementação usa Boolean.TRUE.equals, que trata null como falso.")
-          .isInstanceOf(OficinaDisabledException.class);
-    }
+    @Nested
+    @DisplayName("validarOficinaAtiva")
+    class ValidarOficinaAtiva {
 
-    @Test
-    @DisplayName("ADMIN do SaaS não é bloqueado: ele não pertence a oficina")
-    void adminNaoEhBloqueado() {
-      Usuario admin = new Usuario();
-      admin.setId(1L);
-      admin.setUsername("admin");
-      admin.setRole(Role.ADMIN);
-      admin.setOficina(null);
+      private Usuario comOficina(Role role, Boolean ativo) {
+        Usuario usuario = new Usuario();
+        usuario.setId(10L);
+        usuario.setUsername("teste");
+        usuario.setRole(role);
 
-      assertThatCode(() -> validator.validarOficinaAtiva(admin)).doesNotThrowAnyException();
-    }
+        Oficina oficina = new Oficina();
+        oficina.setId(OFICINA_A);
+        oficina.setAtivo(ativo);
+        usuario.setOficina(oficina);
 
-    @Test
-    @DisplayName("usuário de oficina sem vínculo é negado")
-    void usuarioDeOficinaSemVinculoEhNegado() {
-      Usuario gerente = new Usuario();
-      gerente.setId(2L);
-      gerente.setUsername("gerente");
-      gerente.setRole(Role.GERENTE);
-      gerente.setOficina(null);
+        return usuario;
+      }
 
-      assertThatThrownBy(() -> validator.validarOficinaAtiva(gerente))
-          .isInstanceOf(UsuarioAcessDeniedException.class);
+      @Test
+      @DisplayName("permite o acesso quando a oficina está ativa")
+      void devePermitirQuandoOficinaAtiva() {
+        assertThatCode(() -> validator.validarOficinaAtiva(comOficina(Role.GERENTE, true)))
+            .doesNotThrowAnyException();
+      }
+
+      @ParameterizedTest
+      @EnumSource(
+          value = Role.class,
+          names = {"GERENTE", "MECANICO"})
+      @DisplayName("bloqueia qualquer papel de oficina quando ela está desativada")
+      void deveBloquearQuandoOficinaDesativada(Role role) {
+        assertThatThrownBy(() -> validator.validarOficinaAtiva(comOficina(role, false)))
+            .isInstanceOf(OficinaDisabledException.class);
+      }
+
+      @Test
+      @DisplayName("trata ativo nulo como desativado, em vez de deixar passar")
+      void deveTratarAtivoNuloComoDesativado() {
+        assertThatThrownBy(() -> validator.validarOficinaAtiva(comOficina(Role.GERENTE, null)))
+            .as(
+                "Registro legado sem o flag preenchido não pode virar brecha de acesso."
+                    + " A implementação usa Boolean.TRUE.equals, que trata null como falso.")
+            .isInstanceOf(OficinaDisabledException.class);
+      }
+
+      @Test
+      @DisplayName("ADMIN do SaaS não é bloqueado: ele não pertence a oficina")
+      void adminNaoEhBloqueado() {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+        admin.setUsername("admin");
+        admin.setRole(Role.ADMIN);
+        admin.setOficina(null);
+
+        assertThatCode(() -> validator.validarOficinaAtiva(admin)).doesNotThrowAnyException();
+      }
+
+      @Test
+      @DisplayName("usuário de oficina sem vínculo é negado")
+      void usuarioDeOficinaSemVinculoEhNegado() {
+        Usuario gerente = new Usuario();
+        gerente.setId(2L);
+        gerente.setUsername("gerente");
+        gerente.setRole(Role.GERENTE);
+        gerente.setOficina(null);
+
+        assertThatThrownBy(() -> validator.validarOficinaAtiva(gerente))
+            .isInstanceOf(UsuarioAcessDeniedException.class);
+      }
     }
   }
 }

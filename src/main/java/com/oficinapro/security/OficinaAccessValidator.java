@@ -53,6 +53,12 @@ public class OficinaAccessValidator {
    */
   public void validarAcessoOficina(Long oficinaId) {
 
+    Usuario logado = this.getUsuarioAutenticado();
+
+    if (logado.getRole() == Role.ADMIN) {
+      return;
+    }
+
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
     if (!oficinaDoLogado.equals(oficinaId)) {
@@ -67,6 +73,12 @@ public class OficinaAccessValidator {
    * service chamador.
    */
   public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException) {
+
+    Usuario logado = this.getUsuarioAutenticado();
+
+    if (logado.getRole() == Role.ADMIN) {
+      return;
+    }
 
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
