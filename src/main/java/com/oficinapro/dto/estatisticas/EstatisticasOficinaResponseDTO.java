@@ -1,8 +1,11 @@
 package com.oficinapro.dto.estatisticas;
 
 public record EstatisticasOficinaResponseDTO(
-    Long oficinaId,
-    String nomeOficina,
+    Long id,
+    String nome,
+    String cnpj,
+    String telefone,
+    Boolean ativo,
     long clientes,
     long mecanicos,
     long veiculos,

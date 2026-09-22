@@ -47,6 +47,9 @@ public class EstatisticasServiceImpl implements EstatisticasService {
                     new EstatisticasOficinaResponseDTO(
                         oficina.getId(),
                         oficina.getNome(),
+                        oficina.getCnpj(),
+                        oficina.getTelefone(),
+                        oficina.getAtivo(),
                         clientes.getOrDefault(oficina.getId(), 0L),
                         mecanicos.getOrDefault(oficina.getId(), 0L),
                         veiculos.getOrDefault(oficina.getId(), 0L),
@@ -75,6 +78,9 @@ public class EstatisticasServiceImpl implements EstatisticasService {
     return new EstatisticasOficinaResponseDTO(
         oficina.getId(),
         oficina.getNome(),
+        oficina.getCnpj(),
+        oficina.getTelefone(),
+        oficina.getAtivo(),
         clienteRepository.countByOficinaId(oficinaId),
         mecanicoRepository.countByOficinaId(oficinaId),
         veiculoRepository.countByOficinaId(oficinaId),
