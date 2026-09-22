@@ -12,5 +12,4 @@ public record VeiculoRequestDTO(
         @Pattern(
             regexp = "^[A-Za-z]{3}-?\\d[A-Za-z0-9]\\d{2}$",
             message = "Placa inválida. Use o formato ABC1234 ou ABC1D23")
-        String placa,
-    @NotNull(message = "O ID da oficina é obrigatório") Long oficinaId) {}
+        String placa) {}

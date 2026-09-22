@@ -42,7 +42,7 @@ public class VeiculoController {
   @GetMapping
   @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<Page<VeiculoResponseDTO>> listar(
-      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+      @PageableDefault(size = 20, sort = "modelo") Pageable pageable) {
     return ResponseEntity.ok(veiculoService.listar(pageable));
   }
 

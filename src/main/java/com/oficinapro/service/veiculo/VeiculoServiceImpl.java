@@ -71,12 +71,12 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Override
   @Transactional
   public VeiculoResponseDTO criar(VeiculoRequestDTO request) {
-    oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    Oficina oficina = oficinaService.buscarPorEntidadeId(request.oficinaId());
+    Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
     String placa = normalizarPlaca(request.placa());
-    if (veiculoRepository.existsByOficinaIdAndPlaca(request.oficinaId(), placa)) {
+    if (veiculoRepository.existsByOficinaIdAndPlaca(oficinaId, placa)) {
       throw new PlacaAlreadyExistsException(placa);
     }
 
@@ -97,12 +97,11 @@ public class VeiculoServiceImpl implements VeiculoService {
   public VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request) {
     Veiculo veiculo = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
-    oficinaAccessValidator.validarAcessoOficina(
-        request.oficinaId()); // valida também a oficina de destino
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     String placa = normalizarPlaca(request.placa());
     if (!veiculo.getPlaca().equals(placa)
-        && veiculoRepository.existsByOficinaIdAndPlacaAndIdNot(request.oficinaId(), placa, id)) {
+        && veiculoRepository.existsByOficinaIdAndPlacaAndIdNot(oficinaId, placa, id)) {
       throw new PlacaAlreadyExistsException(placa);
     }
 
