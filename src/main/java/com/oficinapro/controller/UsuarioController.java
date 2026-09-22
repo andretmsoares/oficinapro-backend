@@ -1,8 +1,6 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.dto.usuario.UsuarioRequestDTO;
-import com.oficinapro.dto.usuario.UsuarioResponseDTO;
-import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
+import com.oficinapro.dto.usuario.*;
 import com.oficinapro.service.usuario.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,6 +42,26 @@ public class UsuarioController {
   public ResponseEntity<Page<UsuarioResponseDTO>> listar(
       @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
     return ResponseEntity.ok(usuarioService.listar(pageable));
+  }
+
+  @Operation(
+    summary = "Atualizar meus dados",
+    description =
+        "Atualiza os dados do usuário autenticado. O usuário pode alterar nome, "
+            + "documento, telefone, username e senha. A role e a oficina não podem "
+            + "ser alteradas por este endpoint.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Dados atualizados com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "409", description = "Username ou documento já em uso")
+  })
+  @PutMapping("/me")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<UsuarioResponseDTO> atualizarMe(
+      @Valid @RequestBody UsuarioMeUpdateRequestDTO request) {
+
+    return ResponseEntity.ok(usuarioService.atualizarMe(request));
   }
 
   @Operation(

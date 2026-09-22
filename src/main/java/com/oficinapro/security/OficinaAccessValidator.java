@@ -74,6 +74,12 @@ public class OficinaAccessValidator {
    */
   public void validarAcessoAoRegistro(Long oficinaDoRegistro, RuntimeException notFoundException) {
 
+    Usuario logado = this.getUsuarioAutenticado();
+
+    if (logado.getRole() == Role.ADMIN) {
+      return;
+    }
+
     Long oficinaDoLogado = getOficinaIdUsuarioLogado();
 
     if (!oficinaDoLogado.equals(oficinaDoRegistro)) {

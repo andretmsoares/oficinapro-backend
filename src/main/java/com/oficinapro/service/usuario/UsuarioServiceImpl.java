@@ -1,5 +1,6 @@
 package com.oficinapro.service.usuario;
 
+import com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
@@ -201,5 +202,27 @@ public class UsuarioServiceImpl
   @Override
   protected RuntimeException alreadyExistsException() {
     return new UsuarioAlreadyExistsException();
+  }
+
+ @Override
+  @Transactional
+  public UsuarioResponseDTO atualizarMe(UsuarioMeUpdateRequestDTO request) {
+    Usuario usuario = oficinaAccessValidator.getUsuarioAutenticado();
+
+    if (usuarioRepository.existsByUsernameAndIdNot(
+        request.username(), usuario.getId())) {
+      throw new UsernameAlreadyExistsException();
+    }
+
+    usuario.setNome(request.nome());
+    usuario.setDocumento(request.documento());
+    usuario.setTelefone(request.telefone());
+    usuario.setUsername(request.username());
+
+    if (request.password() != null && !request.password().isBlank()) {
+      usuario.setPassword(passwordEncoder.encode(request.password()));
+    }
+
+    return toResponse(usuario);
   }
 }
