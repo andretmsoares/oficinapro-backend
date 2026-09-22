@@ -4,7 +4,6 @@ import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.model.Oficina;
 import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -15,7 +14,7 @@ public interface OficinaService {
   OficinaResponseDTO buscarPorId(Long id);
 
   Oficina buscarPorEntidadeId(Long id);
-  
+
   Page<OficinaResponseDTO> buscar(String search, Pageable pageable);
 
   boolean existsById(Long id);

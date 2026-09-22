@@ -260,7 +260,7 @@ public class GlobalExceptionHandler {
       OficinaDisabledException exception) {
     return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
   }
-  
+
   @ExceptionHandler(UsuarioCannotDeleteSelfException.class)
   public ResponseEntity<Map<String, Object>> handleUsuarioCannotDeleteSelf(
       UsuarioCannotDeleteSelfException exception) {

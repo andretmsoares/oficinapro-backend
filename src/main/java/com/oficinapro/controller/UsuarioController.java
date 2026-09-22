@@ -45,11 +45,11 @@ public class UsuarioController {
   }
 
   @Operation(
-    summary = "Atualizar meus dados",
-    description =
-        "Atualiza os dados do usuário autenticado. O usuário pode alterar nome, "
-            + "documento, telefone, username e senha. A role e a oficina não podem "
-            + "ser alteradas por este endpoint.")
+      summary = "Atualizar meus dados",
+      description =
+          "Atualiza os dados do usuário autenticado. O usuário pode alterar nome, "
+              + "documento, telefone, username e senha. A role e a oficina não podem "
+              + "ser alteradas por este endpoint.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Dados atualizados com sucesso"),
     @ApiResponse(responseCode = "400", description = "Dados inválidos"),

@@ -3,6 +3,8 @@ package com.oficinapro.service.usuario;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
@@ -47,8 +49,10 @@ import org.springframework.test.context.ActiveProfiles;
 class UsuarioServiceTest {
 
   // UsuarioRepository estende PessoaCrudRepository<Usuario>.
-  // @InjectMocks usará este mock tanto para super.repository quanto para this.usuarioRepository,
-  // pois o construtor de UsuarioServiceImpl recebe um único UsuarioRepository e o passa ao super().
+  // @InjectMocks usará este mock tanto para super.repository quanto para
+  // this.usuarioRepository,
+  // pois o construtor de UsuarioServiceImpl recebe um único UsuarioRepository e o
+  // passa ao super().
   @Mock private UsuarioRepository usuarioRepository;
 
   @Mock private OficinaServiceImpl oficinaService;
@@ -103,7 +107,7 @@ class UsuarioServiceTest {
     usuarioAlvo.setPassword("$2a$10$hashOriginal");
     usuarioAlvo.setRole(Role.GERENTE);
 
-    // DTO de criação (ADMIN cria um usuário  na oficina 1)
+    // DTO de criação (ADMIN cria um usuário na oficina 1)
     createRequest =
         new UsuarioRequestDTO(
             "Novo Usuario",
@@ -114,7 +118,8 @@ class UsuarioServiceTest {
             "senha1234",
             Role.GERENTE);
 
-    // DTO de atualização (mantém username e documento, apenas muda o nome e telefone)
+    // DTO de atualização (mantém username e documento, apenas muda o nome e
+    // telefone)
     updateRequest =
         new UsuarioUpdateRequestDTO(
             "Usuario Atualizado",
@@ -344,8 +349,10 @@ class UsuarioServiceTest {
   @Test
   @DisplayName("atualizar() como ADMIN deve atualizar usuário com sucesso")
   void atualizar_comoAdmin_sucesso() {
-    // Nota: AbstractPessoaServiceImpl.atualizar() chama buscarPorEntidadeId(id) diretamente
-    // e, após, validateBeforeUpdate() que também chama buscarPorEntidadeId(id) internamente.
+    // Nota: AbstractPessoaServiceImpl.atualizar() chama buscarPorEntidadeId(id)
+    // diretamente
+    // e, após, validateBeforeUpdate() que também chama buscarPorEntidadeId(id)
+    // internamente.
     // Ambas as chamadas a findById(1L) retornam o mesmo stub.
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
@@ -359,7 +366,8 @@ class UsuarioServiceTest {
     UsuarioResponseDTO resultado = service.atualizar(1L, updateRequest);
 
     assertThat(resultado).isNotNull();
-    // applyUpdate modifica usuarioAlvo em lugar; nome e telefone devem refletir o updateRequest
+    // applyUpdate modifica usuarioAlvo em lugar; nome e telefone devem refletir o
+    // updateRequest
     assertThat(resultado.nome()).isEqualTo("Usuario Atualizado");
     assertThat(resultado.username()).isEqualTo("usuario.original");
     assertThat(resultado.role()).isEqualTo(Role.GERENTE);
@@ -438,6 +446,9 @@ class UsuarioServiceTest {
   @Test
   @DisplayName("deletar() como ADMIN deve remover usuário com sucesso")
   void deletar_comoAdmin_sucesso() {
+
+    adminUser.setId(99L);
+    usuarioAlvo.setId(1L);
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
 

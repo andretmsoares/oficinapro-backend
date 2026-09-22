@@ -215,8 +215,7 @@ public class UsuarioServiceImpl
     Usuario usuario = buscarPorEntidadeId(usuarioLogado.getId());
 
     // 3. Valida se o novo username já existe
-    if (usuarioRepository.existsByUsernameAndIdNot(
-        request.username(), usuario.getId())) {
+    if (usuarioRepository.existsByUsernameAndIdNot(request.username(), usuario.getId())) {
       throw new UsernameAlreadyExistsException();
     }
 
@@ -245,7 +244,7 @@ public class UsuarioServiceImpl
     if (usuarioLogado.getId().equals(usuario.getId())) {
       throw new UsuarioCannotDeleteSelfException();
     }
-    
+
     repository.delete(usuario);
   }
 }
