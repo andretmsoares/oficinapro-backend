@@ -150,6 +150,7 @@ class MaoObraControllerTest {
         .andExpect(status().isNotFound());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   @WithMockUser(roles = "GERENTE")
   @DisplayName("POST /api/mao-obra - OS cancelada retorna 422")
