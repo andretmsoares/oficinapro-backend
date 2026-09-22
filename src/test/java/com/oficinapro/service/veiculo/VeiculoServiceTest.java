@@ -177,7 +177,7 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("ADMIN: deve criar veículo com sucesso quando a placa não existe na oficina")
   void deveCriarVeiculoComSucessoComoAdmin() {
-    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234", 1L);
+    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234");
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -196,7 +196,7 @@ class VeiculoServiceTest {
   @DisplayName(
       "deve lançar PlacaAlreadyExistsException ao criar veículo com placa já existente na mesma oficina")
   void deveLancarExcecaoAoCriarComPlacaDuplicada() {
-    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234", 1L);
+    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "ABC1234");
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -216,7 +216,7 @@ class VeiculoServiceTest {
   @DisplayName("ADMIN: deve atualizar veículo com sucesso quando a placa não muda")
   void deveAtualizarVeiculoComSucessoComoAdmin() {
     // mesma placa → não verifica duplicidade
-    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic EX", 2021, "Honda", "ABC1234", 1L);
+    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic EX", 2021, "Honda", "ABC1234");
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));

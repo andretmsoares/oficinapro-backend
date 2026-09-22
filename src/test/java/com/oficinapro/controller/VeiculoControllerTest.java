@@ -47,7 +47,7 @@ class VeiculoControllerTest {
   @BeforeEach
   void setUp() {
     responseDTO = new VeiculoResponseDTO(1L, 1L, "Civic", 2022, "Honda", "ABC1234");
-    requestDTO = new VeiculoRequestDTO("Civic", 2022, "Honda", "ABC1234", 1L);
+    requestDTO = new VeiculoRequestDTO("Civic", 2022, "Honda", "ABC1234");
   }
 
   // ─── GET /api/veiculos ────────────────────────────────────────────────────────

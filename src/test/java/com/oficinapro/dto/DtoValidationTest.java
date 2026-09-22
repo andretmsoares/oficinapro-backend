@@ -322,7 +322,7 @@ class DtoValidationTest {
   class VeiculoDto {
 
     private VeiculoRequestDTO comAno(Integer ano) {
-      return new VeiculoRequestDTO("Civic", ano, "Honda", "ABC1D23", 1L);
+      return new VeiculoRequestDTO("Civic", ano, "Honda", "ABC1D23");
     }
 
     @Test
@@ -359,7 +359,7 @@ class DtoValidationTest {
     @ValueSource(strings = {"ABC1234", "ABC-1234", "ABC1D23", "abc1d23"})
     @DisplayName("aceita placa nos formatos antigo e Mercosul")
     void aceitaPlacasValidas(String placa) {
-      VeiculoRequestDTO dto = new VeiculoRequestDTO("Civic", 2020, "Honda", placa, 1L);
+      VeiculoRequestDTO dto = new VeiculoRequestDTO("Civic", 2020, "Honda", placa);
 
       assertThat(camposInvalidos(dto)).doesNotContain("placa");
     }
@@ -368,7 +368,7 @@ class DtoValidationTest {
     @ValueSource(strings = {"AB1234", "ABCD123", "1234ABC", "ABC12345"})
     @DisplayName("recusa placa fora do padrão")
     void recusaPlacasInvalidas(String placa) {
-      VeiculoRequestDTO dto = new VeiculoRequestDTO("Civic", 2020, "Honda", placa, 1L);
+      VeiculoRequestDTO dto = new VeiculoRequestDTO("Civic", 2020, "Honda", placa);
 
       assertThat(camposInvalidos(dto)).contains("placa");
     }
