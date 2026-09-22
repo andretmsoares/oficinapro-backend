@@ -61,7 +61,6 @@ class MecanicoControllerTest {
             "Carlos Mecânico",
             "83911112222",
             "98765432100",
-            1L,
             BigDecimal.valueOf(3500),
             "Especialista em motor");
   }
