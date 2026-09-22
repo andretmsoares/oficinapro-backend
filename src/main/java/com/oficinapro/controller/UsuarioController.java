@@ -57,7 +57,7 @@ public class UsuarioController {
     @ApiResponse(responseCode = "409", description = "Username ou documento já em uso")
   })
   @PutMapping("/me")
-  @PreAuthorize("isAuthenticated()")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE', 'MECANICO')")
   public ResponseEntity<UsuarioResponseDTO> atualizarMe(
       @Valid @RequestBody UsuarioMeUpdateRequestDTO request) {
 

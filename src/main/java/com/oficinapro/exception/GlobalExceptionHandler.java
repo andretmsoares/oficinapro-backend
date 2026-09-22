@@ -24,6 +24,7 @@ import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioCannotDeleteSelfException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
 import com.oficinapro.exception.veiculo.VeiculoNotFoundException;
@@ -257,6 +258,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(OficinaDisabledException.class)
   public ResponseEntity<Map<String, Object>> handleOficinaDisabled(
       OficinaDisabledException exception) {
+    return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+  }
+  
+  @ExceptionHandler(UsuarioCannotDeleteSelfException.class)
+  public ResponseEntity<Map<String, Object>> handleUsuarioCannotDeleteSelf(
+      UsuarioCannotDeleteSelfException exception) {
     return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
   }
 

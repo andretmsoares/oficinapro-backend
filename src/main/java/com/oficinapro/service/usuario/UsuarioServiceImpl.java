@@ -8,6 +8,7 @@ import com.oficinapro.enums.Role;
 import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
+import com.oficinapro.exception.usuario.UsuarioCannotDeleteSelfException;
 import com.oficinapro.exception.usuario.UsuarioNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
@@ -204,16 +205,22 @@ public class UsuarioServiceImpl
     return new UsuarioAlreadyExistsException();
   }
 
- @Override
+  @Override
   @Transactional
   public UsuarioResponseDTO atualizarMe(UsuarioMeUpdateRequestDTO request) {
-    Usuario usuario = oficinaAccessValidator.getUsuarioAutenticado();
+    // 1. Obtém o usuário do contexto de segurança (Detached)
+    Usuario usuarioLogado = oficinaAccessValidator.getUsuarioAutenticado();
 
+    // 2. Busca a entidade real no banco DENTRO desta transação (Managed)
+    Usuario usuario = buscarPorEntidadeId(usuarioLogado.getId());
+
+    // 3. Valida se o novo username já existe
     if (usuarioRepository.existsByUsernameAndIdNot(
         request.username(), usuario.getId())) {
       throw new UsernameAlreadyExistsException();
     }
 
+    // 4. Atualiza os dados na entidade rastreada pelo Hibernate
     usuario.setNome(request.nome());
     usuario.setDocumento(request.documento());
     usuario.setTelefone(request.telefone());
@@ -223,6 +230,22 @@ public class UsuarioServiceImpl
       usuario.setPassword(passwordEncoder.encode(request.password()));
     }
 
+    // 5. Salva no banco de dados
+    usuario = usuarioRepository.save(usuario);
+
     return toResponse(usuario);
+  }
+
+  @Transactional
+  @Override
+  public void deletar(Long id) {
+    Usuario usuarioLogado = oficinaAccessValidator.getUsuarioAutenticado();
+    Usuario usuario = buscarPorEntidadeId(id);
+
+    if (usuarioLogado.getId().equals(usuario.getId())) {
+      throw new UsuarioCannotDeleteSelfException();
+    }
+    
+    repository.delete(usuario);
   }
 }
