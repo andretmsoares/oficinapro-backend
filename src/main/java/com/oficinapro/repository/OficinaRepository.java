@@ -2,6 +2,9 @@ package com.oficinapro.repository;
 
 import com.oficinapro.model.Oficina;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OficinaRepository extends JpaRepository<Oficina, Long> {
@@ -9,4 +12,7 @@ public interface OficinaRepository extends JpaRepository<Oficina, Long> {
   Optional<Oficina> findByCnpj(String cnpj);
 
   boolean existsByCnpj(String cnpj);
+
+  Page<Oficina> findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(
+    String nome, String cnpj, Pageable pageable);
 }
