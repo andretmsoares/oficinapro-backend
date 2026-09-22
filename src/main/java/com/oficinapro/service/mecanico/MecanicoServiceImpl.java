@@ -58,16 +58,13 @@ public class MecanicoServiceImpl
 
   @Override
   @Transactional
-  protected void applyUpdate(
-      Mecanico mecanico,
-      MecanicoRequestDTO request) {
+  protected void applyUpdate(Mecanico mecanico, MecanicoRequestDTO request) {
 
     mecanico.setNome(request.nome());
     mecanico.setDocumento(request.documento());
     mecanico.setTelefone(request.telefone());
     mecanico.setSalario(request.salario());
     mecanico.setObs(request.obs());
-
   }
 
   @Override

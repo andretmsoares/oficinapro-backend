@@ -3,6 +3,8 @@ package com.oficinapro.service.mecanico;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
@@ -30,7 +32,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
@@ -194,9 +195,14 @@ class MecanicoServiceTest {
     salvo.setSalario(BigDecimal.valueOf(3500.00));
     salvo.setObs("Especialista em motores");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
+
     when(mecanicoRepository.save(any(Mecanico.class))).thenReturn(salvo);
 
     MecanicoResponseDTO resultado = service.criar(requestDTO);
@@ -209,15 +215,20 @@ class MecanicoServiceTest {
     assertThat(resultado.obs()).isEqualTo("Especialista em motores");
     assertThat(resultado.oficinaId()).isEqualTo(1L);
 
-    verify(mecanicoRepository, times(1)).save(any(Mecanico.class));
+    verify(oficinaAccessValidator).validarAcessoOficina(1L);
+
+    verify(mecanicoRepository).save(any(Mecanico.class));
   }
 
   @Test
   @DisplayName(
       "criar() deve lançar MecanicoAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaMecanicoAlreadyExistsException() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(true);
 
     assertThatThrownBy(() -> service.criar(requestDTO))
@@ -227,32 +238,43 @@ class MecanicoServiceTest {
   }
 
   @Test
-  @DisplayName(
-      "criar() como GERENTE tentando criar em outra oficina deve lançar AccessDeniedException")
-  void criar_comoAdministrativo_outraOficina_lancaAccessDeniedException() {
-    // Request aponta para oficina 2, mas normalUser pertence à oficina 1
-    MecanicoRequestDTO requestOutraOficina =
-        new MecanicoRequestDTO(
-            "Novo Mecânico", "83999999999", "11122233344", BigDecimal.valueOf(2500), null);
+  @DisplayName("criar() como GERENTE deve usar a oficina do usuário autenticado")
+  void criar_comoGerente_usaOficinaDoUsuarioAutenticado() {
 
-    // criar() passou a validar a oficina de destino antes de resolver a oficina:
-    // sem isso um GERENTE criava registros em qualquer oficina informando outro id.
-    doThrow(new AccessDeniedException("Você só pode acessar dados da sua própria oficina"))
-        .when(oficinaAccessValidator)
-        .validarAcessoOficina(2L);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
 
-    assertThatThrownBy(() -> service.criar(requestOutraOficina))
-        .isInstanceOf(AccessDeniedException.class);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
-    verify(mecanicoRepository, never()).save(any());
-    verify(oficinaService, never()).buscarPorEntidadeId(any());
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
+    when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
+
+    when(mecanicoRepository.save(any(Mecanico.class)))
+        .thenAnswer(
+            invocation -> {
+              Mecanico mecanicoSalvo = invocation.getArgument(0);
+              mecanicoSalvo.setId(2L);
+              return mecanicoSalvo;
+            });
+
+    MecanicoResponseDTO resultado = service.criar(requestDTO);
+
+    assertThat(resultado).isNotNull();
+    assertThat(resultado.oficinaId()).isEqualTo(1L);
+
+    verify(oficinaAccessValidator).validarAcessoOficina(1L);
+
+    verify(oficinaService).buscarPorEntidadeId(1L);
+
+    verify(mecanicoRepository).save(argThat(m -> m.getOficina().getId().equals(1L)));
   }
 
   // ─────────────────────────── atualizar ───────────────────────────
 
   @Test
-  @DisplayName("atualizar() como ADMIN deve atualizar mecânico com sucesso")
-  void atualizar_comoAdmin_sucesso() {
+  @DisplayName("atualizar() como GERENTE deve atualizar mecânico da própria oficina")
+  void atualizar_comoGerente_sucesso() {
+
     MecanicoRequestDTO requestAtualizar =
         new MecanicoRequestDTO(
             "Carlos Atualizado",
@@ -261,19 +283,26 @@ class MecanicoServiceTest {
             BigDecimal.valueOf(4000.00),
             "Atualizado");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
+
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
         .thenReturn(false);
+
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
     when(mecanicoRepository.save(any(Mecanico.class))).thenReturn(mecanico);
 
     MecanicoResponseDTO resultado = service.atualizar(1L, requestAtualizar);
 
     assertThat(resultado).isNotNull();
-    // applyUpdate modifica o objeto mecanico em lugar; os dados devem refletir o request
     assertThat(resultado.nome()).isEqualTo("Carlos Atualizado");
     assertThat(resultado.salario()).isEqualByComparingTo(BigDecimal.valueOf(4000.00));
-    verify(mecanicoRepository, times(1)).save(any(Mecanico.class));
+
+    verify(mecanicoRepository).save(any(Mecanico.class));
   }
 
   @Test
@@ -299,8 +328,11 @@ class MecanicoServiceTest {
         new MecanicoRequestDTO(
             "Carlos Atualizado", "83977776666", "99988877766", BigDecimal.valueOf(4000), null);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
+
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "99988877766", 1L))
         .thenReturn(true);
 
