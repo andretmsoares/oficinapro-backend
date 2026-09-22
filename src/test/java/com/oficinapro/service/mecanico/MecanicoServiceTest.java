@@ -95,7 +95,6 @@ class MecanicoServiceTest {
             "Carlos Mecânico",
             "83988887777",
             "12345678901",
-            1L,
             BigDecimal.valueOf(3500.00),
             "Especialista em motores");
   }
@@ -234,7 +233,7 @@ class MecanicoServiceTest {
     // Request aponta para oficina 2, mas normalUser pertence à oficina 1
     MecanicoRequestDTO requestOutraOficina =
         new MecanicoRequestDTO(
-            "Novo Mecânico", "83999999999", "11122233344", 2L, BigDecimal.valueOf(2500), null);
+            "Novo Mecânico", "83999999999", "11122233344", BigDecimal.valueOf(2500), null);
 
     // criar() passou a validar a oficina de destino antes de resolver a oficina:
     // sem isso um GERENTE criava registros em qualquer oficina informando outro id.
@@ -259,7 +258,6 @@ class MecanicoServiceTest {
             "Carlos Atualizado",
             "83977776666",
             "12345678901",
-            1L,
             BigDecimal.valueOf(4000.00),
             "Atualizado");
 
@@ -283,7 +281,7 @@ class MecanicoServiceTest {
   void atualizar_idNaoEncontrado_lancaMecanicoNotFoundException() {
     MecanicoRequestDTO requestAtualizar =
         new MecanicoRequestDTO(
-            "Carlos Atualizado", "83977776666", "12345678901", 1L, BigDecimal.valueOf(4000), null);
+            "Carlos Atualizado", "83977776666", "12345678901", BigDecimal.valueOf(4000), null);
 
     when(mecanicoRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -299,7 +297,7 @@ class MecanicoServiceTest {
   void atualizar_documentoDuplicadoOutroMecanico_lancaMecanicoAlreadyExistsException() {
     MecanicoRequestDTO requestAtualizar =
         new MecanicoRequestDTO(
-            "Carlos Atualizado", "83977776666", "99988877766", 1L, BigDecimal.valueOf(4000), null);
+            "Carlos Atualizado", "83977776666", "99988877766", BigDecimal.valueOf(4000), null);
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));

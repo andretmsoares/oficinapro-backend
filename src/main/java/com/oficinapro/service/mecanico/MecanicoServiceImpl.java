@@ -25,6 +25,7 @@ public class MecanicoServiceImpl
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
       OficinaAccessValidator oficinaAccessValidator) {
+
     super(repository, oficinaService, pessoaService, oficinaAccessValidator);
   }
 
@@ -40,61 +41,67 @@ public class MecanicoServiceImpl
         m.getObs());
   }
 
-  @Transactional
   @Override
+  @Transactional
   protected Mecanico toEntity(MecanicoRequestDTO request, Oficina oficina) {
-    Mecanico m = new Mecanico();
-    m.setNome(request.nome());
-    m.setDocumento(request.documento());
-    m.setTelefone(request.telefone());
-    m.setOficina(oficina);
-    m.setSalario(request.salario());
-    m.setObs(request.obs());
-    return m;
+    Mecanico mecanico = new Mecanico();
+
+    mecanico.setNome(request.nome());
+    mecanico.setDocumento(request.documento());
+    mecanico.setTelefone(request.telefone());
+    mecanico.setOficina(oficina);
+    mecanico.setSalario(request.salario());
+    mecanico.setObs(request.obs());
+
+    return mecanico;
   }
 
   @Override
   @Transactional
-  protected void applyUpdate(Mecanico m, MecanicoRequestDTO request) {
-    m.setNome(request.nome());
-    m.setDocumento(request.documento());
-    m.setTelefone(request.telefone());
-    m.setSalario(request.salario());
-    m.setObs(request.obs());
+  protected void applyUpdate(
+      Mecanico mecanico,
+      MecanicoRequestDTO request) {
+
+    mecanico.setNome(request.nome());
+    mecanico.setDocumento(request.documento());
+    mecanico.setTelefone(request.telefone());
+    mecanico.setSalario(request.salario());
+    mecanico.setObs(request.obs());
+
   }
 
-  @Transactional(readOnly = true)
   @Override
-  protected String extractDocumentoCreate(MecanicoRequestDTO r) {
-    return r.documento();
+  @Transactional(readOnly = true)
+  protected String extractDocumentoCreate(MecanicoRequestDTO request) {
+    return request.documento();
   }
 
-  @Transactional(readOnly = true)
   @Override
-  protected Long extractOficinaIdCreate(MecanicoRequestDTO r) {
-    return r.oficinaId();
+  @Transactional(readOnly = true)
+  protected Long extractOficinaIdCreate(MecanicoRequestDTO request) {
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
   }
 
-  @Transactional(readOnly = true)
   @Override
-  protected String extractDocumentoUpdate(MecanicoRequestDTO r) {
-    return r.documento();
+  @Transactional(readOnly = true)
+  protected String extractDocumentoUpdate(MecanicoRequestDTO request) {
+    return request.documento();
   }
 
-  @Transactional(readOnly = true)
   @Override
-  protected Long extractOficinaIdUpdate(MecanicoRequestDTO r) {
-    return r.oficinaId();
+  @Transactional(readOnly = true)
+  protected Long extractOficinaIdUpdate(MecanicoRequestDTO request) {
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
   }
 
-  @Transactional(readOnly = true)
   @Override
+  @Transactional(readOnly = true)
   protected RuntimeException notFoundException() {
     return new MecanicoNotFoundException();
   }
 
-  @Transactional(readOnly = true)
   @Override
+  @Transactional(readOnly = true)
   protected RuntimeException alreadyExistsException() {
     return new MecanicoAlreadyExistsException();
   }
