@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record ItemOsPecaRequestDTO(
-    @NotNull(message = "O ID da OS é obrigatório") Long osId,
+    Long osId,
     @NotBlank(message = "Nome é obrigatório")
         @Size(max = 255, message = "Nome deve ter no máximo 255 caracteres")
         String nome,

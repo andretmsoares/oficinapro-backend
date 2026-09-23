@@ -29,7 +29,9 @@ public class OrdemDeServicoValorRecalculator {
 
   public void recalcular(OrdemDeServico os) {
     BigDecimal totalPecas =
-        itemOsPecaRepository.findByOrdemDeServicoId(os.getId()).stream()
+        itemOsPecaRepository
+            .findByOrdemDeServicoIdAndOficinaId(os.getId(), os.getOficina().getId())
+            .stream()
             .map(ItemOsPeca::getValorTotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 

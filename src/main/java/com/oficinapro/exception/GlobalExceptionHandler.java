@@ -2,6 +2,7 @@ package com.oficinapro.exception;
 
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
+import com.oficinapro.exception.item_os_peca.ItemOsPecaJaVinculadoException;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
 import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
@@ -218,6 +219,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(OficinaAlreadyActivatedException.class)
   public ResponseEntity<Map<String, Object>> handleOficinaAlreadyActivated(
       OficinaAlreadyActivatedException exception) {
+    return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+  }
+
+  @ExceptionHandler(ItemOsPecaJaVinculadoException.class)
+  public ResponseEntity<Map<String, Object>> handleItemOsPecaJaVinculado(
+      ItemOsPecaJaVinculadoException exception) {
     return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
   }
 

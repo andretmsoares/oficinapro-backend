@@ -16,4 +16,8 @@ public interface ItemOsPecaService {
   ItemOsPecaResponseDTO atualizar(Long id, ItemOsPecaUpdateRequestDTO request);
 
   void deletar(Long id);
+
+  ItemOsPecaResponseDTO vincularOs(Long id, Long osId);
+
+  ItemOsPecaResponseDTO desvincularOs(Long id);
 }

@@ -136,4 +136,15 @@ public class ItemOsPecaController {
     itemOsPecaService.deletar(id);
     return ResponseEntity.noContent().build();
   }
+
+  @PutMapping("/{id}/os/{osId}")
+  public ResponseEntity<ItemOsPecaResponseDTO> vincularOs(
+      @PathVariable Long id, @PathVariable Long osId) {
+    return ResponseEntity.ok(itemOsPecaService.vincularOs(id, osId));
+  }
+
+  @DeleteMapping("/{id}/os")
+  public ResponseEntity<ItemOsPecaResponseDTO> desvincularOs(@PathVariable Long id) {
+    return ResponseEntity.ok(itemOsPecaService.desvincularOs(id));
+  }
 }
