@@ -9,6 +9,8 @@ public interface ItemOsPecaService {
 
   List<ItemOsPecaResponseDTO> listarPorOrdemServico(Long osId);
 
+  List<ItemOsPecaResponseDTO> listar();
+
   ItemOsPecaResponseDTO buscarPorId(Long id);
 
   ItemOsPecaResponseDTO criar(ItemOsPecaRequestDTO request);
