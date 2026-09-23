@@ -66,7 +66,7 @@ public class ClienteServiceImpl
   @Transactional(readOnly = true)
   @Override
   protected Long extractOficinaIdCreate(ClienteRequestDTO r) {
-    return r.oficinaId();
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
   }
 
   @Transactional(readOnly = true)
@@ -78,7 +78,7 @@ public class ClienteServiceImpl
   @Transactional(readOnly = true)
   @Override
   protected Long extractOficinaIdUpdate(ClienteRequestDTO r) {
-    return r.oficinaId();
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
   }
 
   @Transactional(readOnly = true)

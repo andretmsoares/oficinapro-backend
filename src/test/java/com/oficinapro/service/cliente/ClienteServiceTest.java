@@ -3,6 +3,7 @@ package com.oficinapro.service.cliente;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -30,7 +31,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,7 +89,7 @@ class ClienteServiceTest {
     cliente.setDocumento("12345678901");
     cliente.setOficina(oficina);
 
-    requestDTO = new ClienteRequestDTO("João Silva", "83988887777", "12345678901", 1L);
+    requestDTO = new ClienteRequestDTO("João Silva", "83988887777", "12345678901");
   }
 
   // ─────────────────────────── listar ───────────────────────────
@@ -203,7 +203,8 @@ class ClienteServiceTest {
   @DisplayName(
       "criar() deve lançar ClienteAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaClienteAlreadyExistsException() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(true);
 
@@ -216,22 +217,33 @@ class ClienteServiceTest {
   @Test
   @DisplayName(
       "criar() como GERENTE tentando criar em outra oficina deve lançar AccessDeniedException")
-  void criar_comoAdministrativo_outraOficina_lancaAccessDeniedException() {
-    // Request aponta para oficina 2, mas normalUser pertence à oficina 1
-    ClienteRequestDTO requestOutraOficina =
-        new ClienteRequestDTO("Novo Cliente", "83999999999", "11122233344", 2L);
+  void criar_comoGerente_usaOficinaDoUsuarioAutenticado() {
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
 
-    // criar() passou a validar a oficina de destino antes de resolver a oficina:
-    // sem isso um GERENTE criava registros em qualquer oficina informando outro id.
-    doThrow(new AccessDeniedException("Você só pode acessar dados da sua própria oficina"))
-        .when(oficinaAccessValidator)
-        .validarAcessoOficina(2L);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
-    assertThatThrownBy(() -> service.criar(requestOutraOficina))
-        .isInstanceOf(AccessDeniedException.class);
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
 
-    verify(clienteRepository, never()).save(any());
-    verify(oficinaService, never()).buscarPorEntidadeId(any());
+    when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
+
+    when(clienteRepository.save(any(Cliente.class)))
+        .thenAnswer(
+            invocation -> {
+              Cliente clienteSalvo = invocation.getArgument(0);
+              clienteSalvo.setId(2L);
+              return clienteSalvo;
+            });
+
+    ClienteResponseDTO resultado = service.criar(requestDTO);
+
+    assertThat(resultado).isNotNull();
+    assertThat(resultado.oficinaId()).isEqualTo(1L);
+
+    verify(oficinaAccessValidator).validarAcessoOficina(1L);
+
+    verify(oficinaService).buscarPorEntidadeId(1L);
+
+    verify(clienteRepository).save(argThat(m -> m.getOficina().getId().equals(1L)));
   }
 
   // ─────────────────────────── atualizar ───────────────────────────
@@ -240,7 +252,7 @@ class ClienteServiceTest {
   @DisplayName("atualizar() como ADMIN deve atualizar cliente com sucesso")
   void atualizar_comoAdmin_sucesso() {
     ClienteRequestDTO requestAtualizar =
-        new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901", 1L);
+        new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901");
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
@@ -260,7 +272,7 @@ class ClienteServiceTest {
   @DisplayName("atualizar() deve lançar ClienteNotFoundException quando ID não existe")
   void atualizar_idNaoEncontrado_lancaClienteNotFoundException() {
     ClienteRequestDTO requestAtualizar =
-        new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901", 1L);
+        new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901");
 
     when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -275,9 +287,10 @@ class ClienteServiceTest {
       "atualizar() deve lançar ClienteAlreadyExistsException quando documento já pertence a outro cliente da mesma oficina")
   void atualizar_documentoDuplicadoOutroCliente_lancaClienteAlreadyExistsException() {
     ClienteRequestDTO requestAtualizar =
-        new ClienteRequestDTO("João Atualizado", "83977776666", "99988877766", 1L);
+        new ClienteRequestDTO("João Atualizado", "83977776666", "99988877766");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "99988877766", 1L))
         .thenReturn(true);
