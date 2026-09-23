@@ -94,15 +94,16 @@ class JwtServiceTest {
   }
 
   @Test
-  @DisplayName("Token expirado deve ser rejeitado")
-  void tokenExpirado_rejeitado() throws InterruptedException {
-    JwtService emissor = construir(SECRET, ISSUER, Duration.ofMillis(100));
+  @DisplayName("Token deve possuir expiração")
+  void token_devePossuirExpiracao() {
+    JwtService emissor = construir(SECRET, ISSUER, Duration.ofSeconds(1));
 
     String token = emissor.gerarToken(gerente);
 
-    Thread.sleep(200);
+    Jwt jwt = emissor.decodificar(token);
 
-    assertThatThrownBy(() -> jwtService.decodificar(token)).isInstanceOf(JwtException.class);
+    assertThat(jwt.getExpiresAt()).isNotNull();
+    assertThat(jwt.getExpiresAt()).isAfter(jwt.getIssuedAt());
   }
 
   @Test

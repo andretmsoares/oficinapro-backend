@@ -42,6 +42,7 @@ class ItemOsPecaControllerTest {
   @MockitoBean private ItemOsPecaService itemOsPecaService;
 
   private ItemOsPecaResponseDTO responseDTO;
+  private ItemOsPecaResponseDTO responseSemOsDTO;
   private ItemOsPecaRequestDTO requestDTO;
   private ItemOsPecaUpdateRequestDTO updateRequestDTO;
 
@@ -55,9 +56,18 @@ class ItemOsPecaControllerTest {
             BigDecimal.valueOf(2),
             BigDecimal.valueOf(45.00),
             BigDecimal.valueOf(90.00));
+    responseSemOsDTO =
+        new ItemOsPecaResponseDTO(
+            1L,
+            null,
+            "Filtro de óleo",
+            BigDecimal.valueOf(2),
+            BigDecimal.valueOf(45.00),
+            BigDecimal.valueOf(90.00));
     requestDTO =
         new ItemOsPecaRequestDTO(
             1L, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
+    // osId saiu do DTO de atualização: o vínculo agora é feito por /{id}/os/{osId}
     updateRequestDTO =
         new ItemOsPecaUpdateRequestDTO(
             "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
@@ -97,7 +107,8 @@ class ItemOsPecaControllerTest {
   // ─── POST /api/itens-os-peca ──────────────────────────────────────────────────
 
   @Test
-  @DisplayName("POST /api/itens-os-peca - GERENTE deve criar item e retornar 201")
+  @DisplayName(
+      "POST /api/itens-os-peca - GERENTE deve criar item vinculado a uma OS e retornar 201")
   @WithMockUser(roles = "GERENTE")
   void deveCriarItem() throws Exception {
     when(itemOsPecaService.criar(any(ItemOsPecaRequestDTO.class))).thenReturn(responseDTO);
@@ -110,24 +121,29 @@ class ItemOsPecaControllerTest {
                 .content(objectMapper.writeValueAsString(requestDTO)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.osId").value(1))
         .andExpect(jsonPath("$.nome").value("Filtro de óleo"));
   }
 
   @Test
-  @DisplayName("POST /api/itens-os-peca - Deve retornar 400 com osId nulo (validação)")
+  @DisplayName(
+      "POST /api/itens-os-peca - GERENTE deve criar peça avulsa (osId nulo) e retornar 201")
   @WithMockUser(roles = "GERENTE")
-  void deveRetornar400ComOsIdNulo() throws Exception {
-    ItemOsPecaRequestDTO requestInvalido =
+  void deveCriarItemSemOs() throws Exception {
+    ItemOsPecaRequestDTO semOs =
         new ItemOsPecaRequestDTO(
             null, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
+    when(itemOsPecaService.criar(any(ItemOsPecaRequestDTO.class))).thenReturn(responseSemOsDTO);
 
     mockMvc
         .perform(
             post("/api/itens-os-peca")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestInvalido)))
-        .andExpect(status().isBadRequest());
+                .content(objectMapper.writeValueAsString(semOs)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.osId").isEmpty());
   }
 
   // ─── PUT /api/itens-os-peca/{id} ─────────────────────────────────────────────
@@ -148,6 +164,47 @@ class ItemOsPecaControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(1))
         .andExpect(jsonPath("$.nome").value("Filtro de óleo"));
+  }
+
+  // ─── PUT /api/itens-os-peca/{id}/os/{osId} ───────────────────────────────────
+
+  @Test
+  @DisplayName(
+      "PUT /api/itens-os-peca/{id}/os/{osId} - GERENTE deve vincular a peça à OS e retornar 200")
+  @WithMockUser(roles = "GERENTE")
+  void deveVincularItemAUmaOs() throws Exception {
+    when(itemOsPecaService.vincularOs(1L, 1L)).thenReturn(responseDTO);
+
+    mockMvc
+        .perform(put("/api/itens-os-peca/1/os/1").with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.osId").value(1));
+  }
+
+  @Test
+  @DisplayName("PUT /api/itens-os-peca/{id}/os/{osId} - MECANICO também pode vincular")
+  @WithMockUser(roles = "MECANICO")
+  void deveVincularItemComoMecanico() throws Exception {
+    when(itemOsPecaService.vincularOs(1L, 1L)).thenReturn(responseDTO);
+
+    mockMvc.perform(put("/api/itens-os-peca/1/os/1").with(csrf())).andExpect(status().isOk());
+  }
+
+  // ─── DELETE /api/itens-os-peca/{id}/os ───────────────────────────────────────
+
+  @Test
+  @DisplayName(
+      "DELETE /api/itens-os-peca/{id}/os - GERENTE deve desvincular a peça e retornar 200 com osId nulo")
+  @WithMockUser(roles = "GERENTE")
+  void deveDesvincularItemDaOs() throws Exception {
+    when(itemOsPecaService.desvincularOs(1L)).thenReturn(responseSemOsDTO);
+
+    mockMvc
+        .perform(delete("/api/itens-os-peca/1/os").with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.osId").isEmpty());
   }
 
   // ─── DELETE /api/itens-os-peca/{id} ──────────────────────────────────────────

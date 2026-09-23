@@ -43,6 +43,20 @@ public class ItemOsPecaController {
     return ResponseEntity.ok(itemOsPecaService.listarPorOrdemServico(osId));
   }
 
+  @Operation(
+      summary = "Listar peças da oficina",
+      description = "Retorna todas as peças cadastradas na oficina do usuário autenticado.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Lista de peças retornada com sucesso"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão")
+  })
+  @GetMapping
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  public ResponseEntity<List<ItemOsPecaResponseDTO>> listar() {
+    return ResponseEntity.ok(itemOsPecaService.listar());
+  }
+
   @Operation(summary = "Buscar peça por ID", description = "Busca uma peça pelo ID.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Peça encontrada"),
@@ -135,5 +149,16 @@ public class ItemOsPecaController {
       @Parameter(description = "ID da peça") @PathVariable Long id) {
     itemOsPecaService.deletar(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @PutMapping("/{id}/os/{osId}")
+  public ResponseEntity<ItemOsPecaResponseDTO> vincularOs(
+      @PathVariable Long id, @PathVariable Long osId) {
+    return ResponseEntity.ok(itemOsPecaService.vincularOs(id, osId));
+  }
+
+  @DeleteMapping("/{id}/os")
+  public ResponseEntity<ItemOsPecaResponseDTO> desvincularOs(@PathVariable Long id) {
+    return ResponseEntity.ok(itemOsPecaService.desvincularOs(id));
   }
 }

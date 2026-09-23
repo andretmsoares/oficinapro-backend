@@ -1,0 +1,1 @@
+ALTER TABLE item_os_peca ALTER COLUMN os_id DROP NOT NULL;
