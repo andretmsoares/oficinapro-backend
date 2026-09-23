@@ -55,8 +55,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
   }
 
   /**
-   * Cria a peça. Se osId for informado, a peça já nasce vinculada e o total da OS
-   * é recalculado.
+   * Cria a peça. Se osId for informado, a peça já nasce vinculada e o total da OS é recalculado.
    */
   @Override
   @Transactional
@@ -66,7 +65,8 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
     // Valida a OS antes de qualquer escrita: se ela for inválida, nada é
     // persistido.
-    OrdemDeServico os = request.osId() != null ? buscarOsEditavelDaOficina(request.osId(), oficinaId) : null;
+    OrdemDeServico os =
+        request.osId() != null ? buscarOsEditavelDaOficina(request.osId(), oficinaId) : null;
 
     Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
@@ -87,10 +87,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     return toResponse(item);
   }
 
-  /**
-   * Atualiza apenas os dados da peça. O vínculo com a OS é gerenciado por
-   * vincular/desvincular.
-   */
+  /** Atualiza apenas os dados da peça. O vínculo com a OS é gerenciado por vincular/desvincular. */
   @Override
   @Transactional
   public ItemOsPecaResponseDTO atualizar(Long id, ItemOsPecaUpdateRequestDTO request) {
@@ -144,10 +141,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     valorRecalculator.recalcular(os);
   }
 
-  /**
-   * Vincula uma peça avulsa a uma OS. Peça já vinculada precisa ser desvinculada
-   * antes.
-   */
+  /** Vincula uma peça avulsa a uma OS. Peça já vinculada precisa ser desvinculada antes. */
   @Override
   @Transactional
   public ItemOsPecaResponseDTO vincularOs(Long id, Long osId) {
@@ -249,8 +243,6 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return itemOsPecaRepository.findByOficinaId(oficinaId).stream()
-        .map(this::toResponse)
-        .toList();
+    return itemOsPecaRepository.findByOficinaId(oficinaId).stream().map(this::toResponse).toList();
   }
 }
