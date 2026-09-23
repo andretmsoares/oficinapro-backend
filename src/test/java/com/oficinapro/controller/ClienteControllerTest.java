@@ -47,7 +47,7 @@ class ClienteControllerTest {
   @BeforeEach
   void setUp() {
     responseDTO = new ClienteResponseDTO(1L, "João Silva", "83999998888", "12345678901", 1L);
-    requestDTO = new ClienteRequestDTO("João Silva", "83999998888", "12345678901", 1L);
+    requestDTO = new ClienteRequestDTO("João Silva", "83999998888", "12345678901");
   }
 
   // ─── GET /api/clientes ───────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ class ClienteControllerTest {
   @DisplayName("POST /api/clientes - Deve retornar 400 com nome em branco (validação)")
   @WithMockUser(roles = "GERENTE")
   void deveRetornar400ComNomeEmBranco() throws Exception {
-    ClienteRequestDTO requestInvalido = new ClienteRequestDTO("", "83999998888", "12345678901", 1L);
+    ClienteRequestDTO requestInvalido = new ClienteRequestDTO("", "83999998888", "12345678901");
 
     mockMvc
         .perform(
