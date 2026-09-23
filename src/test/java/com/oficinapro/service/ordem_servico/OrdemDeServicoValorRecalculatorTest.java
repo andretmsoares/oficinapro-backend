@@ -1,5 +1,6 @@
 package com.oficinapro.service.ordem_servico;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,6 +14,7 @@ import com.oficinapro.exception.ordem_servico.OSCanceledException;
 import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.model.ItemOsPeca;
 import com.oficinapro.model.MaoObra;
+import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.repository.MaoObraRepository;
@@ -34,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrdemDeServicoValorRecalculatorTest {
 
   private static final Long OS_ID = 100L;
+  private static final Long OFICINA_ID = 1L;
 
   @Mock private ItemOsPecaRepository itemOsPecaRepository;
   @Mock private MaoObraRepository maoObraRepository;
@@ -43,8 +46,16 @@ class OrdemDeServicoValorRecalculatorTest {
   @InjectMocks private OrdemDeServicoValorRecalculator recalculator;
 
   private OrdemDeServico os(StatusOrdemDeServico status) {
+    return os(status, OFICINA_ID);
+  }
+
+  private OrdemDeServico os(StatusOrdemDeServico status, Long oficinaId) {
+    Oficina oficina = new Oficina();
+    oficina.setId(oficinaId);
+
     OrdemDeServico os = new OrdemDeServico();
     os.setId(OS_ID);
+    os.setOficina(oficina);
     os.setStatus(status);
     return os;
   }
@@ -61,6 +72,15 @@ class OrdemDeServicoValorRecalculatorTest {
     return maoObra;
   }
 
+  private void pecasDaOs(Long oficinaId, ItemOsPeca... pecas) {
+    when(itemOsPecaRepository.findByOrdemDeServicoIdAndOficinaId(OS_ID, oficinaId))
+        .thenReturn(List.of(pecas));
+  }
+
+  private void maoDeObraDaOs(MaoObra... itens) {
+    when(maoObraRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of(itens));
+  }
+
   private BigDecimal totalRecalculado() {
     ArgumentCaptor<BigDecimal> captor = ArgumentCaptor.forClass(BigDecimal.class);
     verify(ordemDeServicoService).recalcularValorTotal(eq(OS_ID), captor.capture());
@@ -74,65 +94,72 @@ class OrdemDeServicoValorRecalculatorTest {
   @Test
   @DisplayName("deve somar peças E mão de obra no valor total da OS")
   void deveSomarPecasEMaoDeObra() {
-    OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO);
-    when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID))
-        .thenReturn(List.of(peca("120.00"), peca("35.50")));
-    when(maoObraRepository.findByOrdemDeServicoId(OS_ID))
-        .thenReturn(List.of(maoObra("200.00"), maoObra("44.50")));
+    pecasDaOs(OFICINA_ID, peca("120.00"), peca("35.50"));
+    maoDeObraDaOs(maoObra("200.00"), maoObra("44.50"));
 
-    recalculator.recalcular(os);
+    recalculator.recalcular(os(StatusOrdemDeServico.EM_EXECUCAO));
 
-    assertThatBigDecimal(totalRecalculado(), "400.00");
+    assertThat(totalRecalculado()).isEqualByComparingTo("400.00");
   }
 
   @Test
   @DisplayName("deve considerar apenas as peças quando não há mão de obra lançada")
-  void deveConsiderarSomentePecasQuandoNaoHaMaoDeObra() {
-    OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO);
-    when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of(peca("99.90")));
-    when(maoObraRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of());
+  void deveConsiderarSomentePecas() {
+    pecasDaOs(OFICINA_ID, peca("99.90"));
+    maoDeObraDaOs();
 
-    recalculator.recalcular(os);
+    recalculator.recalcular(os(StatusOrdemDeServico.EM_EXECUCAO));
 
-    assertThatBigDecimal(totalRecalculado(), "99.90");
+    assertThat(totalRecalculado()).isEqualByComparingTo("99.90");
   }
 
   @Test
   @DisplayName("deve considerar apenas a mão de obra quando não há peças lançadas")
-  void deveConsiderarSomenteMaoDeObraQuandoNaoHaPecas() {
-    OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO);
-    when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of());
-    when(maoObraRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of(maoObra("150.00")));
+  void deveConsiderarSomenteMaoDeObra() {
+    pecasDaOs(OFICINA_ID);
+    maoDeObraDaOs(maoObra("150.00"));
 
-    recalculator.recalcular(os);
+    recalculator.recalcular(os(StatusOrdemDeServico.EM_EXECUCAO));
 
-    assertThatBigDecimal(totalRecalculado(), "150.00");
+    assertThat(totalRecalculado()).isEqualByComparingTo("150.00");
   }
 
   @Test
   @DisplayName("deve resultar em zero quando a OS não tem peças nem mão de obra")
-  void deveResultarEmZeroQuandoOsEstaVazia() {
-    OrdemDeServico os = os(StatusOrdemDeServico.ABERTA);
-    when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of());
-    when(maoObraRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of());
+  void deveResultarEmZeroQuandoOsVazia() {
+    pecasDaOs(OFICINA_ID);
+    maoDeObraDaOs();
 
-    recalculator.recalcular(os);
+    recalculator.recalcular(os(StatusOrdemDeServico.ABERTA));
 
-    assertThatBigDecimal(totalRecalculado(), "0");
+    assertThat(totalRecalculado()).isEqualByComparingTo("0");
   }
 
   @Test
   @DisplayName("deve recalcular o status do pagamento depois de atualizar o valor da OS")
   void deveRecalcularStatusDoPagamentoAposAtualizarValor() {
-    OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO);
-    when(itemOsPecaRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of(peca("50.00")));
-    when(maoObraRepository.findByOrdemDeServicoId(OS_ID)).thenReturn(List.of());
+    pecasDaOs(OFICINA_ID, peca("50.00"));
+    maoDeObraDaOs();
 
-    recalculator.recalcular(os);
+    recalculator.recalcular(os(StatusOrdemDeServico.EM_EXECUCAO));
 
     InOrder ordem = inOrder(ordemDeServicoService, pagamentoService);
     ordem.verify(ordemDeServicoService).recalcularValorTotal(eq(OS_ID), any(BigDecimal.class));
     ordem.verify(pagamentoService).recalcularStatus(OS_ID);
+  }
+
+  @Test
+  @DisplayName(
+      "deve buscar as peças usando a oficina da própria OS (não depende do usuário logado)")
+  void deveBuscarPecasUsandoAOficinaDaOs() {
+    Long outraOficina = 7L;
+    pecasDaOs(outraOficina, peca("10.00"));
+    maoDeObraDaOs();
+
+    recalculator.recalcular(os(StatusOrdemDeServico.EM_EXECUCAO, outraOficina));
+
+    verify(itemOsPecaRepository).findByOrdemDeServicoIdAndOficinaId(OS_ID, outraOficina);
+    assertThat(totalRecalculado()).isEqualByComparingTo("10.00");
   }
 
   // ------------------------------------------------------------------
@@ -163,14 +190,8 @@ class OrdemDeServicoValorRecalculatorTest {
   void devePermitirLancamentoNosDemaisStatus(StatusOrdemDeServico status) {
     assertThatCode(() -> recalculator.validarOsEditavel(os(status)))
         .as(
-            "Regra atual: só CANCELADA e FECHADA travam lançamentos. FINALIZADA e"
-                + " ENTREGUE ainda aceitam alteração de peças e mão de obra.")
+            "Regra atual: só CANCELADA e FECHADA travam lançamentos. "
+                + "FINALIZADA e ENTREGUE ainda aceitam alteração de peças e mão de obra.")
         .doesNotThrowAnyException();
-  }
-
-  private static void assertThatBigDecimal(BigDecimal atual, String esperado) {
-    org.assertj.core.api.Assertions.assertThat(atual)
-        .as("valor total recalculado da OS")
-        .isEqualByComparingTo(new BigDecimal(esperado));
   }
 }
