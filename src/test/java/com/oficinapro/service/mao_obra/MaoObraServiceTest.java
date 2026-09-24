@@ -71,7 +71,7 @@ class MaoObraServiceTest {
     maoObra.setId(MAO_OBRA_ID);
     maoObra.setOrdemDeServico(os);
     maoObra.setValor(new BigDecimal(valor));
-    maoObra.setDescricao("Troca de embreagem");
+    maoObra.setDescricao("TROCA DE EMBREAGEM");
     return maoObra;
   }
 
@@ -108,7 +108,7 @@ class MaoObraServiceTest {
       assertThat(resposta.id()).isEqualTo(MAO_OBRA_ID);
       assertThat(resposta.osId()).isEqualTo(OS_ID);
       assertThat(resposta.valor()).isEqualByComparingTo("250.00");
-      assertThat(resposta.descricao()).isEqualTo("Revisão geral");
+      assertThat(resposta.descricao()).isEqualTo("REVISÃO GERAL");
       verify(valorRecalculator).recalcular(os);
     }
 
@@ -176,7 +176,7 @@ class MaoObraServiceTest {
               MAO_OBRA_ID, new MaoObraRequestDTO(OS_ID, new BigDecimal("450.00"), "Revisado"));
 
       assertThat(resposta.valor()).isEqualByComparingTo("450.00");
-      assertThat(resposta.descricao()).isEqualTo("Revisado");
+      assertThat(resposta.descricao()).isEqualTo("REVISADO");
       verify(valorRecalculator).recalcular(os);
     }
 

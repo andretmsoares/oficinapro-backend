@@ -46,7 +46,7 @@ public class MecanicoServiceImpl
   protected Mecanico toEntity(MecanicoRequestDTO request, Oficina oficina) {
     Mecanico mecanico = new Mecanico();
 
-    mecanico.setNome(request.nome());
+    mecanico.setNome(request.nome().toUpperCase());
     mecanico.setDocumento(request.documento());
     mecanico.setTelefone(request.telefone());
     mecanico.setOficina(oficina);
@@ -60,7 +60,7 @@ public class MecanicoServiceImpl
   @Transactional
   protected void applyUpdate(Mecanico mecanico, MecanicoRequestDTO request) {
 
-    mecanico.setNome(request.nome());
+    mecanico.setNome(request.nome().toUpperCase());
     mecanico.setDocumento(request.documento());
     mecanico.setTelefone(request.telefone());
     mecanico.setSalario(request.salario());

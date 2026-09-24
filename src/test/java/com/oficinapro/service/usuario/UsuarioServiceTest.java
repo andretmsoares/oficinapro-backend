@@ -99,7 +99,7 @@ class UsuarioServiceTest {
     // Usuário-alvo já persistido
     usuarioAlvo = new Usuario();
     usuarioAlvo.setId(1L);
-    usuarioAlvo.setNome("Usuario Original");
+    usuarioAlvo.setNome("USUARIO ORIGINAL");
     usuarioAlvo.setTelefone("83988887777");
     usuarioAlvo.setDocumento("12345678901");
     usuarioAlvo.setOficina(oficina);
@@ -187,7 +187,7 @@ class UsuarioServiceTest {
 
     assertThat(resultado).isNotNull();
     assertThat(resultado.id()).isEqualTo(1L);
-    assertThat(resultado.nome()).isEqualTo("Usuario Original");
+    assertThat(resultado.nome()).isEqualTo("USUARIO ORIGINAL");
     assertThat(resultado.username()).isEqualTo("usuario.original");
     assertThat(resultado.role()).isEqualTo(Role.GERENTE);
     assertThat(resultado.oficinaId()).isEqualTo(1L);
@@ -368,7 +368,7 @@ class UsuarioServiceTest {
     assertThat(resultado).isNotNull();
     // applyUpdate modifica usuarioAlvo em lugar; nome e telefone devem refletir o
     // updateRequest
-    assertThat(resultado.nome()).isEqualTo("Usuario Atualizado");
+    assertThat(resultado.nome()).isEqualTo("USUARIO ATUALIZADO");
     assertThat(resultado.username()).isEqualTo("usuario.original");
     assertThat(resultado.role()).isEqualTo(Role.GERENTE);
     assertThat(resultado.oficinaId()).isEqualTo(1L);

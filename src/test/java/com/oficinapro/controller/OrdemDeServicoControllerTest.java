@@ -62,13 +62,16 @@ class OrdemDeServicoControllerTest {
             null,
             StatusOrdemDeServico.ABERTA,
             "Revisão geral",
+            "Cliente",
+            "ABC-1A12",
             BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);
-    requestDTO = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, 1L, "Revisão geral");
+    requestDTO = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, "Revisão geral");
   }
 
-  // ─── POST /api/ordens-servico ─────────────────────────────────────────────────
+  // ─── POST /api/ordens-servico
+  // ─────────────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/ordens-servico - GERENTE deve criar OS e retornar 201")
@@ -100,7 +103,8 @@ class OrdemDeServicoControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  // ─── GET /api/ordens-servico ──────────────────────────────────────────────────
+  // ─── GET /api/ordens-servico
+  // ──────────────────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/ordens-servico - GERENTE deve retornar 200 com lista de OS")
@@ -151,7 +155,8 @@ class OrdemDeServicoControllerTest {
     mockMvc.perform(get("/api/ordens-servico/99")).andExpect(status().isNotFound());
   }
 
-  // ─── PATCH /api/ordens-servico/{id}/status ────────────────────────────────────
+  // ─── PATCH /api/ordens-servico/{id}/status
+  // ────────────────────────────────────
 
   @Test
   @DisplayName(
@@ -170,6 +175,8 @@ class OrdemDeServicoControllerTest {
             null,
             StatusOrdemDeServico.EM_EXECUCAO,
             "Revisão geral",
+            "Cliente",
+            "ABC-1A12",
             BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);

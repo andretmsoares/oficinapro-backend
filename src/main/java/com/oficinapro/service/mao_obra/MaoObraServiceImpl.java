@@ -50,7 +50,7 @@ public class MaoObraServiceImpl implements MaoObraService {
     MaoObra maoObra = new MaoObra();
     maoObra.setOrdemDeServico(os);
     maoObra.setValor(request.valor());
-    maoObra.setDescricao(request.descricao());
+    maoObra.setDescricao(request.descricao().toUpperCase());
 
     maoObra = maoObraRepository.save(maoObra);
 
@@ -70,7 +70,7 @@ public class MaoObraServiceImpl implements MaoObraService {
     // osId do request é ignorado propositalmente: não é permitido
     // mover uma mão de obra para outra OS via update.
     maoObra.setValor(request.valor());
-    maoObra.setDescricao(request.descricao());
+    maoObra.setDescricao(request.descricao().toUpperCase());
 
     maoObra = maoObraRepository.save(maoObra);
 

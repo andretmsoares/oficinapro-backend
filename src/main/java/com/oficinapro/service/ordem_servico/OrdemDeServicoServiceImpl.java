@@ -247,9 +247,9 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Override
   @Transactional
   public OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request) {
-    oficinaAccessValidator.validarAcessoOficina(request.oficinaId());
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    Oficina oficina = oficinaService.buscarPorEntidadeId(request.oficinaId());
+    Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
     Unidade unidade = unidadeService.buscarPorEntidadeId(request.unidadeId());
     Veiculo veiculo = veiculoService.buscarPorEntidadeId(request.veiculoId());
 
@@ -286,8 +286,9 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    if (!Objects.equals(os.getOficina().getId(), request.oficinaId())) {
+    if (!Objects.equals(os.getOficina().getId(), oficinaId)) {
       throw new OSIsNotPossibleSwapWorkshopException();
     }
 
@@ -371,6 +372,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
         os.getDataFechamento(),
         os.getStatus(),
         os.getObs(),
+        os.getCliente() != null ? os.getCliente().getNome() : null,
+        os.getVeiculo().getPlaca(),
         os.getValorTotal(),
         os.getDesconto(),
         os.getValorComDesconto());

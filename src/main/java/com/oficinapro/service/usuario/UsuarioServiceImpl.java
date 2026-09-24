@@ -138,7 +138,7 @@ public class UsuarioServiceImpl
   @Transactional
   protected Usuario toEntity(UsuarioRequestDTO request, Oficina oficina) {
     Usuario usuario = new Usuario();
-    usuario.setNome(request.nome());
+    usuario.setNome(request.nome().toUpperCase());
     usuario.setDocumento(request.documento());
     usuario.setTelefone(request.telefone());
     usuario.setOficina(oficina); // nulo quando role == ADMIN
@@ -151,7 +151,7 @@ public class UsuarioServiceImpl
   @Override
   @Transactional
   protected void applyUpdate(Usuario usuario, UsuarioUpdateRequestDTO request) {
-    usuario.setNome(request.nome());
+    usuario.setNome(request.nome().toUpperCase());
     usuario.setDocumento(request.documento());
     usuario.setTelefone(request.telefone());
     usuario.setUsername(request.username());

@@ -374,10 +374,6 @@ class DtoValidationTest {
     }
   }
 
-  // ==================================================================
-  // Ordem de serviço — unidade passou a ser obrigatória
-  // ==================================================================
-
   @Nested
   @DisplayName("OrdemDeServicoRequestDTO")
   class OrdemDeServicoDto {
@@ -385,8 +381,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita uma OS válida")
     void aceitaOsValida() {
-      OrdemDeServicoRequestDTO dto =
-          new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, 1L, "Revisão geral");
+      OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, "Revisão geral");
 
       assertThat(camposInvalidos(dto)).isEmpty();
     }
@@ -394,7 +389,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa OS sem unidade")
     void recusaOsSemUnidade() {
-      OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(1L, null, 1L, 1L, 1L, "obs");
+      OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(null, 1L, 1L, 1L, "obs");
 
       assertThat(camposInvalidos(dto))
           .as(
@@ -407,7 +402,7 @@ class DtoValidationTest {
     @DisplayName("cliente e mecânico continuam opcionais")
     void clienteEMecanicoSaoOpcionais() {
       OrdemDeServicoRequestDTO dto =
-          new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "veículo sem dono identificado");
+          new OrdemDeServicoRequestDTO(1L, 1L, null, null, "veículo sem dono identificado");
 
       assertThat(camposInvalidos(dto))
           .as("a OS pode nascer antes de se saber quem é o proprietário")
@@ -415,11 +410,11 @@ class DtoValidationTest {
     }
 
     @Test
-    @DisplayName("recusa OS sem oficina e sem veículo")
+    @DisplayName("recusa OS sem veículo")
     void recusaOsSemOficinaESemVeiculo() {
-      OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(null, 1L, null, 1L, 1L, "obs");
+      OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(1L, null, 1L, 1L, "obs");
 
-      assertThat(camposInvalidos(dto)).contains("oficinaId", "veiculoId");
+      assertThat(camposInvalidos(dto)).contains("veiculoId");
     }
   }
 }

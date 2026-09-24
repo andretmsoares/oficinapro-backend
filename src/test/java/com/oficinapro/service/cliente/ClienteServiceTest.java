@@ -68,7 +68,7 @@ class ClienteServiceTest {
     // Oficina compartilhada (id = 1)
     oficina = new Oficina();
     oficina.setId(1L);
-    oficina.setNome("Oficina Test");
+    oficina.setNome("OFICINA TEST");
     oficina.setCnpj("12345678000195");
     oficina.setTelefone("83999999999");
 
@@ -84,7 +84,7 @@ class ClienteServiceTest {
     // Cliente pertencente à oficina 1
     cliente = new Cliente();
     cliente.setId(1L);
-    cliente.setNome("João Silva");
+    cliente.setNome("JOÃO SILVA");
     cliente.setTelefone("83988887777");
     cliente.setDocumento("12345678901");
     cliente.setOficina(oficina);
@@ -127,7 +127,7 @@ class ClienteServiceTest {
 
     assertThat(resultado).isNotNull();
     assertThat(resultado.id()).isEqualTo(1L);
-    assertThat(resultado.nome()).isEqualTo("João Silva");
+    assertThat(resultado.nome()).isEqualTo("JOÃO SILVA");
     assertThat(resultado.documento()).isEqualTo("12345678901");
     assertThat(resultado.oficinaId()).isEqualTo(1L);
   }
@@ -148,13 +148,13 @@ class ClienteServiceTest {
     // Cliente pertence à oficina 2; usuário logado é da oficina 1
     Oficina outraOficina = new Oficina();
     outraOficina.setId(2L);
-    outraOficina.setNome("Outra Oficina");
+    outraOficina.setNome("OUTRA OFICINA");
     outraOficina.setCnpj("11222333000181");
     outraOficina.setTelefone("83977776666");
 
     Cliente clienteDeOutraOficina = new Cliente();
     clienteDeOutraOficina.setId(5L);
-    clienteDeOutraOficina.setNome("Cliente Alheio");
+    clienteDeOutraOficina.setNome("CLIENTE ALHEIO");
     clienteDeOutraOficina.setDocumento("98765432100");
     clienteDeOutraOficina.setOficina(outraOficina);
 
@@ -178,7 +178,7 @@ class ClienteServiceTest {
   void criar_comoAdmin_sucesso() {
     Cliente salvo = new Cliente();
     salvo.setId(1L);
-    salvo.setNome("João Silva");
+    salvo.setNome("JOÃO SILVA");
     salvo.setTelefone("83988887777");
     salvo.setDocumento("12345678901");
     salvo.setOficina(oficina);
@@ -192,7 +192,7 @@ class ClienteServiceTest {
 
     assertThat(resultado).isNotNull();
     assertThat(resultado.id()).isEqualTo(1L);
-    assertThat(resultado.nome()).isEqualTo("João Silva");
+    assertThat(resultado.nome()).isEqualTo("JOÃO SILVA");
     assertThat(resultado.documento()).isEqualTo("12345678901");
     assertThat(resultado.oficinaId()).isEqualTo(1L);
 
@@ -264,7 +264,7 @@ class ClienteServiceTest {
 
     assertThat(resultado).isNotNull();
     // applyUpdate modifica o objeto cliente em lugar; o nome deve ter sido atualizado
-    assertThat(resultado.nome()).isEqualTo("João Atualizado");
+    assertThat(resultado.nome()).isEqualTo("JOÃO ATUALIZADO");
     verify(clienteRepository, times(1)).save(any(Cliente.class));
   }
 

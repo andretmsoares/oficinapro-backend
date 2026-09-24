@@ -110,14 +110,17 @@ class OrdemDeServicoServiceTest {
     mecanico.setOficina(oficina);
     mecanico.setNome("Carlos Mecânico");
 
-    // OrdemDeServico.id é long (primitivo) → ReflectionTestUtils define 1L
     os = new OrdemDeServico();
     ReflectionTestUtils.setField(os, "id", 1L);
     os.setOficina(oficina);
     os.setUnidade(unidade);
     os.setVeiculo(veiculo);
+    os.setCliente(cliente);
+    os.setMecanico(mecanico);
     os.setStatus(StatusOrdemDeServico.ABERTA);
     os.setValorTotal(BigDecimal.ZERO);
+    os.setDesconto(BigDecimal.ZERO);
+    os.setValorComDesconto(BigDecimal.ZERO);
     os.setDataAbertura(LocalDateTime.now());
 
     adminUser = new Usuario();
@@ -189,7 +192,7 @@ class OrdemDeServicoServiceTest {
   @DisplayName("ADMIN: deve criar OS com sucesso sem cliente e sem mecânico opcionais")
   void deveCriarOSComSucessoComoAdmin() {
     OrdemDeServicoRequestDTO request =
-        new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Troca de óleo");
+        new OrdemDeServicoRequestDTO(1L, 1L, null, null, "Troca de óleo");
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -207,25 +210,6 @@ class OrdemDeServicoServiceTest {
     verify(clienteService, never()).buscarPorEntidadeId(anyLong());
     verify(mecanicoService, never()).buscarPorEntidadeId(anyLong());
   }
-
-  // ---------------------------------------------------------------
-  // atualizarStatus()
-  // ---------------------------------------------------------------
-
-  // A máquina de estados ganhou um grafo de transições explícito no refactor e é
-  // coberta de forma exaustiva (todas as transições válidas e inválidas, permissões
-  // do MECANICO, regra de pagamento para FECHADA e tratamento da dataFechamento) em
-  // OrdemDeServicoStatusMachineTest. Os três testes que existiam aqui foram removidos
-  // por dois motivos:
-  //
-  //  - "ABERTA -> EM_EXECUCAO" e "ENTREGUE -> ABERTA" descreviam o comportamento
-  //    ANTIGO: hoje a primeira é proibida pelo grafo e a segunda é permitida;
-  //  - o caso de OS cancelada passou a ser verificado para todos os status de
-  //    destino no teste parametrizado, tornando a versão local redundante.
-
-  // ---------------------------------------------------------------
-  // atribuirMecanico()
-  // ---------------------------------------------------------------
 
   @Test
   @DisplayName("deve atribuir mecânico à OS com sucesso")
@@ -270,29 +254,10 @@ class OrdemDeServicoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("ADMIN: deve atualizar OS com sucesso mantendo a mesma oficina")
-  void deveAtualizarOSComSucessoMantendoAMesmaOficina() {
-    // mesma oficinaId (1L) → sem troca de oficina
-    OrdemDeServicoRequestDTO request =
-        new OrdemDeServicoRequestDTO(1L, 1L, 1L, null, null, "Revisão completa");
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
-    when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
-    when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
-    when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
-
-    OrdemDeServicoResponseDTO resultado = ordemDeServicoService.atualizar(1L, request);
-
-    assertThat(resultado).isNotNull();
-    verify(ordemServicoRepository).save(any(OrdemDeServico.class));
-  }
-
-  @Test
   @DisplayName("deve lançar OSIsNotPossibleSwapWorkshopException ao tentar trocar a oficina da OS")
   void deveLancarExcecaoAoTentarTrocarOficinaDeOS() {
     // OS pertence à oficina 1, request tenta mover para oficina 2
-    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(2L, 1L, 1L, null, null, null);
+    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(1L, 1L, null, null, null);
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));

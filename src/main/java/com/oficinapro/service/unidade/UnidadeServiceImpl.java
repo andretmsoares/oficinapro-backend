@@ -69,7 +69,7 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     Unidade unidade = new Unidade();
     unidade.setOficina(oficina);
-    unidade.setNome(request.nome());
+    unidade.setNome(request.nome().toUpperCase());
     unidade.setEndereco(request.endereco());
     unidade.setTelefone(request.telefone());
 
@@ -96,7 +96,7 @@ public class UnidadeServiceImpl implements UnidadeService {
       throw new EnderecoAlreadyExistsException(request.endereco());
     }
 
-    unidade.setNome(request.nome());
+    unidade.setNome(request.nome().toUpperCase());
     unidade.setEndereco(request.endereco());
     unidade.setTelefone(request.telefone());
 

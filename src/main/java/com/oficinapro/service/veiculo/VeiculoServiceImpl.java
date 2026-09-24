@@ -82,9 +82,9 @@ public class VeiculoServiceImpl implements VeiculoService {
 
     Veiculo veiculo = new Veiculo();
     veiculo.setOficina(oficina);
-    veiculo.setModelo(request.modelo());
+    veiculo.setModelo(request.modelo().toUpperCase());
     veiculo.setAno(request.ano());
-    veiculo.setMarca(request.marca());
+    veiculo.setMarca(request.marca().toUpperCase());
     veiculo.setPlaca(placa);
 
     Veiculo saved = veiculoRepository.save(veiculo);
@@ -105,9 +105,9 @@ public class VeiculoServiceImpl implements VeiculoService {
       throw new PlacaAlreadyExistsException(placa);
     }
 
-    veiculo.setModelo(request.modelo());
+    veiculo.setModelo(request.modelo().toUpperCase());
     veiculo.setAno(request.ano());
-    veiculo.setMarca(request.marca());
+    veiculo.setMarca(request.marca().toUpperCase());
     veiculo.setPlaca(placa);
 
     Veiculo updated = veiculoRepository.save(veiculo);

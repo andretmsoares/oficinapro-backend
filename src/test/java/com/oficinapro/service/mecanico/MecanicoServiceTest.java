@@ -299,7 +299,7 @@ class MecanicoServiceTest {
     MecanicoResponseDTO resultado = service.atualizar(1L, requestAtualizar);
 
     assertThat(resultado).isNotNull();
-    assertThat(resultado.nome()).isEqualTo("Carlos Atualizado");
+    assertThat(resultado.nome()).isEqualTo("CARLOS ATUALIZADO");
     assertThat(resultado.salario()).isEqualByComparingTo(BigDecimal.valueOf(4000.00));
 
     verify(mecanicoRepository).save(any(Mecanico.class));

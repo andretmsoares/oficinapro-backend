@@ -15,6 +15,8 @@ public record OrdemDeServicoResponseDTO(
     LocalDateTime dataFechamento,
     StatusOrdemDeServico status,
     String obs,
+    String nomeCliente,
+    String placaVeiculo,
     BigDecimal valorTotal,
     BigDecimal desconto,
     BigDecimal valorComDesconto) {}
