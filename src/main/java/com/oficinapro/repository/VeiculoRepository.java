@@ -19,7 +19,7 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
 
   boolean existsByOficinaIdAndPlacaAndIdNot(Long oficinaId, String placa, Long id);
 
-  long countByOficinaId(Long oficinaId);
+  Integer countByOficinaId(Long oficinaId);
 
   // LEFT JOIN a partir de Oficina para que oficina sem nenhum registro apareça
   // com zero, em vez de sumir do relatório.

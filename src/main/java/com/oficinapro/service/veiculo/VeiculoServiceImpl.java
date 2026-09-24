@@ -36,6 +36,13 @@ public class VeiculoServiceImpl implements VeiculoService {
 
   @Override
   @Transactional(readOnly = true)
+  public Integer count() {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return veiculoRepository.countByOficinaId(oficinaId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public Veiculo buscarPorEntidadeId(Long id) {
     Veiculo veiculo =
         veiculoRepository.findById(id).orElseThrow(() -> new VeiculoNotFoundException(id));

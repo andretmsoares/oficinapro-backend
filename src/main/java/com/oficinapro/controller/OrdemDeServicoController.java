@@ -104,7 +104,7 @@ public class OrdemDeServicoController {
         description = "Sem permissão, ou tentativa de acessar oficina de outro tenant")
   })
   @GetMapping("/fluxo-mensal")
-  @PreAuthorize("hasAnyRole('GERENTE')")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<List<FluxoMensalOSResponseDTO>> fluxoMensal(
       @Parameter(description = "Mês, de 1 a 12") @RequestParam int mes,
       @Parameter(description = "Ano com 4 dígitos") @RequestParam int ano) {

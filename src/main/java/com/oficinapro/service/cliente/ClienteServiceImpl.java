@@ -92,4 +92,10 @@ public class ClienteServiceImpl
   protected RuntimeException alreadyExistsException() {
     return new ClienteAlreadyExistsException();
   }
+
+  @Override
+  public Integer count() {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ((ClienteRepository) repository).countByOficinaId(oficinaId);
+  }
 }
