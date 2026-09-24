@@ -8,7 +8,9 @@ import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.pagamento.*;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
+import com.oficinapro.model.RegistroPagamento;
 import com.oficinapro.repository.PagamentoRepository;
+import com.oficinapro.repository.RegistroPagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import java.math.BigDecimal;
@@ -25,6 +27,7 @@ public class PagamentoServiceImpl implements PagamentoService {
   private final PagamentoRepository repository;
   private final OrdemDeServicoService ordemDeServicoService;
   private final OficinaAccessValidator oficinaAccessValidator;
+  private final RegistroPagamentoRepository registroPagamentoRepository;
 
   @Override
   @Transactional
@@ -161,6 +164,16 @@ public class PagamentoServiceImpl implements PagamentoService {
     }
 
     repository.save(pagamento);
+  }
+
+  @Override
+  public void deletar(Long id) {
+    Pagamento pagamento = buscarEntidadePorId(id);
+    List<RegistroPagamento> registros = registroPagamentoRepository.findByPagamentoId(id);
+    for (RegistroPagamento r : registros) {
+      registroPagamentoRepository.delete(r);
+    }
+    repository.delete(pagamento);
   }
 
   /**

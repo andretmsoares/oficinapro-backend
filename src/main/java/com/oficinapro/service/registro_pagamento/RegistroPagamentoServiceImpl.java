@@ -23,7 +23,6 @@ public class RegistroPagamentoServiceImpl implements RegistroPagamentoService {
   @Override
   @Transactional(readOnly = true)
   public List<RegistroPagamentoResponseDTO> listarPorPagamento(Long pagamentoId) {
-
     pagamentoService.buscarEntidadePorId(pagamentoId);
 
     return registroPagamentoRepository.findByPagamentoId(pagamentoId).stream()

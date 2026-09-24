@@ -32,4 +32,6 @@ public interface PagamentoService {
 
   @Transactional
   void recalcularStatus(Long pagamentoId);
+
+  void deletar(Long id);
 }

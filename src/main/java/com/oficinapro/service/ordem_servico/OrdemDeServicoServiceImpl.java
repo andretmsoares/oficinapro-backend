@@ -320,6 +320,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     if (comparacao > 0) {
       throw new OrdemDeServicoImpossibleDeleteException();
     }
+    pagamentoService.deletar(pagamento.id());
     ordemServicoRepository.delete(os);
   }
 
