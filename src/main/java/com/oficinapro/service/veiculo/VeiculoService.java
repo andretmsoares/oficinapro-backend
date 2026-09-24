@@ -21,4 +21,6 @@ public interface VeiculoService {
   VeiculoResponseDTO atualizar(Long id, VeiculoRequestDTO request);
 
   void deletar(Long id);
+
+  Integer count();
 }

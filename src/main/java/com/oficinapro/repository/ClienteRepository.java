@@ -8,10 +8,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ClienteRepository extends PessoaCrudRepository<Cliente> {
-  long countByOficinaId(Long oficinaId);
+  Integer countByOficinaId(Long oficinaId);
 
-  // LEFT JOIN a partir de Oficina para que oficina sem nenhum registro apareça
-  // com zero, em vez de sumir do relatório.
   @Query(
       "select new com.oficinapro.dto.estatisticas.ContagemPorOficinaDTO(o.id, o.nome, count(c.id))"
           + " from Oficina o left join Cliente c on c.oficina = o"
