@@ -2,6 +2,7 @@ package com.oficinapro.service.pagamento;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.model.Pagamento;
 import java.math.BigDecimal;
@@ -23,7 +24,7 @@ public interface PagamentoService {
 
   Pagamento buscarEntidadePorId(Long id);
 
-  PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request);
+  PagamentoResponseDTO atualizar(Long id, PagamentoUpdateRequestDTO request);
 
   PagamentoResponseDTO atualizarValorPago(Long id, BigDecimal valor);
 

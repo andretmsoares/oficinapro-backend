@@ -159,7 +159,8 @@ class OrdemDeServicoStatusMachineTest {
   private void pagamentoComStatus(StatusPagamento status, BigDecimal valorPago) {
     when(pagamentoService.buscarPorOsId(OS_ID))
         .thenReturn(
-            new PagamentoResponseDTO(50L, OS_ID, valorPago, "", LocalDateTime.now(), status));
+            new PagamentoResponseDTO(
+                50L, OS_ID, valorPago, valorPago, valorPago, "", LocalDateTime.now(), status));
   }
 
   // ------------------------------------------------------------------

@@ -1,7 +1,7 @@
 package com.oficinapro.controller;
 
-import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.service.pagamento.PagamentoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +13,6 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,32 +24,6 @@ import org.springframework.web.bind.annotation.*;
 public class PagamentoController {
 
   private final PagamentoService pagamentoService;
-
-  @Operation(
-      summary = "Criar pagamento para uma OS",
-      description =
-          "Cria o pagamento de uma ordem de serviço, sempre com valorPago = 0 e status"
-              + " PAGAMENTO_PENDENTE — o valor pago não vem do corpo da requisição, só de"
-              + " recebimentos posteriores. Um pagamento é criado automaticamente ao"
-              + " abrir a OS; este endpoint normalmente não precisa ser chamado no fluxo"
-              + " comum.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "201", description = "Pagamento criado com sucesso"),
-    @ApiResponse(responseCode = "400", description = "Dados inválidos (ver campo 'fields')"),
-    @ApiResponse(responseCode = "401", description = "Não autenticado"),
-    @ApiResponse(responseCode = "403", description = "Sem permissão"),
-    @ApiResponse(
-        responseCode = "404",
-        description = "OS não encontrada, ou pertence a outra oficina"),
-    @ApiResponse(responseCode = "409", description = "A OS já possui um pagamento (relação 1:1)")
-  })
-  @PostMapping
-  @PreAuthorize("hasAnyRole('GERENTE')")
-  public ResponseEntity<PagamentoResponseDTO> criar(
-      @Valid @RequestBody PagamentoRequestDTO request) {
-    PagamentoResponseDTO response = pagamentoService.criar(request);
-    return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
 
   @Operation(summary = "Buscar pagamento por ID", description = "Busca um pagamento pelo ID.")
   @ApiResponses({
@@ -165,7 +138,7 @@ public class PagamentoController {
   @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<PagamentoResponseDTO> atualizar(
       @Parameter(description = "ID do pagamento") @PathVariable Long id,
-      @Valid @RequestBody PagamentoRequestDTO request) {
+      @Valid @RequestBody PagamentoUpdateRequestDTO request) {
     return ResponseEntity.ok(pagamentoService.atualizar(id, request));
   }
 }

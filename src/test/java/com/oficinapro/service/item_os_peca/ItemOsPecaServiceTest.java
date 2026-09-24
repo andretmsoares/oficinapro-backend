@@ -132,6 +132,8 @@ class ItemOsPecaServiceTest {
         50L,
         OS_ID,
         new BigDecimal(valorPago),
+        new BigDecimal(valorPago),
+        new BigDecimal(valorPago),
         "",
         LocalDateTime.now(),
         StatusPagamento.PAGO_PARCIALMENTE);

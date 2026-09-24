@@ -2,6 +2,7 @@ package com.oficinapro.service.pagamento;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.pagamento.*;
@@ -48,7 +49,7 @@ public class PagamentoServiceImpl implements PagamentoService {
 
   @Override
   @Transactional
-  public PagamentoResponseDTO atualizar(Long id, PagamentoRequestDTO request) {
+  public PagamentoResponseDTO atualizar(Long id, PagamentoUpdateRequestDTO request) {
 
     oficinaAccessValidator.validarRole(Role.GERENTE);
 
@@ -199,7 +200,9 @@ public class PagamentoServiceImpl implements PagamentoService {
     return new PagamentoResponseDTO(
         pagamento.getId(),
         pagamento.getOrdemDeServico().getId(),
+        pagamento.getOrdemDeServico().getValorComDesconto(),
         pagamento.getValorPago(),
+        pagamento.getOrdemDeServico().getValorComDesconto().subtract(pagamento.getValorPago()),
         pagamento.getObs(),
         pagamento.getDataPagamentoTotal(),
         pagamento.getStatus());

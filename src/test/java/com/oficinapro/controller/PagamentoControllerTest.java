@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,7 +15,6 @@ import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.GlobalExceptionHandler;
-import com.oficinapro.exception.pagamento.PagamentoAlreadyExistsException;
 import com.oficinapro.exception.pagamento.PagamentoNotFoundException;
 import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.service.pagamento.PagamentoService;
@@ -58,6 +56,8 @@ class PagamentoControllerTest {
         10L,
         1L,
         new BigDecimal("100.00"),
+        new BigDecimal("100.00"),
+        new BigDecimal("100.00"),
         "obs",
         LocalDateTime.now(),
         StatusPagamento.PAGAMENTO_PENDENTE);
@@ -65,100 +65,6 @@ class PagamentoControllerTest {
 
   private String json(Object body) throws Exception {
     return objectMapper.writeValueAsString(body);
-  }
-
-  // ---------------------------------------------------------
-  // POST /api/pagamentos
-  // ---------------------------------------------------------
-
-  @Test
-  @WithMockUser(roles = "GERENTE")
-  @DisplayName("POST /api/pagamentos - GERENTE cria pagamento e recebe 201")
-  void criar_gerente_retorna201() throws Exception {
-    when(pagamentoService.criar(any())).thenReturn(responseDTO());
-
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content(json(new PagamentoRequestDTO(1L, "obs"))))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").value(10))
-        .andExpect(jsonPath("$.osId").value(1))
-        .andExpect(jsonPath("$.status").value("PAGAMENTO_PENDENTE"));
-  }
-
-  @Test
-  @WithMockUser(roles = "MECANICO")
-  @DisplayName("POST /api/pagamentos - MECANICO recebe 403")
-  void criar_mecanico_retorna403() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content(json(new PagamentoRequestDTO(1L, "obs"))))
-        .andExpect(status().isForbidden());
-
-    verify(pagamentoService, never()).criar(any());
-  }
-
-  @Test
-  @WithMockUser(roles = "ADMIN")
-  @DisplayName("POST /api/pagamentos - ADMIN do SaaS recebe 403: pagamento é dado da oficina")
-  void criar_admin_retorna403() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content(json(new PagamentoRequestDTO(1L, "obs"))))
-        .andExpect(status().isForbidden());
-
-    verify(pagamentoService, never()).criar(any());
-  }
-
-  @Test
-  @WithMockUser(roles = "GERENTE")
-  @DisplayName("POST /api/pagamentos - osId ausente recebe 400 com detalhe do campo")
-  void criar_semOsId_retorna400() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content(json(new PagamentoRequestDTO(null, "obs"))))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.fields.osId").exists());
-  }
-
-  @Test
-  @WithMockUser(roles = "GERENTE")
-  @DisplayName("POST /api/pagamentos - segundo pagamento para a mesma OS recebe 409")
-  void criar_pagamentoDuplicado_retorna409() throws Exception {
-    when(pagamentoService.criar(any())).thenThrow(new PagamentoAlreadyExistsException());
-
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content(json(new PagamentoRequestDTO(1L, "obs"))))
-        .andExpect(status().isConflict());
-  }
-
-  @Test
-  @WithMockUser(roles = "GERENTE")
-  @DisplayName("POST /api/pagamentos - corpo JSON malformado recebe 400")
-  void criar_corpoInvalido_retorna400() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/pagamentos")
-                .with(csrf())
-                .contentType("application/json")
-                .content("{ isso nao e json }"))
-        .andExpect(status().isBadRequest());
   }
 
   // ---------------------------------------------------------
