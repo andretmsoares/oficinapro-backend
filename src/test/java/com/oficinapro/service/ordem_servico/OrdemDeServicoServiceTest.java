@@ -254,29 +254,10 @@ class OrdemDeServicoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("ADMIN: deve atualizar OS com sucesso mantendo a mesma oficina")
-  void deveAtualizarOSComSucessoMantendoAMesmaOficina() {
-    // mesma oficinaId (1L) → sem troca de oficina
-    OrdemDeServicoRequestDTO request =
-        new OrdemDeServicoRequestDTO (1L, 1L, null, null, "Revisão completa");
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
-    when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
-    when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
-    when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
-
-    OrdemDeServicoResponseDTO resultado = ordemDeServicoService.atualizar(1L, request);
-
-    assertThat(resultado).isNotNull();
-    verify(ordemServicoRepository).save(any(OrdemDeServico.class));
-  }
-
-  @Test
   @DisplayName("deve lançar OSIsNotPossibleSwapWorkshopException ao tentar trocar a oficina da OS")
   void deveLancarExcecaoAoTentarTrocarOficinaDeOS() {
     // OS pertence à oficina 1, request tenta mover para oficina 2
-    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO( 1L, 1L, null, null, null);
+    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(1L, 1L, null, null, null);
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));

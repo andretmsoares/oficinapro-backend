@@ -130,14 +130,11 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   public RES criar(C request) {
     Long oficinaId = extractOficinaIdCreate(request);
 
-    
     if (oficinaId != null) {
       oficinaAccessValidator.validarAcessoOficina(oficinaId);
     }
 
-
     Oficina oficina = oficinaId == null ? null : oficinaService.buscarPorEntidadeId(oficinaId);
-
 
     if (oficinaId != null
         && pessoaService.existsByOficinaIdAndDocumento(
@@ -159,7 +156,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     T entity = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
     Long oficinaId = extractOficinaIdUpdate(request);
-    
+
     if (oficinaId != null) {
       oficinaAccessValidator.validarAcessoOficina(oficinaId);
       oficinaService.buscarPorEntidadeId(oficinaId);

@@ -67,7 +67,7 @@ class OrdemDeServicoControllerTest {
             BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);
-    requestDTO = new OrdemDeServicoRequestDTO( 1L, 1L, 1L, 1L, "Revisão geral");
+    requestDTO = new OrdemDeServicoRequestDTO(1L, 1L, 1L, 1L, "Revisão geral");
   }
 
   // ─── POST /api/ordens-servico

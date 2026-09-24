@@ -113,7 +113,7 @@ class ItemOsPecaServiceTest {
     item.setId(ITEM_ID);
     item.setOficina(oficina(OFICINA_ID));
     item.setOrdemDeServico(os);
-    item.setNome("Pastilha de freio");
+    item.setNome("PASTILHA DE FREIO");
     item.setQuantidade(new BigDecimal(quantidade));
     item.setValorUnitario(new BigDecimal(valorUnitario));
     item.setValorTotal(
@@ -232,7 +232,7 @@ class ItemOsPecaServiceTest {
 
       assertThat(resposta.id()).isEqualTo(ITEM_ID);
       assertThat(resposta.osId()).isNull();
-      assertThat(resposta.nome()).isEqualTo("Pastilha de freio");
+      assertThat(resposta.nome()).isEqualTo("PASTILHA DE FREIO");
       assertThat(resposta.valorTotal()).isEqualByComparingTo("240.00");
 
       ItemOsPeca salvo = itemSalvo();
@@ -371,7 +371,7 @@ class ItemOsPecaServiceTest {
       ItemOsPecaResponseDTO resposta =
           service.atualizar(ITEM_ID, update("Pastilha premium", "4", "150.00"));
 
-      assertThat(resposta.nome()).isEqualTo("Pastilha premium");
+      assertThat(resposta.nome()).isEqualTo("PASTILHA PREMIUM");
       assertThat(resposta.quantidade()).isEqualByComparingTo("4");
       assertThat(resposta.valorUnitario()).isEqualByComparingTo("150.00");
       assertThat(resposta.valorTotal()).isEqualByComparingTo("600.00");
