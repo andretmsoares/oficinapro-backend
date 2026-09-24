@@ -130,29 +130,15 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
   public RES criar(C request) {
     Long oficinaId = extractOficinaIdCreate(request);
 
-    // Sem esta validação um GERENTE conseguia criar registros dentro de QUALQUER
-    // oficina, bastando informar outro oficinaId no corpo da requisição: o método
-    // apenas resolvia a oficina e salvava. A checagem vem antes de resolver a
-    // oficina para que sondar ids alheios devolva 403, e não 404 (que confirmaria
-    // ou negaria a existência da oficina).
-    //
-    // oficinaId nulo fica de fora: é a criação do ADMIN do SaaS. Validar aqui
-    // negaria o GERENTE com "só pode acessar sua própria oficina", escondendo o
-    // motivo real, que o validateBeforeCreate informa com precisão ("apenas ADMIN
-    // pode criar outro ADMIN").
+    
     if (oficinaId != null) {
       oficinaAccessValidator.validarAcessoOficina(oficinaId);
     }
 
-    // oficinaId nulo é um caso legítimo: o ADMIN do SaaS não pertence a nenhuma
-    // oficina. Resolver a oficina sem esse guard chamaria findById(null), que o
-    // Spring Data rejeita com InvalidDataAccessApiUsageException e tornaria
-    // impossível criar um ADMIN. Quem valida a coerência entre role e oficina é
-    // o validateBeforeCreate de cada subclasse.
+
     Oficina oficina = oficinaId == null ? null : oficinaService.buscarPorEntidadeId(oficinaId);
 
-    // Sem oficina não há escopo de unicidade: a constraint do banco é
-    // (oficina_id, documento) e no Postgres NULL não colide com NULL.
+
     if (oficinaId != null
         && pessoaService.existsByOficinaIdAndDocumento(
             oficinaId, extractDocumentoCreate(request))) {
@@ -162,6 +148,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     validateBeforeCreate(request);
 
     T entity = toEntity(request, oficina);
+    entity.setNome(entity.getNome().toUpperCase());
     entity = repository.save(entity);
     return toResponse(entity);
   }
@@ -172,13 +159,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     T entity = buscarPorEntidadeId(id); // já valida acesso ao registro atual
 
     Long oficinaId = extractOficinaIdUpdate(request);
-    // Valida também a oficina de destino (evita "mover" o registro pra outra oficina
-    // indevidamente). Quem eventualmente precisa reatribuir a oficina faz isso no
-    // próprio applyUpdate.
-    //
-    // Quando oficinaId vem nulo o registro passa a não ter oficina — é o caso da
-    // promoção para ADMIN do SaaS. Aqui não há oficina de destino para validar, e
-    // chamar findById(null) quebraria a operação.
+    
     if (oficinaId != null) {
       oficinaAccessValidator.validarAcessoOficina(oficinaId);
       oficinaService.buscarPorEntidadeId(oficinaId);
@@ -193,6 +174,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     validateBeforeUpdate(id, request);
 
     applyUpdate(entity, request);
+    entity.setNome(entity.getNome().toUpperCase());
     repository.save(entity);
     return toResponse(entity);
   }

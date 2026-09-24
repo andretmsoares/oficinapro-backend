@@ -42,7 +42,7 @@ public class ClienteServiceImpl
   @Transactional
   protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
     Cliente cliente = new Cliente();
-    cliente.setNome(request.nome());
+    cliente.setNome(request.nome().toUpperCase());
     cliente.setDocumento(request.documento());
     cliente.setTelefone(request.telefone());
     cliente.setOficina(oficina);
@@ -52,7 +52,7 @@ public class ClienteServiceImpl
   @Override
   @Transactional
   protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
-    cliente.setNome(request.nome());
+    cliente.setNome(request.nome().toUpperCase());
     cliente.setDocumento(request.documento());
     cliente.setTelefone(request.telefone());
   }

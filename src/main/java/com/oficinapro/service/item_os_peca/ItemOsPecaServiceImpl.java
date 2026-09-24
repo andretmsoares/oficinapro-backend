@@ -73,7 +73,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     ItemOsPeca item = new ItemOsPeca();
     item.setOficina(oficina);
     item.setOrdemDeServico(os);
-    item.setNome(request.nome());
+    item.setNome(request.nome().toUpperCase());
     item.setQuantidade(request.quantidade());
     item.setValorUnitario(request.valorUnitario());
     item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
@@ -107,7 +107,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
       }
     }
 
-    item.setNome(request.nome());
+    item.setNome(request.nome().toUpperCase());
     item.setQuantidade(request.quantidade());
     item.setValorUnitario(request.valorUnitario());
     item.setValorTotal(novoValor);

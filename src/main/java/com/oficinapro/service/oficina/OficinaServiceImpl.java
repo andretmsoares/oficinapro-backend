@@ -78,7 +78,7 @@ public class OficinaServiceImpl implements OficinaService {
 
     Oficina oficina = new Oficina();
 
-    oficina.setNome(request.nome());
+    oficina.setNome(request.nome().toUpperCase());
     oficina.setCnpj(request.cnpj());
     oficina.setTelefone(request.telefone());
 
@@ -102,7 +102,7 @@ public class OficinaServiceImpl implements OficinaService {
       throw new CnpjAlreadyExistsException(request.cnpj());
     }
 
-    oficina.setNome(request.nome());
+    oficina.setNome(request.nome().toUpperCase());
     oficina.setCnpj(request.cnpj());
     oficina.setTelefone(request.telefone());
 
