@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 public record PagamentoResponseDTO(
     Long id,
     Long osId,
+    BigDecimal valorTotal,
     BigDecimal valorPago,
+    BigDecimal valorPendente,
     String obs,
     LocalDateTime dataPagamentoTotal,
     StatusPagamento status) {}
