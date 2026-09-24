@@ -278,6 +278,8 @@ class OrdemDeServicoServiceTest {
         50L,
         1L,
         new BigDecimal(valorPago),
+        new BigDecimal(valorPago),
+        new BigDecimal(valorPago),
         "",
         null,
         com.oficinapro.enums.StatusPagamento.PAGAMENTO_PENDENTE);
