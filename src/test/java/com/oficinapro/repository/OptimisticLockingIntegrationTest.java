@@ -73,6 +73,7 @@ class OptimisticLockingIntegrationTest {
     veiculo.setModelo("Civic");
     veiculo.setMarca("Honda");
     veiculo.setAno(2020);
+    veiculo.setCor("Azul");
     veiculo.setPlaca("ABC1D23");
     entityManager.persist(veiculo);
 

@@ -38,4 +38,7 @@ public class Veiculo {
 
   @Column(nullable = false, length = 10)
   private String placa;
+
+  @Column(nullable = false, length = 50)
+  private String cor;
 }
