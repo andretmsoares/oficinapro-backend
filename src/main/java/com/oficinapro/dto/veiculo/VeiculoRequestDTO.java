@@ -8,6 +8,9 @@ public record VeiculoRequestDTO(
         String modelo,
     @Min(value = 1900, message = "Ano deve ser maior ou igual a 1900") Integer ano,
     @Size(max = 100, message = "Marca deve ter no máximo 100 caracteres") String marca,
+    @Size(max = 50, message = "Cor deve ter no máximo 50 caracteres")
+        @NotBlank(message = "Cor é obrigatória")
+        String cor,
     @NotBlank(message = "Placa é obrigatória")
         @Pattern(
             regexp = "^[A-Za-z]{3}-?\\d[A-Za-z0-9]\\d{2}$",

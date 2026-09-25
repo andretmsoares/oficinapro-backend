@@ -92,6 +92,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     veiculo.setModelo(request.modelo().toUpperCase());
     veiculo.setAno(request.ano());
     veiculo.setMarca(request.marca().toUpperCase());
+    veiculo.setCor(request.cor().toUpperCase());
     veiculo.setPlaca(placa);
 
     Veiculo saved = veiculoRepository.save(veiculo);
@@ -116,6 +117,7 @@ public class VeiculoServiceImpl implements VeiculoService {
     veiculo.setAno(request.ano());
     veiculo.setMarca(request.marca().toUpperCase());
     veiculo.setPlaca(placa);
+    veiculo.setCor(request.cor().toUpperCase());
 
     Veiculo updated = veiculoRepository.save(veiculo);
 
@@ -136,6 +138,7 @@ public class VeiculoServiceImpl implements VeiculoService {
         veiculo.getModelo(),
         veiculo.getAno(),
         veiculo.getMarca(),
+        veiculo.getCor(),
         veiculo.getPlaca());
   }
 }

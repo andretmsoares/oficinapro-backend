@@ -64,6 +64,9 @@ class OrdemDeServicoControllerTest {
             "Revisão geral",
             "Cliente",
             "ABC-1A12",
+            "Oficina",
+            "Unidade",
+            "Mecanico",
             BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);
@@ -177,6 +180,9 @@ class OrdemDeServicoControllerTest {
             "Revisão geral",
             "Cliente",
             "ABC-1A12",
+            "Oficina",
+            "Unidade",
+            "Mecanico",
             BigDecimal.ZERO,
             BigDecimal.ZERO,
             BigDecimal.ZERO);

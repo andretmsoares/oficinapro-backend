@@ -375,6 +375,9 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
         os.getObs(),
         os.getCliente() != null ? os.getCliente().getNome() : null,
         os.getVeiculo().getPlaca(),
+        os.getOficina().getNome(),
+        os.getUnidade().getNome(),
+        os.getMecanico() != null ? os.getMecanico().getNome() : null,
         os.getValorTotal(),
         os.getDesconto(),
         os.getValorComDesconto());

@@ -17,6 +17,9 @@ public record OrdemDeServicoResponseDTO(
     String obs,
     String nomeCliente,
     String placaVeiculo,
+    String oficinaNome,
+    String unidadeNome,
+    String mecanico,
     BigDecimal valorTotal,
     BigDecimal desconto,
     BigDecimal valorComDesconto) {}
