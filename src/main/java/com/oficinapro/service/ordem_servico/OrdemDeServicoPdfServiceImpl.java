@@ -11,6 +11,7 @@ import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.registro_pagamento.RegistroPagamentoService;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -47,6 +49,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   private static final Color COR_DESTAQUE = new Color(31, 78, 121);
 
   private static final float LOGO_ALTURA = 50f;
+  private static final String LOGO_PATH = "images/logo.png";
 
   private final ItemOsPecaRepository itemOsPecaRepository;
   private final MaoObraRepository maoObraRepository;
@@ -134,16 +137,12 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                 : ""));
   }
 
-  /**
-   * Cabeçalho com título à esquerda e um slot reservado para a logo da oficina à direita. Para
-   * ativar a logo, substitua o conteúdo da célula retornada por {@link #slotLogo()} por um {@link
-   * Image} ajustado ao tamanho do slot.
-   */
+  /** Cabeçalho com título à esquerda e a logo do sistema à direita (slot reservado). */
   private void montarCabecalhoComLogo(Document document, String titulo, String subtitulo)
       throws DocumentException {
     PdfPTable cab = new PdfPTable(2);
     cab.setWidthPercentage(100);
-    cab.setWidths(new float[] {4f, 1f});
+    cab.setWidths(new float[] {3f, 1.2f});
 
     PdfPCell esquerda = celulaSemBorda();
     esquerda.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -156,11 +155,18 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   }
 
   private PdfPCell slotLogo() {
-    PdfPCell logo = new PdfPCell(new Phrase(" ", FONT_TEXTO));
+    PdfPCell logo = new PdfPCell();
     logo.setFixedHeight(LOGO_ALTURA);
-    logo.setBorderColor(COR_BORDA_SECAO);
-    logo.setHorizontalAlignment(Element.ALIGN_CENTER);
+    logo.setBorder(Rectangle.NO_BORDER);
+    logo.setHorizontalAlignment(Element.ALIGN_RIGHT);
     logo.setVerticalAlignment(Element.ALIGN_MIDDLE);
+    try (InputStream in = new ClassPathResource(LOGO_PATH).getInputStream()) {
+      Image img = Image.getInstance(in.readAllBytes());
+      img.scaleToFit(120f, LOGO_ALTURA);
+      logo.setImage(img);
+    } catch (Exception e) {
+      log.warn("Logo não carregada para o PDF ({}): {}", LOGO_PATH, e.getMessage());
+    }
     return logo;
   }
 
