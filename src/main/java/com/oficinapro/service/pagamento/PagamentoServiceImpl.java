@@ -5,14 +5,15 @@ import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
 import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusPagamento;
+import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
 import com.oficinapro.exception.pagamento.*;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
 import com.oficinapro.model.RegistroPagamento;
+import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.repository.PagamentoRepository;
 import com.oficinapro.repository.RegistroPagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class PagamentoServiceImpl implements PagamentoService {
 
   private final PagamentoRepository repository;
-  private final OrdemDeServicoService ordemDeServicoService;
+  // Repository no lugar de OrdemDeServicoService: é isso que elimina o ciclo
+  // Pagamento -> OS -> PDF -> Pagamento.
+  private final OrdemDeServicoRepository ordemDeServicoRepository;
   private final OficinaAccessValidator oficinaAccessValidator;
   private final RegistroPagamentoRepository registroPagamentoRepository;
 
@@ -35,17 +38,17 @@ public class PagamentoServiceImpl implements PagamentoService {
 
     oficinaAccessValidator.validarRole(Role.GERENTE);
 
-    OrdemDeServico os = ordemDeServicoService.buscarPorEntidadeId(request.osId());
+    OrdemDeServico os = buscarOrdemDeServico(request.osId());
+
+    if (repository.findByOrdemDeServicoId(os.getId()) != null) {
+      throw new PagamentoAlreadyExistsException();
+    }
 
     Pagamento pagamento = new Pagamento();
     pagamento.setOrdemDeServico(os);
     pagamento.setValorPago(BigDecimal.ZERO);
     pagamento.setObs(request.obs());
     pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
-
-    if (repository.findByOrdemDeServicoId(pagamento.getOrdemDeServico().getId()) != null) {
-      throw new PagamentoAlreadyExistsException();
-    }
 
     return toResponseDTO(repository.save(pagamento));
   }
@@ -167,6 +170,7 @@ public class PagamentoServiceImpl implements PagamentoService {
   }
 
   @Override
+  @Transactional
   public void deletar(Long id) {
     Pagamento pagamento = buscarEntidadePorId(id);
     List<RegistroPagamento> registros = registroPagamentoRepository.findByPagamentoId(id);
@@ -207,6 +211,20 @@ public class PagamentoServiceImpl implements PagamentoService {
     pagamento.setValorPago(novoValor);
 
     return toResponseDTO(repository.save(pagamento));
+  }
+
+  /** Mesma regra de {@code OrdemDeServicoServiceImpl#buscarPorEntidadeId}, sem depender dele. */
+  private OrdemDeServico buscarOrdemDeServico(Long osId) {
+    OrdemDeServico os =
+        ordemDeServicoRepository
+            .findById(osId)
+            .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        os.getOficina() != null ? os.getOficina().getId() : null,
+        new OrdemDeServicoNotFoundException(osId));
+
+    return os;
   }
 
   private PagamentoResponseDTO toResponseDTO(Pagamento pagamento) {

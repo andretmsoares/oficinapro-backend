@@ -74,6 +74,8 @@ class OrdemDeServicoServiceTest {
 
   @Mock private com.oficinapro.security.OficinaAccessValidator oficinaAccessValidator;
 
+  @Mock private OrdemDeServicoPdfService ordemDeServicoPdfService;
+
   @InjectMocks private OrdemDeServicoServiceImpl ordemDeServicoService;
 
   private Oficina oficina;
@@ -339,5 +341,48 @@ class OrdemDeServicoServiceTest {
 
     verify(pagamentoService, never()).buscarPorOsId(any());
     verify(ordemServicoRepository, never()).delete(any());
+  }
+
+  // ---------------------------------------------------------------
+  // gerarPdf() e gerarComprovantePagamento()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("gerarPdf() deve buscar a OS pelo id e delegar a geração ao serviço de PDF")
+  void deveGerarPdfDelegandoAoServicoDePdf() {
+    byte[] pdfEsperado = "%PDF-1.5".getBytes();
+
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(ordemDeServicoPdfService.gerar(os)).thenReturn(pdfEsperado);
+
+    byte[] resultado = ordemDeServicoService.gerarPdf(1L);
+
+    assertThat(resultado).isEqualTo(pdfEsperado);
+    verify(ordemDeServicoPdfService).gerar(os);
+  }
+
+  @Test
+  @DisplayName("gerarComprovantePagamento() deve buscar a OS pelo id e delegar ao serviço de PDF")
+  void deveGerarComprovantePagamentoDelegandoAoServicoDePdf() {
+    byte[] pdfEsperado = "%PDF-1.5".getBytes();
+
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+    when(ordemDeServicoPdfService.gerarComprovantePagamento(os)).thenReturn(pdfEsperado);
+
+    byte[] resultado = ordemDeServicoService.gerarComprovantePagamento(1L);
+
+    assertThat(resultado).isEqualTo(pdfEsperado);
+    verify(ordemDeServicoPdfService).gerarComprovantePagamento(os);
+  }
+
+  @Test
+  @DisplayName("gerarPdf() deve propagar 'OS não encontrada' quando o id não existe")
+  void deveGerarPdfPropagarOsInexistente() {
+    when(ordemServicoRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> ordemDeServicoService.gerarPdf(99L))
+        .isInstanceOf(OrdemDeServicoNotFoundException.class);
+
+    verify(ordemDeServicoPdfService, never()).gerar(any());
   }
 }

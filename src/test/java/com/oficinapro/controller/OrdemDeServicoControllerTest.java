@@ -235,4 +235,48 @@ class OrdemDeServicoControllerTest {
 
     mockMvc.perform(delete("/api/ordens-servico/1").with(csrf())).andExpect(status().isNoContent());
   }
+
+  // ─── GET /api/ordens-servico/{id}/pdf ────────────────────────────────────────
+
+  @Test
+  @DisplayName("GET /api/ordens-servico/{id}/pdf - GERENTE deve receber o PDF da OS")
+  @WithMockUser(roles = "GERENTE")
+  void deveGerarPdfDaOs() throws Exception {
+    byte[] pdf = "%PDF-1.5".getBytes();
+
+    when(service.gerarPdf(1L)).thenReturn(pdf);
+
+    mockMvc
+        .perform(get("/api/ordens-servico/1/pdf"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+        .andExpect(content().bytes(pdf));
+  }
+
+  @Test
+  @DisplayName("GET /api/ordens-servico/{id}/pdf - Deve retornar 404 quando a OS não existir")
+  @WithMockUser(roles = "GERENTE")
+  void deveRetornar404AoGerarPdfDeOsInexistente() throws Exception {
+    when(service.gerarPdf(99L)).thenThrow(new OrdemDeServicoNotFoundException(99L));
+
+    mockMvc.perform(get("/api/ordens-servico/99/pdf")).andExpect(status().isNotFound());
+  }
+
+  // ─── GET /api/ordens-servico/{id}/comprovante-pagamento ─────────────────────
+
+  @Test
+  @DisplayName(
+      "GET /api/ordens-servico/{id}/comprovante-pagamento - MECANICO deve receber o comprovante")
+  @WithMockUser(roles = "MECANICO")
+  void deveGerarComprovantePagamentoDaOs() throws Exception {
+    byte[] pdf = "%PDF-1.5".getBytes();
+
+    when(service.gerarComprovantePagamento(1L)).thenReturn(pdf);
+
+    mockMvc
+        .perform(get("/api/ordens-servico/1/comprovante-pagamento"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+        .andExpect(content().bytes(pdf));
+  }
 }

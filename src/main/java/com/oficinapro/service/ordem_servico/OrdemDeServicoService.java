@@ -5,6 +5,7 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface OrdemDeServicoService {
 
@@ -45,4 +46,10 @@ public interface OrdemDeServicoService {
   void deletar(Long id);
 
   List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano);
+
+  @Transactional(readOnly = true)
+  byte[] gerarPdf(Long id);
+
+  @Transactional(readOnly = true)
+  byte[] gerarComprovantePagamento(Long id);
 }
