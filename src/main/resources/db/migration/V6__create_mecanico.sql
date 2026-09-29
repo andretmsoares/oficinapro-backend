@@ -1,7 +1,7 @@
 -- Entidade: Mecanico (subtipo de Pessoa).
 CREATE TABLE mecanico (
     pessoa_id BIGINT PRIMARY KEY,
-    salario NUMERIC(12, 2),
+    salario NUMERIC(12, 0),
     obs TEXT,
 
     CONSTRAINT fk_mecanico_pessoa

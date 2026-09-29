@@ -16,9 +16,9 @@ CREATE TABLE ordem_servico (
     data_fechamento TIMESTAMP,
     status VARCHAR(30) NOT NULL,
     obs TEXT,
-    valor_total NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    desconto NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    valor_com_desconto NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    valor_total NUMERIC(12, 0) NOT NULL DEFAULT 0,
+    desconto NUMERIC(12, 0) NOT NULL DEFAULT 0,
+    valor_com_desconto NUMERIC(12, 0) NOT NULL DEFAULT 0,
 
     CONSTRAINT chk_os_status CHECK (status IN (
         'ABERTA',

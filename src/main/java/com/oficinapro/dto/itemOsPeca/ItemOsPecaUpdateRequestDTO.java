@@ -11,5 +11,5 @@ public record ItemOsPecaUpdateRequestDTO(
     @Positive(message = "Quantidade deve ser maior que zero")
         @Digits(integer = 10, fraction = 0, message = "Quantidade deve ser um número inteiro")
         BigDecimal quantidade,
-    @Positive(message = "Valor deve ser maior que zero") @DecimalMin(value = "0.01")
+    @Positive(message = "Valor deve ser maior que zero") @DecimalMin(value = "1")
         BigDecimal valorUnitario) {}

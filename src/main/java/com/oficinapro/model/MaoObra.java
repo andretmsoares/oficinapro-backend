@@ -23,7 +23,7 @@ public class MaoObra {
   @JoinColumn(name = "os_id", nullable = false, foreignKey = @ForeignKey(name = "fk_mao_obra_os"))
   private OrdemDeServico ordemDeServico;
 
-  @Column(name = "valor", precision = 12, scale = 2)
+  @Column(name = "valor", precision = 12, scale = 0)
   private BigDecimal valor;
 
   @Column(name = "descricao")

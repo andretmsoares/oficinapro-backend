@@ -97,13 +97,13 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa valor abaixo de um centavo")
     void recusaValorAbaixoDeUmCentavo() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("0.001")))).contains("valor");
+      assertThat(camposInvalidos(comValor(new BigDecimal("0.5")))).contains("valor");
     }
 
     @Test
     @DisplayName("aceita exatamente um centavo, o menor valor permitido")
     void aceitaUmCentavo() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("0.01")))).isEmpty();
+      assertThat(camposInvalidos(comValor(new BigDecimal("1")))).isEmpty();
     }
 
     @Test
@@ -183,7 +183,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa valor unitário abaixo de um centavo")
     void recusaValorUnitarioAbaixoDeUmCentavo() {
-      assertThat(camposInvalidos(com(new BigDecimal("1"), new BigDecimal("0.009"))))
+      assertThat(camposInvalidos(com(new BigDecimal("1"), new BigDecimal("0.5"))))
           .contains("valorUnitario");
     }
 

@@ -5,7 +5,7 @@ CREATE TABLE pagamento (
     id BIGSERIAL PRIMARY KEY,
     version BIGINT NOT NULL DEFAULT 0,
     os_id BIGINT NOT NULL,
-    valor_pago NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    valor_pago NUMERIC(12, 0) NOT NULL DEFAULT 0,
     obs TEXT,
     data_pagamento_total TIMESTAMP,
     status VARCHAR(30) NOT NULL,

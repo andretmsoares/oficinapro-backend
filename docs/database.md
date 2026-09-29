@@ -259,7 +259,7 @@ exige migration e não traz ganho.
 
 | Dado | Tipo | Regra |
 |---|---|---|
-| Dinheiro | `NUMERIC(12,2)` | nunca `float`/`double`; em Java, `BigDecimal` |
+| Dinheiro | `NUMERIC(12,0)` | **centavos**, nunca `float`/`double`; em Java, `BigDecimal` com escala 0 |
 | Quantidade de peça | `NUMERIC(12,3)` | coluna comporta fração, mas a regra de negócio exige quantidade inteira |
 | Data/hora | `TIMESTAMP` | sem timezone; convenção `America/Sao_Paulo` |
 | Enum | `VARCHAR(30)` + `CHECK` | persistido como texto, `@Enumerated(EnumType.STRING)` |

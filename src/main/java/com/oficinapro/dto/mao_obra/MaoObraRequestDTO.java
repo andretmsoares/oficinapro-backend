@@ -11,7 +11,7 @@ public record MaoObraRequestDTO(
     @NotNull(message = "O ID da Ordem de Serviço é obrigatório") Long osId,
     @NotNull(message = "O valor é obrigatório")
         @Positive(message = "Valor deve ser maior que zero")
-        @DecimalMin(value = "0.01")
+        @DecimalMin(value = "1")
         BigDecimal valor,
     @NotBlank(message = "A Descrição é obrigatório")
         @Size(max = 500, message = "Descrição com no máximo 500 caracteres")

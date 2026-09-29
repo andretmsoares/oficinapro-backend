@@ -8,22 +8,22 @@ A convenção mais importante do sistema, e a que mais causou bug.
 
 | Camada | Representação | Exemplo para R$ 1.234,56 |
 |---|---|---|
-| Banco | `NUMERIC(12,2)` | `1234.56` |
-| Backend (Java) | `BigDecimal` | `new BigDecimal("1234.56")` |
-| JSON da API | número decimal | `1234.56` |
+| Banco | `NUMERIC(12,0)` (centavos) | `123456` |
+| Backend (Java) | `BigDecimal` em centavos, escala 0 | `new BigDecimal("123456")` |
+| JSON da API | número inteiro, em centavos | `123456` |
 | Frontend — valor canônico | **inteiro, em centavos** | `123456` |
 | Frontend — exibição | string formatada pt-BR | `"R$ 1.234,56"` |
+| PDF (backend) | reais formatados | `"R$ 1.234,56"` (divide por 100 só na exibição) |
 
 O frontend guarda **centavos como inteiro** no `rawValues` do `EntityForm` e a string
 mascarada no `displayValues`. A conversão acontece em `src/services/formatters.ts`
 (`parseCurrencyToCents` e `formatCurrencyDisplay`).
 
-> **Atenção na integração.** O backend espera decimal (`1234.56`); o frontend mantém
-> centavos (`123456`). A conversão na borda HTTP **ainda não existe** (a camada HTTP já
-> existe, mas envia centavos como estão). Hoje o backend grava centavos como se fossem
-> reais e as telas dividem por 100 ao exibir; o PDF mostra o valor sem divisão. Enquanto
-> isso não for decidido, todo valor exibido pelo frontend segue essa convenção (inclusive
-> o "Valor Pendente" da tela de OS).
+> **Dinheiro é sempre em centavos, de ponta a ponta.** Backend, banco e JSON usam o mesmo
+> inteiro que o frontend; a divisão por 100 acontece apenas ao exibir (telas e PDF). Não há
+> conversão na borda HTTP. Valores monetários de peça, mão de obra, desconto, pagamento e
+> salário seguem essa regra; quantidade de peça continua em unidades. Os DTOs exigem valor
+> mínimo de 1 (centavo).
 
 Nunca use `double` ou `float` para dinheiro. Nunca compare `BigDecimal` com `equals`:
 use `compareTo`, porque `equals` também compara escala e `2.0` não é `equals` a `2.00`.
@@ -63,7 +63,7 @@ especificamente para impedir que uma das duas origens volte a ser ignorada.
 ### Valor de um item de peça
 
 ```
-ItemOsPeca.valorTotal = quantidade × valorUnitario, arredondado a 2 casas (HALF_UP)
+ItemOsPeca.valorTotal = quantidade × valorUnitario (centavos), arredondado a 0 casas (HALF_UP)
 ```
 
 `quantidade` é sempre **inteira** — peça é contada em unidades (2 pastilhas, 1 correia),

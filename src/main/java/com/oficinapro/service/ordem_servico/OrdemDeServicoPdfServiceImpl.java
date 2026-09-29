@@ -486,7 +486,9 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   }
 
   private String formatarMoeda(BigDecimal valor) {
-    BigDecimal v = (valor != null ? valor : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+    // Valores monetarios sao persistidos em centavos; converte para reais so na exibicao.
+    BigDecimal v =
+        (valor != null ? valor : BigDecimal.ZERO).movePointLeft(2).setScale(2, RoundingMode.HALF_UP);
     java.text.NumberFormat nf = java.text.NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
     return nf.format(v);
   }

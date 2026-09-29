@@ -224,7 +224,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
   }
 
   private BigDecimal calcularValorTotal(BigDecimal quantidade, BigDecimal valorUnitario) {
-    return quantidade.multiply(valorUnitario).setScale(2, RoundingMode.HALF_UP);
+    return quantidade.multiply(valorUnitario).setScale(0, RoundingMode.HALF_UP);
   }
 
   private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {

@@ -3,7 +3,7 @@
 CREATE TABLE registro_pagamento (
     id BIGSERIAL PRIMARY KEY,
     pagamento_id BIGINT NOT NULL,
-    valor NUMERIC(12, 2) NOT NULL,
+    valor NUMERIC(12, 0) NOT NULL,
     meio_pagamento VARCHAR(30) NOT NULL,
     data TIMESTAMP NOT NULL,
 

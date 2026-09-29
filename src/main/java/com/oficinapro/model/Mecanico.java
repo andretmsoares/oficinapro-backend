@@ -16,7 +16,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Mecanico extends Pessoa {
 
-  @Column(precision = 12, scale = 2)
+  @Column(precision = 12, scale = 0)
   private BigDecimal salario;
 
   @Column(columnDefinition = "TEXT")

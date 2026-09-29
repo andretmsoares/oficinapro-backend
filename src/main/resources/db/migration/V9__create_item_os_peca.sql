@@ -7,8 +7,8 @@ CREATE TABLE item_os_peca (
     os_id BIGINT,
     nome VARCHAR(255) NOT NULL,
     quantidade NUMERIC(12, 3) NOT NULL,
-    valor_unitario NUMERIC(12, 2) NOT NULL,
-    valor_total NUMERIC(12, 2) NOT NULL,
+    valor_unitario NUMERIC(12, 0) NOT NULL,
+    valor_total NUMERIC(12, 0) NOT NULL,
 
     CONSTRAINT fk_item_os_oficina FOREIGN KEY (oficina_id) REFERENCES oficina (id),
     CONSTRAINT fk_item_os_peca_os

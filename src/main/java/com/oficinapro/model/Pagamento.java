@@ -26,7 +26,7 @@ public class Pagamento {
   @JoinColumn(name = "os_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pagamento_os"))
   private OrdemDeServico ordemDeServico;
 
-  @Column(name = "valor_pago", precision = 12, scale = 2)
+  @Column(name = "valor_pago", precision = 12, scale = 0)
   private BigDecimal valorPago;
 
   @Column(name = "obs")
