@@ -29,7 +29,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private static final DateTimeFormatter DATA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-  private static final Font FONT_TITULO = new Font(Font.HELVETICA, 16, Font.BOLD, new Color(31, 78, 121));
+  private static final Font FONT_TITULO =
+      new Font(Font.HELVETICA, 16, Font.BOLD, new Color(31, 78, 121));
   private static final Font FONT_SUBTITULO = new Font(Font.HELVETICA, 10, Font.BOLD);
   private static final Font FONT_LABEL = new Font(Font.HELVETICA, 9, Font.BOLD, Color.DARK_GRAY);
   private static final Font FONT_TEXTO = new Font(Font.HELVETICA, 9, Font.NORMAL);
@@ -95,7 +96,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       PdfWriter writer = PdfWriter.getInstance(document, out);
       writer.setPageEvent(
-          new CabecalhoRepeticaoEvent(os, "Comprovante de pagamento — OS #" + formatarId(os.getId())));
+          new CabecalhoRepeticaoEvent(
+              os, "Comprovante de pagamento — OS #" + formatarId(os.getId())));
 
       document.open();
       montarCabecalhoComprovante(document, os);

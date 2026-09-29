@@ -37,7 +37,8 @@ public class AuthServiceImpl implements AuthService {
    */
   @Override
   public LoginResponseDTO login(LoginRequestDTO request) {
-    // O bloqueio e checado ANTES da senha: conta bloqueada recusa ate a senha correta.
+    // O bloqueio e checado ANTES da senha: conta bloqueada recusa ate a senha
+    // correta.
     loginAttemptService.verificarBloqueio(request.username());
 
     Authentication authentication;
@@ -47,7 +48,8 @@ public class AuthServiceImpl implements AuthService {
               new UsernamePasswordAuthenticationToken(request.username(), request.password()));
     } catch (BadCredentialsException e) {
       loginAttemptService.registrarFalha(request.username());
-      // Se esta falha acionou o bloqueio, avisa o usuario em vez de "credenciais invalidas".
+      // Se esta falha acionou o bloqueio, avisa o usuario em vez de "credenciais
+      // invalidas".
       loginAttemptService.verificarBloqueio(request.username());
       throw e;
     }
@@ -56,12 +58,12 @@ public class AuthServiceImpl implements AuthService {
 
     oficinaAccessValidator.validarOficinaAtiva(usuario);
 
-    loginAttemptService.registrarSucesso(request.username());
+    loginAttemptService.registrarSucesso(usuario.getUsername());
+
+    String token = jwtService.gerarToken(usuario);
 
     return LoginResponseDTO.bearer(
-        jwtService.gerarToken(usuario),
-        jwtService.expiracao().toSeconds(),
-        UsuarioResponseDTO.de(usuario));
+        token, jwtService.expiracao().toSeconds(), UsuarioResponseDTO.de(usuario));
   }
 
   @Override

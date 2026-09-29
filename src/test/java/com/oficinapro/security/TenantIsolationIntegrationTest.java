@@ -43,9 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * Isolamento entre oficinas (multi-tenant), de ponta a ponta: filtro JWT, @PreAuthorize, services
- * e banco (H2). O gerente da oficina A tenta ler e alterar, por ID, cada recurso da oficina B e
- * nada pode vazar nem ser modificado.
+ * Isolamento entre oficinas (multi-tenant), de ponta a ponta: filtro JWT, @PreAuthorize, services e
+ * banco (H2). O gerente da oficina A tenta ler e alterar, por ID, cada recurso da oficina B e nada
+ * pode vazar nem ser modificado.
  *
  * <p>Regra esperada: registro de outra oficina responde 404 (nao revela que existe); rota que
  * recebe o proprio {@code oficinaId} de outra oficina responde 403.
@@ -254,7 +254,8 @@ class TenantIsolationIntegrationTest {
                 comToken(get("/api/ordens-servico/" + b.os.getId() + "/comprovante-pagamento")),
                 404),
             new Caso("GET pagamento", comToken(get("/api/pagamentos/" + b.pagamento.getId())), 404),
-            new Caso("GET pagamento por OS", comToken(get("/api/pagamentos/os/" + b.os.getId())), 404),
+            new Caso(
+                "GET pagamento por OS", comToken(get("/api/pagamentos/os/" + b.os.getId())), 404),
             new Caso(
                 "GET registro de pagamento",
                 comToken(get("/api/registros-pagamento/" + b.registro.getId())),
@@ -264,9 +265,11 @@ class TenantIsolationIntegrationTest {
                 comToken(get("/api/registros-pagamento/pagamento/" + b.pagamento.getId())),
                 404),
             new Caso("GET peca", comToken(get("/api/itens-os-peca/" + b.peca.getId())), 404),
-            new Caso("GET pecas da OS", comToken(get("/api/itens-os-peca/os/" + b.os.getId())), 404),
+            new Caso(
+                "GET pecas da OS", comToken(get("/api/itens-os-peca/os/" + b.os.getId())), 404),
             new Caso("GET mao de obra", comToken(get("/api/mao-obra/" + b.maoObra.getId())), 404),
-            new Caso("GET mao de obra da OS", comToken(get("/api/mao-obra/os/" + b.os.getId())), 404),
+            new Caso(
+                "GET mao de obra da OS", comToken(get("/api/mao-obra/os/" + b.os.getId())), 404),
             new Caso("GET cliente", comToken(get("/api/clientes/" + b.cliente.getId())), 404),
             new Caso("GET veiculo", comToken(get("/api/veiculos/" + b.veiculo.getId())), 404),
             new Caso("GET mecanico", comToken(get("/api/mecanicos/" + b.mecanico.getId())), 404),
@@ -313,7 +316,9 @@ class TenantIsolationIntegrationTest {
         List.of(
             new Caso(
                 "PATCH status da OS",
-                json(patch("/api/ordens-servico/" + b.os.getId() + "/status"), "{\"status\":\"DIAGNOSTICO\"}"),
+                json(
+                    patch("/api/ordens-servico/" + b.os.getId() + "/status"),
+                    "{\"status\":\"DIAGNOSTICO\"}"),
                 404),
             new Caso(
                 "PATCH desconto da OS",
@@ -345,10 +350,12 @@ class TenantIsolationIntegrationTest {
                     put("/api/mao-obra/" + b.maoObra.getId()),
                     "{\"osId\":" + b.os.getId() + ",\"valor\":100,\"descricao\":\"INVADIDA\"}"),
                 404),
-            new Caso("DELETE mao de obra", comToken(delete("/api/mao-obra/" + b.maoObra.getId())), 404),
+            new Caso(
+                "DELETE mao de obra", comToken(delete("/api/mao-obra/" + b.maoObra.getId())), 404),
             new Caso("DELETE cliente", comToken(delete("/api/clientes/" + b.cliente.getId())), 404),
             new Caso("DELETE veiculo", comToken(delete("/api/veiculos/" + b.veiculo.getId())), 404),
-            new Caso("DELETE mecanico", comToken(delete("/api/mecanicos/" + b.mecanico.getId())), 404),
+            new Caso(
+                "DELETE mecanico", comToken(delete("/api/mecanicos/" + b.mecanico.getId())), 404),
             new Caso("DELETE unidade", comToken(delete("/api/unidades/" + b.unidade.getId())), 404),
             new Caso("DELETE usuario", comToken(delete("/api/usuarios/" + b.gerente.getId())), 404),
             new Caso(
