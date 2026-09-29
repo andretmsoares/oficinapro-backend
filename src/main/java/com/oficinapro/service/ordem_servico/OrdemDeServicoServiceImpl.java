@@ -42,6 +42,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final MecanicoService mecanicoService;
   private final PagamentoService pagamentoService;
   private final OficinaAccessValidator oficinaAccessValidator;
+  private final OrdemDeServicoPdfService ordemDeServicoPdfService;
 
   /**
    * Construtor escrito à mão (em vez de {@code @RequiredArgsConstructor}) porque {@code
@@ -64,7 +65,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
       ClienteService clienteService,
       MecanicoService mecanicoService,
       @Lazy PagamentoService pagamentoService,
-      OficinaAccessValidator oficinaAccessValidator) {
+      OficinaAccessValidator oficinaAccessValidator,
+      OrdemDeServicoPdfService ordemDeServicoPdfService) {
     this.ordemServicoRepository = ordemServicoRepository;
     this.oficinaService = oficinaService;
     this.unidadeService = unidadeService;
@@ -73,6 +75,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     this.mecanicoService = mecanicoService;
     this.pagamentoService = pagamentoService;
     this.oficinaAccessValidator = oficinaAccessValidator;
+    this.ordemDeServicoPdfService = ordemDeServicoPdfService;
   }
 
   private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
@@ -359,6 +362,13 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
               return new FluxoMensalOSResponseDTO(dia, abertas, finalizadas);
             })
         .toList();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public byte[] gerarPdf(Long id) {
+    OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso por oficina
+    return ordemDeServicoPdfService.gerar(os);
   }
 
   private OrdemDeServicoResponseDTO toResponseDTO(OrdemDeServico os) {

@@ -350,4 +350,32 @@ public class OrdemDeServicoController {
           StatusOrdemDeServico status) {
     return ResponseEntity.ok(service.listarPorStatus(status));
   }
+
+  @Operation(
+          summary = "Gerar PDF da OS",
+          description =
+                  "Gera um relatório em PDF com identificação, serviços e resumo de pagamento"
+                          + " da ordem de serviço, respeitando o mesmo isolamento por oficina das"
+                          + " demais rotas de OS.")
+  @ApiResponses({
+          @ApiResponse(responseCode = "200", description = "PDF gerado com sucesso"),
+          @ApiResponse(responseCode = "401", description = "Não autenticado"),
+          @ApiResponse(responseCode = "403", description = "Sem permissão"),
+          @ApiResponse(
+                  responseCode = "404",
+                  description = "OS não encontrada, ou pertence a outra oficina")
+  })
+  @GetMapping("/{id}/pdf")
+  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
+  public ResponseEntity<byte[]> gerarPdf(
+          @Parameter(description = "ID da ordem de serviço") @PathVariable Long id) {
+    byte[] pdf = service.gerarPdf(id);
+    String filename = "ordem-servico-" + id + ".pdf";
+    return ResponseEntity.ok()
+            .header(
+                    org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + filename + "\"")
+            .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+            .body(pdf);
+  }
 }

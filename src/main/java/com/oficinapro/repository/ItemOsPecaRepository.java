@@ -12,4 +12,6 @@ public interface ItemOsPecaRepository extends JpaRepository<ItemOsPeca, Long> {
   Optional<ItemOsPeca> findByIdAndOficinaId(Long id, Long oficinaId);
 
   List<ItemOsPeca> findByOficinaId(Long oficinaId);
+
+  List<ItemOsPeca> findByOrdemDeServicoIdOrderByIdAsc(Long ordemDeServicoId);
 }

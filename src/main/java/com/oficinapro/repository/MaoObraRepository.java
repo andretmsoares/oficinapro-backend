@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MaoObraRepository extends JpaRepository<MaoObra, Long> {
   List<MaoObra> findByOrdemDeServicoId(Long osId);
+  List<MaoObra> findByOrdemDeServicoIdOrderByIdAsc(Long ordemDeServicoId);
 }
