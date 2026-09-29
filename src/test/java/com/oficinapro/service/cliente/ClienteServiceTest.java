@@ -9,12 +9,11 @@ import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
-import com.oficinapro.enums.Role;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
+import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Oficina;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.ClienteRepository;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -35,12 +34,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
-// LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
-// preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
-// derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
-// problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ClienteServiceTest {
 
   @Mock private ClienteRepository clienteRepository;
@@ -58,8 +51,6 @@ class ClienteServiceTest {
 
   // ─── entidades de apoio ───
   private Oficina oficina;
-  private Usuario adminUser;
-  private Usuario normalUser;
   private Cliente cliente;
   private ClienteRequestDTO requestDTO;
 
@@ -71,15 +62,6 @@ class ClienteServiceTest {
     oficina.setNome("OFICINA TEST");
     oficina.setCnpj("12345678000195");
     oficina.setTelefone("83999999999");
-
-    // Usuário ADMIN – não está vinculado a nenhuma oficina (sem restrição)
-    adminUser = new Usuario();
-    adminUser.setRole(Role.ADMIN);
-
-    // Usuário GERENTE – vinculado à oficina 1
-    normalUser = new Usuario();
-    normalUser.setRole(Role.GERENTE);
-    normalUser.setOficina(oficina);
 
     // Cliente pertencente à oficina 1
     cliente = new Cliente();
@@ -100,7 +82,6 @@ class ClienteServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Cliente> page = new PageImpl<>(List.of(cliente));
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(clienteRepository.findByOficinaId(1L, pageable)).thenReturn(page);
@@ -118,9 +99,8 @@ class ClienteServiceTest {
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test
-  @DisplayName("buscarPorId() como ADMIN deve encontrar cliente de qualquer oficina")
-  void buscarPorId_comoAdmin_encontrado_retornaDTO() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+  @DisplayName("buscarPorId() deve devolver o DTO do cliente encontrado")
+  void buscarPorId_encontrado_retornaDTO() {
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
 
     ClienteResponseDTO resultado = service.buscarPorId(1L);
@@ -158,7 +138,6 @@ class ClienteServiceTest {
     clienteDeOutraOficina.setDocumento("98765432100");
     clienteDeOutraOficina.setOficina(outraOficina);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
     when(clienteRepository.findById(5L)).thenReturn(Optional.of(clienteDeOutraOficina));
     // O isolamento é delegado ao validador, que devolve a exceção de "não
     // encontrado" da própria entidade para não revelar que o registro existe.
@@ -174,36 +153,21 @@ class ClienteServiceTest {
   // ─────────────────────────── criar ───────────────────────────
 
   @Test
-  @DisplayName("criar() como ADMIN deve criar cliente em qualquer oficina com sucesso")
-  void criar_comoAdmin_sucesso() {
-    Cliente salvo = new Cliente();
-    salvo.setId(1L);
-    salvo.setNome("JOÃO SILVA");
-    salvo.setTelefone("83988887777");
-    salvo.setDocumento("12345678901");
-    salvo.setOficina(oficina);
+  @DisplayName("criar() como ADMIN deve ser negado, pois o ADMIN do SaaS não pertence a oficina")
+  void criar_comoAdmin_negado() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
+        .thenThrow(new UsuarioAcessDeniedException());
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
-    when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
-    when(clienteRepository.save(any(Cliente.class))).thenReturn(salvo);
+    assertThatThrownBy(() -> service.criar(requestDTO))
+        .isInstanceOf(UsuarioAcessDeniedException.class);
 
-    ClienteResponseDTO resultado = service.criar(requestDTO);
-
-    assertThat(resultado).isNotNull();
-    assertThat(resultado.id()).isEqualTo(1L);
-    assertThat(resultado.nome()).isEqualTo("JOÃO SILVA");
-    assertThat(resultado.documento()).isEqualTo("12345678901");
-    assertThat(resultado.oficinaId()).isEqualTo(1L);
-
-    verify(clienteRepository, times(1)).save(any(Cliente.class));
+    verify(clienteRepository, never()).save(any());
   }
 
   @Test
   @DisplayName(
       "criar() deve lançar ClienteAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaClienteAlreadyExistsException() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(true);
@@ -215,11 +179,8 @@ class ClienteServiceTest {
   }
 
   @Test
-  @DisplayName(
-      "criar() como GERENTE tentando criar em outra oficina deve lançar AccessDeniedException")
+  @DisplayName("criar() como GERENTE deve criar o cliente na oficina do usuário autenticado")
   void criar_comoGerente_usaOficinaDoUsuarioAutenticado() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
-
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -249,12 +210,12 @@ class ClienteServiceTest {
   // ─────────────────────────── atualizar ───────────────────────────
 
   @Test
-  @DisplayName("atualizar() como ADMIN deve atualizar cliente com sucesso")
-  void atualizar_comoAdmin_sucesso() {
+  @DisplayName("atualizar() como GERENTE deve atualizar cliente com sucesso")
+  void atualizar_comoGerente_sucesso() {
     ClienteRequestDTO requestAtualizar =
         new ClienteRequestDTO("João Atualizado", "83977776666", "12345678901");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
         .thenReturn(false);
@@ -289,7 +250,6 @@ class ClienteServiceTest {
     ClienteRequestDTO requestAtualizar =
         new ClienteRequestDTO("João Atualizado", "83977776666", "99988877766");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
     when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "99988877766", 1L))
@@ -304,9 +264,8 @@ class ClienteServiceTest {
   // ─────────────────────────── deletar ───────────────────────────
 
   @Test
-  @DisplayName("deletar() como ADMIN deve remover cliente com sucesso")
-  void deletar_comoAdmin_sucesso() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+  @DisplayName("deletar() deve remover o cliente encontrado")
+  void deletar_encontrado_sucesso() {
     when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
 
     service.deletar(1L);

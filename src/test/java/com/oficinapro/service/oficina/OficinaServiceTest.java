@@ -30,12 +30,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
-// LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de AuthenticatedUserProvider
-// preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
-// derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
-// problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class OficinaServiceTest {
 
   @Mock private OficinaRepository oficinaRepository;

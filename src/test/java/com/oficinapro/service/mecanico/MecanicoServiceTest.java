@@ -9,12 +9,10 @@ import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
-import com.oficinapro.enums.Role;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.MecanicoRepository;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
@@ -36,12 +34,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
-// LENIENT proposital: o refactor moveu o isolamento por oficina para o
-// OficinaAccessValidator, entao alguns stubs de oficinaAccessValidator
-// preparados nestes testes deixaram de ser exercidos. Com strict stubs isso
-// derrubaria a classe por UnnecessaryStubbingException em vez de apontar um
-// problema real. TODO: voltar para STRICT_STUBS e limpar os stubs ociosos.
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class MecanicoServiceTest {
 
   @Mock private MecanicoRepository mecanicoRepository;
@@ -58,8 +50,6 @@ class MecanicoServiceTest {
 
   // ─── entidades de apoio ───
   private Oficina oficina;
-  private Usuario adminUser;
-  private Usuario normalUser;
   private Mecanico mecanico;
   private MecanicoRequestDTO requestDTO;
 
@@ -71,15 +61,6 @@ class MecanicoServiceTest {
     oficina.setNome("Oficina Test");
     oficina.setCnpj("12345678000195");
     oficina.setTelefone("83999999999");
-
-    // Usuário ADMIN – sem restrição de oficina
-    adminUser = new Usuario();
-    adminUser.setRole(Role.ADMIN);
-
-    // Usuário GERENTE – vinculado à oficina 1
-    normalUser = new Usuario();
-    normalUser.setRole(Role.GERENTE);
-    normalUser.setOficina(oficina);
 
     // Mecânico pertencente à oficina 1
     mecanico = new Mecanico();
@@ -108,7 +89,6 @@ class MecanicoServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Mecanico> page = new PageImpl<>(List.of(mecanico));
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(mecanicoRepository.findByOficinaId(1L, pageable)).thenReturn(page);
@@ -126,9 +106,8 @@ class MecanicoServiceTest {
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test
-  @DisplayName("buscarPorId() como ADMIN deve encontrar mecânico de qualquer oficina")
-  void buscarPorId_comoAdmin_encontrado_retornaDTO() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+  @DisplayName("buscarPorId() deve devolver o DTO do mecânico encontrado")
+  void buscarPorId_encontrado_retornaDTO() {
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
 
     MecanicoResponseDTO resultado = service.buscarPorId(1L);
@@ -168,7 +147,6 @@ class MecanicoServiceTest {
     mecanicoAlheio.setOficina(outraOficina);
     mecanicoAlheio.setSalario(BigDecimal.valueOf(2000));
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser); // oficina 1
     when(mecanicoRepository.findById(5L)).thenReturn(Optional.of(mecanicoAlheio));
     // O isolamento é delegado ao validador, que devolve a exceção de "não
     // encontrado" da própria entidade para não revelar que o registro existe.
@@ -184,8 +162,8 @@ class MecanicoServiceTest {
   // ─────────────────────────── criar ───────────────────────────
 
   @Test
-  @DisplayName("criar() como ADMIN deve criar mecânico em qualquer oficina com sucesso")
-  void criar_comoAdmin_sucesso() {
+  @DisplayName("criar() como GERENTE deve criar mecânico na sua oficina com sucesso")
+  void criar_comoGerente_sucesso() {
     Mecanico salvo = new Mecanico();
     salvo.setId(1L);
     salvo.setNome("Carlos Mecânico");
@@ -194,8 +172,6 @@ class MecanicoServiceTest {
     salvo.setOficina(oficina);
     salvo.setSalario(BigDecimal.valueOf(3500.00));
     salvo.setObs("Especialista em motores");
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
 
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
@@ -224,7 +200,6 @@ class MecanicoServiceTest {
   @DisplayName(
       "criar() deve lançar MecanicoAlreadyExistsException quando documento já está cadastrado na oficina")
   void criar_documentoDuplicado_lancaMecanicoAlreadyExistsException() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -240,9 +215,6 @@ class MecanicoServiceTest {
   @Test
   @DisplayName("criar() como GERENTE deve usar a oficina do usuário autenticado")
   void criar_comoGerente_usaOficinaDoUsuarioAutenticado() {
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
-
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -274,7 +246,6 @@ class MecanicoServiceTest {
   @Test
   @DisplayName("atualizar() como GERENTE deve atualizar mecânico da própria oficina")
   void atualizar_comoGerente_sucesso() {
-
     MecanicoRequestDTO requestAtualizar =
         new MecanicoRequestDTO(
             "Carlos Atualizado",
@@ -282,8 +253,6 @@ class MecanicoServiceTest {
             "12345678901",
             BigDecimal.valueOf(4000.00),
             "Atualizado");
-
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
 
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
@@ -328,7 +297,6 @@ class MecanicoServiceTest {
         new MecanicoRequestDTO(
             "Carlos Atualizado", "83977776666", "99988877766", BigDecimal.valueOf(4000), null);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
@@ -345,9 +313,8 @@ class MecanicoServiceTest {
   // ─────────────────────────── deletar ───────────────────────────
 
   @Test
-  @DisplayName("deletar() como ADMIN deve remover mecânico com sucesso")
-  void deletar_comoAdmin_sucesso() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+  @DisplayName("deletar() deve remover o mecânico encontrado")
+  void deletar_encontrado_sucesso() {
     when(mecanicoRepository.findById(1L)).thenReturn(Optional.of(mecanico));
 
     service.deletar(1L);
