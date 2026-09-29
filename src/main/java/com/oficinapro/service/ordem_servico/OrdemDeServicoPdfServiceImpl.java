@@ -34,7 +34,15 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     private static final Font FONT_TEXTO = new Font(Font.HELVETICA, 10, Font.NORMAL);
     private static final Font FONT_HEADER_TABELA =
             new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
+    private static final Font FONT_HEADER_SECAO =
+            new Font(Font.HELVETICA, 11, Font.BOLD, Color.WHITE);
     private static final Font FONT_RESUMO = new Font(Font.HELVETICA, 11, Font.BOLD);
+
+    // Paleta alinhada ao card de pagamento do modal do frontend (border #e5e7eb,
+    // fundo branco), para que o PDF pareça uma extensão da mesma tela.
+    private static final Color COR_HEADER_SECAO = new Color(51, 51, 51);
+    private static final Color COR_BORDA_SECAO = new Color(229, 231, 235);
+    private static final Color COR_FUNDO_RESUMO = new Color(240, 240, 240);
 
     private final ItemOsPecaRepository itemOsPecaRepository;
     private final MaoObraRepository maoObraRepository;
@@ -58,9 +66,10 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             Document document = new Document(PageSize.A4, 36, 36, 54, 54);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PdfWriter writer = PdfWriter.getInstance(document, out);
-            writer.setPageEvent(new CabecalhoRepeticaoEvent(os));
+            writer.setPageEvent(new CabecalhoRepeticaoEvent(os, "OS #" + os.getId()));
 
             document.open();
+            montarCabecalhoPrincipal(document, os);
             montarSecaoIdentificacao(document, os);
             montarSecaoServicos(document, os);
             montarSecaoPagamento(document, os);
@@ -72,16 +81,31 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
         }
     }
 
-    // ---------- SEÇÃO 1 (sem alteração em relação à versão anterior) ----------
+    @Override
+    public byte[] gerarComprovantePagamento(OrdemDeServico os) {
+        try {
+            Document document = new Document(PageSize.A4, 36, 36, 54, 54);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(
+                    new CabecalhoRepeticaoEvent(os, "Comprovante de pagamento — OS #" + os.getId()));
 
-    private void montarSecaoIdentificacao(Document document, OrdemDeServico os)
-            throws DocumentException {
-        Oficina oficina = os.getOficina();
-        Unidade unidade = os.getUnidade();
-        Veiculo veiculo = os.getVeiculo();
-        Cliente cliente = os.getCliente();
-        Mecanico mecanico = os.getMecanico();
+            document.open();
+            montarCabecalhoComprovante(document, os);
+            montarSecaoResumoOs(document, os);
+            montarSecaoComprovantePagamento(document, os);
+            document.close();
 
+            return out.toByteArray();
+        } catch (DocumentException e) {
+            throw new IllegalStateException(
+                    "Falha ao gerar comprovante de pagamento da OS " + os.getId(), e);
+        }
+    }
+
+    // ---------- CABEÇALHOS ----------
+
+    private void montarCabecalhoPrincipal(Document document, OrdemDeServico os) throws DocumentException {
         Paragraph titulo = new Paragraph("ORDEM DE SERVIÇO #" + os.getId(), FONT_TITULO);
         titulo.setSpacingAfter(4f);
         document.add(titulo);
@@ -99,20 +123,48 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                         FONT_TEXTO);
         status.setSpacingAfter(12f);
         document.add(status);
+    }
+
+    private void montarCabecalhoComprovante(Document document, OrdemDeServico os) throws DocumentException {
+        Paragraph titulo = new Paragraph("COMPROVANTE DE PAGAMENTO", FONT_TITULO);
+        titulo.setSpacingAfter(4f);
+        document.add(titulo);
+
+        Paragraph subtitulo =
+                new Paragraph(
+                        "Ordem de serviço #"
+                                + os.getId()
+                                + (os.getDataAbertura() != null
+                                ? " | Abertura: " + os.getDataAbertura().format(DATA_FMT)
+                                : ""),
+                        FONT_TEXTO);
+        subtitulo.setSpacingAfter(12f);
+        document.add(subtitulo);
+    }
+
+    // ---------- SEÇÃO — IDENTIFICAÇÃO ----------
+
+    private void montarSecaoIdentificacao(Document document, OrdemDeServico os)
+            throws DocumentException {
+        Oficina oficina = os.getOficina();
+        Unidade unidade = os.getUnidade();
+        Veiculo veiculo = os.getVeiculo();
+        Cliente cliente = os.getCliente();
+        Mecanico mecanico = os.getMecanico();
+
+        PdfPCell conteudo = novaCelulaConteudo();
 
         PdfPTable topo = new PdfPTable(2);
         topo.setWidthPercentage(100);
         topo.setWidths(new float[] {1f, 1f});
 
-        PdfPCell celulaOficina = new PdfPCell();
-        celulaOficina.setBorder(Rectangle.NO_BORDER);
+        PdfPCell celulaOficina = celulaSemBorda();
         celulaOficina.addElement(new Paragraph(nullToDash(oficina.getNome()), FONT_SUBTITULO));
         celulaOficina.addElement(campo("CNPJ", oficina.getCnpj()));
         celulaOficina.addElement(campo("Telefone", oficina.getTelefone()));
         topo.addCell(celulaOficina);
 
-        PdfPCell celulaUnidade = new PdfPCell();
-        celulaUnidade.setBorder(Rectangle.NO_BORDER);
+        PdfPCell celulaUnidade = celulaSemBorda();
         celulaUnidade.addElement(new Paragraph("Unidade", FONT_SUBTITULO));
         if (unidade != null) {
             celulaUnidade.addElement(campo("Nome", unidade.getNome()));
@@ -122,14 +174,13 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             celulaUnidade.addElement(new Paragraph("Não informado", FONT_TEXTO));
         }
         topo.addCell(celulaUnidade);
-        document.add(topo);
+        conteudo.addElement(topo);
 
         PdfPTable meio = new PdfPTable(3);
         meio.setWidthPercentage(100);
         meio.setSpacingBefore(10f);
 
-        PdfPCell cVeiculo = new PdfPCell();
-        cVeiculo.setBorder(Rectangle.NO_BORDER);
+        PdfPCell cVeiculo = celulaSemBorda();
         cVeiculo.addElement(new Paragraph("Veículo", FONT_SUBTITULO));
         cVeiculo.addElement(campo("Placa", veiculo.getPlaca()));
         cVeiculo.addElement(campo("Marca", veiculo.getMarca()));
@@ -139,8 +190,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
         cVeiculo.addElement(campo("Cor", veiculo.getCor()));
         meio.addCell(cVeiculo);
 
-        PdfPCell cCliente = new PdfPCell();
-        cCliente.setBorder(Rectangle.NO_BORDER);
+        PdfPCell cCliente = celulaSemBorda();
         cCliente.addElement(new Paragraph("Cliente", FONT_SUBTITULO));
         if (cliente != null) {
             cCliente.addElement(campo("Nome", cliente.getNome()));
@@ -151,37 +201,71 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
         }
         meio.addCell(cCliente);
 
-        PdfPCell cMecanico = new PdfPCell();
-        cMecanico.setBorder(Rectangle.NO_BORDER);
+        PdfPCell cMecanico = celulaSemBorda();
         cMecanico.addElement(new Paragraph("Mecânico responsável", FONT_SUBTITULO));
         cMecanico.addElement(
                 new Paragraph(mecanico != null ? mecanico.getNome() : "Não informado", FONT_TEXTO));
         meio.addCell(cMecanico);
 
-        document.add(meio);
+        conteudo.addElement(meio);
 
-        Paragraph separador = new Paragraph(" ");
-        separador.setSpacingAfter(10f);
-        document.add(separador);
+        adicionarSecao(document, "IDENTIFICAÇÃO", conteudo);
     }
 
-    // ---------- SEÇÃO 2 (sem alteração em relação à versão anterior) ----------
+    private void montarSecaoResumoOs(Document document, OrdemDeServico os) throws DocumentException {
+        Oficina oficina = os.getOficina();
+        Veiculo veiculo = os.getVeiculo();
+        Cliente cliente = os.getCliente();
+
+        PdfPCell conteudo = novaCelulaConteudo();
+
+        PdfPTable tabela = new PdfPTable(3);
+        tabela.setWidthPercentage(100);
+
+        PdfPCell cOficina = celulaSemBorda();
+        cOficina.addElement(new Paragraph("Oficina", FONT_SUBTITULO));
+        cOficina.addElement(new Paragraph(nullToDash(oficina.getNome()), FONT_TEXTO));
+        tabela.addCell(cOficina);
+
+        PdfPCell cCliente = celulaSemBorda();
+        cCliente.addElement(new Paragraph("Cliente", FONT_SUBTITULO));
+        cCliente.addElement(
+                new Paragraph(cliente != null ? nullToDash(cliente.getNome()) : "Não informado", FONT_TEXTO));
+        tabela.addCell(cCliente);
+
+        PdfPCell cVeiculo = celulaSemBorda();
+        cVeiculo.addElement(new Paragraph("Veículo", FONT_SUBTITULO));
+        cVeiculo.addElement(
+                new Paragraph(
+                        nullToDash(veiculo.getPlaca())
+                                + " — "
+                                + nullToDash(veiculo.getMarca())
+                                + " "
+                                + nullToDash(veiculo.getModelo()),
+                        FONT_TEXTO));
+        tabela.addCell(cVeiculo);
+
+        conteudo.addElement(tabela);
+
+        adicionarSecao(document, "DADOS DA ORDEM DE SERVIÇO", conteudo);
+    }
+
+    // ---------- SEÇÃO — SERVIÇOS ----------
 
     private void montarSecaoServicos(Document document, OrdemDeServico os) throws DocumentException {
-        document.add(new Paragraph("SERVIÇOS DA ORDEM DE SERVIÇO", FONT_SUBTITULO));
+        PdfPCell conteudo = novaCelulaConteudo();
 
         if (os.getObs() != null && !os.getObs().isBlank()) {
             Paragraph obs = new Paragraph(os.getObs(), FONT_TEXTO);
-            obs.setSpacingBefore(6f);
             obs.setSpacingAfter(10f);
-            document.add(obs);
+            conteudo.addElement(obs);
         }
 
         List<ItemOsPeca> pecas = itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId());
-        tabelaPecas(document, pecas);
+        tabelaPecas(conteudo, pecas);
 
         List<MaoObra> maoObras = maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId());
-        tabelaMaoObra(document, maoObras);
+        tabelaMaoObra(conteudo, maoObras);
 
         // Subtotal fica alinhado ao domínio: valorTotal já é a fonte de verdade calculada
         // no fluxo de negócio (recalcularValorTotal), então usamos ele em vez de somar
@@ -189,20 +273,22 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
         Paragraph subtotalPar =
                 new Paragraph("Subtotal itens/serviços: " + formatarMoeda(os.getValorTotal()), FONT_SUBTITULO);
         subtotalPar.setSpacingBefore(6f);
-        subtotalPar.setSpacingAfter(12f);
-        document.add(subtotalPar);
+        conteudo.addElement(subtotalPar);
+
+        adicionarSecao(document, "SERVIÇOS DA ORDEM DE SERVIÇO", conteudo);
     }
 
-    private void tabelaPecas(Document document, List<ItemOsPeca> pecas) throws DocumentException {
-        document.add(new Paragraph("Peças", FONT_LABEL));
+    private void tabelaPecas(PdfPCell conteudo, List<ItemOsPeca> pecas) {
+        conteudo.addElement(new Paragraph("Peças", FONT_LABEL));
         if (pecas.isEmpty()) {
-            document.add(new Paragraph("Nenhuma peça registrada.", FONT_TEXTO));
+            conteudo.addElement(new Paragraph("Nenhuma peça registrada.", FONT_TEXTO));
             return;
         }
 
         PdfPTable tabela = new PdfPTable(4);
         tabela.setWidthPercentage(100);
         tabela.setSpacingBefore(4f);
+        tabela.setSpacingAfter(10f);
         tabela.setWidths(new float[] {3f, 1f, 1.3f, 1.3f});
         cabecalhoLinha(tabela, "Peça", "Qtd", "Valor unit.", "Valor total");
 
@@ -212,19 +298,20 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             tabela.addCell(celulaTexto(formatarMoeda(p.getValorUnitario())));
             tabela.addCell(celulaTexto(formatarMoeda(p.getValorTotal())));
         }
-        document.add(tabela);
+        conteudo.addElement(tabela);
     }
 
-    private void tabelaMaoObra(Document document, List<MaoObra> itens) throws DocumentException {
-        document.add(new Paragraph("Mão de obra", FONT_LABEL));
+    private void tabelaMaoObra(PdfPCell conteudo, List<MaoObra> itens) {
+        conteudo.addElement(new Paragraph("Mão de obra", FONT_LABEL));
         if (itens.isEmpty()) {
-            document.add(new Paragraph("Nenhum item de mão de obra registrado.", FONT_TEXTO));
+            conteudo.addElement(new Paragraph("Nenhum item de mão de obra registrado.", FONT_TEXTO));
             return;
         }
 
         PdfPTable tabela = new PdfPTable(2);
         tabela.setWidthPercentage(100);
         tabela.setSpacingBefore(4f);
+        tabela.setSpacingAfter(10f);
         tabela.setWidths(new float[] {3f, 1.3f});
         cabecalhoLinha(tabela, "Descrição", "Valor");
 
@@ -233,17 +320,17 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             BigDecimal valor = m.getValor() != null ? m.getValor() : BigDecimal.ZERO;
             tabela.addCell(celulaTexto(formatarMoeda(valor)));
         }
-        document.add(tabela);
+        conteudo.addElement(tabela);
     }
 
-    // ---------- SEÇÃO 3 ----------
+    // ---------- SEÇÃO — PAGAMENTO ----------
 
     private void montarSecaoPagamento(Document document, OrdemDeServico os) throws DocumentException {
-        document.add(new Paragraph("PAGAMENTO", FONT_SUBTITULO));
-
-        // Reaproveita o PagamentoService: nenhum cálculo de valor pago/pendente é
-        // refeito aqui, só exibimos o que o service já resolveu.
         PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
+        List<RegistroPagamentoResponseDTO> registros =
+                registroPagamentoService.listarPorPagamento(pagamento.id());
+
+        PdfPCell conteudo = novaCelulaConteudo();
 
         Paragraph valores =
                 new Paragraph(
@@ -254,39 +341,62 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                                 + "   |   Valor com desconto: "
                                 + formatarMoeda(os.getValorComDesconto()),
                         FONT_TEXTO);
-        valores.setSpacingBefore(6f);
-        document.add(valores);
+        valores.setSpacingAfter(8f);
+        conteudo.addElement(valores);
 
-        document.add(new Paragraph("Registros de pagamento", FONT_LABEL));
+        conteudo.addElement(new Paragraph("Registros de pagamento", FONT_LABEL));
+        tabelaRegistrosPagamento(conteudo, registros);
 
+        conteudo.addElement(resumoFinanceiro(os, pagamento));
+
+        adicionarSecao(document, "PAGAMENTO", conteudo);
+    }
+
+    private void montarSecaoComprovantePagamento(Document document, OrdemDeServico os)
+            throws DocumentException {
+        PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
         List<RegistroPagamentoResponseDTO> registros =
                 registroPagamentoService.listarPorPagamento(pagamento.id());
 
-        if (registros.isEmpty()) {
-            document.add(new Paragraph("Nenhum registro de pagamento.", FONT_TEXTO));
-        } else {
-            PdfPTable tabela = new PdfPTable(3);
-            tabela.setWidthPercentage(100);
-            tabela.setSpacingBefore(4f);
-            tabela.setWidths(new float[] {1.5f, 1.5f, 1f});
-            cabecalhoLinha(tabela, "Data", "Forma de pagamento", "Valor");
+        PdfPCell conteudo = novaCelulaConteudo();
+        tabelaRegistrosPagamento(conteudo, registros);
+        adicionarSecao(document, "REGISTROS DE PAGAMENTO", conteudo);
 
-            for (RegistroPagamentoResponseDTO r : registros) {
-                tabela.addCell(celulaTexto(r.data() != null ? r.data().format(DATA_FMT) : "-"));
-                tabela.addCell(celulaTexto(r.meioPagamento() != null ? r.meioPagamento().toString() : "-"));
-                tabela.addCell(celulaTexto(formatarMoeda(r.valor())));
-            }
-            document.add(tabela);
+        PdfPCell resumoConteudo = novaCelulaConteudo();
+        resumoConteudo.addElement(resumoFinanceiro(os, pagamento));
+        adicionarSecao(document, "RESUMO DO PAGAMENTO", resumoConteudo);
+    }
+
+    private void tabelaRegistrosPagamento(
+            PdfPCell conteudo, List<RegistroPagamentoResponseDTO> registros) {
+        if (registros.isEmpty()) {
+            conteudo.addElement(new Paragraph("Nenhum registro de pagamento.", FONT_TEXTO));
+            return;
         }
 
-        // Resumo final destacado
+        PdfPTable tabela = new PdfPTable(3);
+        tabela.setWidthPercentage(100);
+        tabela.setSpacingBefore(4f);
+        tabela.setWidths(new float[] {1.5f, 1.5f, 1f});
+        cabecalhoLinha(tabela, "Data", "Forma de pagamento", "Valor");
+
+        for (RegistroPagamentoResponseDTO r : registros) {
+            tabela.addCell(celulaTexto(r.data() != null ? r.data().format(DATA_FMT) : "-"));
+            tabela.addCell(celulaTexto(r.meioPagamento() != null ? r.meioPagamento().toString() : "-"));
+            tabela.addCell(celulaTexto(formatarMoeda(r.valor())));
+        }
+        conteudo.addElement(tabela);
+    }
+
+    private PdfPTable resumoFinanceiro(OrdemDeServico os, PagamentoResponseDTO pagamento) {
         PdfPTable resumo = new PdfPTable(1);
         resumo.setWidthPercentage(100);
         resumo.setSpacingBefore(12f);
 
         PdfPCell resumoCell = new PdfPCell();
         resumoCell.setPadding(10f);
-        resumoCell.setBackgroundColor(new Color(240, 240, 240));
+        resumoCell.setBackgroundColor(COR_FUNDO_RESUMO);
+        resumoCell.setBorderColor(COR_BORDA_SECAO);
         resumoCell.addElement(new Paragraph("Resumo financeiro", FONT_SUBTITULO));
         resumoCell.addElement(
                 new Paragraph("Valor total: " + formatarMoeda(os.getValorTotal()), FONT_RESUMO));
@@ -304,7 +414,46 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                         "Status do pagamento: " + (pagamento.status() != null ? pagamento.status() : "-"),
                         FONT_RESUMO));
         resumo.addCell(resumoCell);
-        document.add(resumo);
+        return resumo;
+    }
+
+    // ---------- helpers de layout (cartões/seções) ----------
+
+    /**
+     * Monta uma seção em formato de "cartão": uma barra de título com fundo escuro
+     * (igual ao cabeçalho das tabelas) seguida de um bloco de conteúdo com borda
+     * clara — o mesmo padrão visual usado nas seções do modal de visualização da OS
+     * no frontend (título + card com borda).
+     */
+    private void adicionarSecao(Document document, String titulo, PdfPCell conteudo)
+            throws DocumentException {
+        PdfPTable secao = new PdfPTable(1);
+        secao.setWidthPercentage(100);
+        secao.setSpacingBefore(14f);
+        secao.setKeepTogether(false);
+
+        PdfPCell header = new PdfPCell(new Phrase(titulo, FONT_HEADER_SECAO));
+        header.setBackgroundColor(COR_HEADER_SECAO);
+        header.setPadding(7f);
+        header.setBorder(Rectangle.NO_BORDER);
+        secao.addCell(header);
+
+        secao.addCell(conteudo);
+        document.add(secao);
+    }
+
+    private PdfPCell novaCelulaConteudo() {
+        PdfPCell conteudo = new PdfPCell();
+        conteudo.setPadding(12f);
+        conteudo.setBorderColor(COR_BORDA_SECAO);
+        conteudo.setBorderWidthTop(0f);
+        return conteudo;
+    }
+
+    private PdfPCell celulaSemBorda() {
+        PdfPCell c = new PdfPCell();
+        c.setBorder(Rectangle.NO_BORDER);
+        return c;
     }
 
     // ---------- helpers ----------
@@ -340,16 +489,18 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     private static class CabecalhoRepeticaoEvent extends PdfPageEventHelper {
         private final OrdemDeServico os;
+        private final String texto;
 
-        CabecalhoRepeticaoEvent(OrdemDeServico os) {
+        CabecalhoRepeticaoEvent(OrdemDeServico os, String texto) {
             this.os = os;
+            this.texto = texto;
         }
 
         @Override
         public void onEndPage(PdfWriter writer, Document document) {
             if (writer.getPageNumber() == 1) return;
             PdfContentByte cb = writer.getDirectContent();
-            Phrase header = new Phrase(os.getOficina().getNome() + " — OS #" + os.getId(), FONT_LABEL);
+            Phrase header = new Phrase(os.getOficina().getNome() + " — " + texto, FONT_LABEL);
             ColumnText.showTextAligned(
                     cb, Element.ALIGN_LEFT, header, document.left(), document.top() + 20, 0);
         }

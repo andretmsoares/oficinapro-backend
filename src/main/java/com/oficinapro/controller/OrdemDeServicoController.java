@@ -374,7 +374,35 @@ public class OrdemDeServicoController {
     return ResponseEntity.ok()
             .header(
                     org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                    "attachment; filename=\"" + filename + "\"")
+                    "inline; filename=\"" + filename + "\"")
+            .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+            .body(pdf);
+  }
+
+  @Operation(
+          summary = "Gerar comprovante de pagamento da OS",
+          description =
+                  "Gera um PDF apenas com os dados básicos da OS, os registros de pagamento,"
+                          + " o valor total pago e o saldo restante, respeitando o mesmo isolamento"
+                          + " por oficina das demais rotas de OS.")
+  @ApiResponses({
+          @ApiResponse(responseCode = "200", description = "Comprovante gerado com sucesso"),
+          @ApiResponse(responseCode = "401", description = "Não autenticado"),
+          @ApiResponse(responseCode = "403", description = "Sem permissão"),
+          @ApiResponse(
+                  responseCode = "404",
+                  description = "OS não encontrada, ou pertence a outra oficina")
+  })
+  @GetMapping("/{id}/comprovante-pagamento")
+  @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
+  public ResponseEntity<byte[]> gerarComprovantePagamento(
+          @Parameter(description = "ID da ordem de serviço") @PathVariable Long id) {
+    byte[] pdf = service.gerarComprovantePagamento(id);
+    String filename = "comprovante-pagamento-os-" + id + ".pdf";
+    return ResponseEntity.ok()
+            .header(
+                    org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                    "inline; filename=\"" + filename + "\"")
             .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
             .body(pdf);
   }

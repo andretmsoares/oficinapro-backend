@@ -340,6 +340,13 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     return ordemDeServicoPdfService.gerar(os);
   }
 
+  @Transactional(readOnly = true)
+  @Override
+  public byte[] gerarComprovantePagamento(Long id) {
+    OrdemDeServico os = this.buscarPorEntidadeId(id); // já valida acesso por oficina
+    return ordemDeServicoPdfService.gerarComprovantePagamento(os);
+  }
+
   private OrdemDeServicoResponseDTO toResponseDTO(OrdemDeServico os) {
     return new OrdemDeServicoResponseDTO(
         os.getId(),

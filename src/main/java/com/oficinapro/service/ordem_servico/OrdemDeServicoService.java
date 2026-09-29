@@ -50,4 +50,7 @@ public interface OrdemDeServicoService {
 
     @Transactional(readOnly = true)
     byte[] gerarPdf(Long id);
+
+    @Transactional(readOnly = true)
+    byte[] gerarComprovantePagamento(Long id);
 }
