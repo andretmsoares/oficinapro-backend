@@ -22,9 +22,9 @@ import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
+import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.repository.PagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
-import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,7 +49,7 @@ class PagamentoServiceImplTest {
 
   @Mock private PagamentoRepository repository;
 
-  @Mock private OrdemDeServicoService ordemDeServicoService;
+  @Mock private OrdemDeServicoRepository ordemDeServicoRepository;
 
   @Mock private OficinaAccessValidator oficinaAccessValidator;
 
@@ -96,7 +96,7 @@ class PagamentoServiceImplTest {
 
       OrdemDeServico os = os("500.00");
 
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(ordemDeServicoRepository.findById(OS_ID)).thenReturn(Optional.of(os));
 
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
 
@@ -121,7 +121,7 @@ class PagamentoServiceImplTest {
 
       OrdemDeServico os = os("500.00");
 
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID)).thenReturn(os);
+      when(ordemDeServicoRepository.findById(OS_ID)).thenReturn(Optional.of(os));
 
       when(repository.findByOrdemDeServicoId(OS_ID))
           .thenReturn(pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE));
@@ -143,7 +143,7 @@ class PagamentoServiceImplTest {
       assertThatThrownBy(() -> service.criar(new PagamentoRequestDTO(OS_ID, "")))
           .isInstanceOf(AccessDeniedException.class);
 
-      verify(ordemDeServicoService, never()).buscarPorEntidadeId(any());
+      verify(ordemDeServicoRepository, never()).findById(any());
 
       verify(repository, never()).save(any());
     }
@@ -152,8 +152,7 @@ class PagamentoServiceImplTest {
     @DisplayName("deve propagar 'OS não encontrada' quando a OS não existe ou é de outra oficina")
     void devePropagarOsInexistente() {
 
-      when(ordemDeServicoService.buscarPorEntidadeId(OS_ID))
-          .thenThrow(new OrdemDeServicoNotFoundException(OS_ID));
+      when(ordemDeServicoRepository.findById(OS_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.criar(new PagamentoRequestDTO(OS_ID, "")))
           .isInstanceOf(OrdemDeServicoNotFoundException.class);
