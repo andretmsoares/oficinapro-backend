@@ -9,6 +9,10 @@ frontend — o `frontend/README.md` era o template do Vite.
 
 ## 1. Antes de tudo: os dados são mockados
 
+> **Aviso: esta seção e o §9 estão desatualizados.** O frontend já possui camada HTTP
+> (`src/services/api.ts`, `fetch` + JWT) e as telas de OS, Pagamentos, Peças, Clientes etc.
+> consomem a API. O texto abaixo descreve o estado original e será revisado em separado.
+
 **Não existe camada HTTP.** Nenhum `fetch`, nenhum `axios` (não está instalado), nenhum
 `import.meta.env.VITE_*`, nenhum arquivo `api.ts`/`client.ts`. Todas as telas leem de
 `src/mocks/` e mutam estado local com `useState`.
@@ -312,11 +316,32 @@ Todas seguem o mesmo esqueleto: `HeaderPageWithButton` + `StatCard` + `SearchBar
 | `Veiculos` | `/veiculos` | CRUD local. Ação "ver OS" é `console.log` |
 | `Mecanicos` | `/mecanicos` | CRUD local. `oficinaId: 1` hardcoded na criação |
 | `Pecas` | `/pecas` | CRUD local. Ação "relacionar a OS" é `console.log` |
-| `OrdensServico` | `/ordens-servico` | a maior tela: OS + peças + mão de obra + desconto + pagamento, com `ViewOrdemServicoModal` |
-| `Pagamentos` | `/pagamentos` | 3 `StatCard`, histórico, registro de pagamento. Impressão é TODO |
+| `OrdensServico` | `/ordens-servico` | a maior tela: OS + peças + mão de obra + desconto + pagamento, com `ViewOrdemServicoModal`. Tem filtro por status e coluna "Valor Pendente" (ver abaixo) |
+| `Pagamentos` | `/pagamentos` | `StatCard`s, histórico, registro de pagamento, impressão de comprovante. Tem filtro por status (ver abaixo) |
 | `Usuarios` | `/usuarios` e `/admin/usuarios` | **mesmo componente nas duas rotas**, comportamento por `isAdmin` |
 | `Unidades` | `/unidades` | CRUD completo, filtrado pela `oficinaId` da prop |
 | `Oficinas` | `/admin/oficinas` | CRUD completo — home do ADMIN |
+
+### Filtro por status (`StatusFilter`) e valor pendente
+
+`components/StatusFilter` é um `<select>` genérico (opção fixa "Todos" + as opções recebidas)
+posto ao lado da `SearchBar` numa linha `.list-filters`. O filtro é **client-side**: a página
+filtra o array antes de entregá-lo à `EntityTable`, então busca textual e status se combinam.
+
+| Página | Valores (enum do backend) | Rótulos |
+|---|---|---|
+| `/ordens-servico` | `ABERTA`, `DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `AGUARDANDO_PECAS`, `EM_EXECUCAO`, `FINALIZADA`, `ENTREGUE`, `FECHADA`, `CANCELADA` | Aberta, Diagnóstico, Aguardando aprovação, Aguardando peças, Em execução, Finalizada, Entregue, Fechada, Cancelada |
+| `/pagamentos` | `PAGAMENTO_PENDENTE`, `PAGO_PARCIALMENTE`, `PAGA` | Pendente, Pago parcialmente, Paga |
+
+Os valores vêm de `enums/StatusOrdemDeServico.ts` e `enums/StatusPagamento.ts`; a página de
+OS reutiliza `formatStatusOrdemServico` para os rótulos.
+
+**Coluna "Valor Pendente" (OS).** Não há fórmula no frontend. A página busca
+`GET /api/pagamentos/oficina/{oficinaId}` e indexa `valorPendente` por `osId`; esse campo é
+calculado pelo backend como `valorComDesconto − valorPago` (ver
+[business-rules.md §5](./business-rules.md)). O frontend só limita o valor a `>= 0`
+(`Math.max`) e mostra `R$ 0,00` para OS quitada. A lista é recarregada ao criar OS e sempre que
+o `ViewOrdemServicoModal` reporta uma alteração (peça, mão de obra, desconto, pagamento).
 
 ### Sobre as telas que foram pedidas
 

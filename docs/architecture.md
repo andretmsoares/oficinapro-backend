@@ -21,7 +21,7 @@ Monorepo com dois artefatos independentes e um banco.
                                                   ▼
                                     ┌──────────────────────────────┐
                                     │  PostgreSQL 16               │
-                                    │  19 migrations               │
+                                    │  12 migrations               │
                                     └──────────────────────────────┘
 ```
 
@@ -291,7 +291,7 @@ Pontos frágeis conhecidos: `strict` desligado no TypeScript, `react-router-dom`
 | Spring Boot | 4.1.1 |
 | Módulos | webmvc, data-jpa, security, oauth2-resource-server, validation, jackson, actuator |
 | Banco | PostgreSQL 16 |
-| Migrations | Flyway (`baseline-on-migrate`, `ddl-auto=validate`) |
+| Migrations | Flyway (12 migrations, `ddl-auto=validate`) |
 | Docs | springdoc-openapi 3.0.1 |
 | Build | Gradle, Spotless com googleJavaFormat |
 | Testes | JUnit 5, Mockito, AssertJ, spring-security-test, H2 |
@@ -377,6 +377,7 @@ Em ordem de impacto:
    as oficinas, contrariando o princípio de separação.
 5. **`strict` desligado no TypeScript** — o frontend não tem checagem de nulos.
 6. **Zero teste no frontend.**
-7. **Três tabelas órfãs** (`fornecedor`, `nota_compra`, `item_nota_compra`) criadas por
-   migration sem entidade correspondente — ver [database.md](./database.md).
-8. **Sete testes de service em `LENIENT`** com `TODO` para voltar a `STRICT_STUBS`.
+7. ~~Três tabelas órfãs de compras~~ — removidas na consolidação das migrations
+   (12 migrations, uma por entidade) — ver [database.md](./database.md).
+8. **Dois testes de service ainda em `LENIENT`** (`UsuarioServiceTest`,
+   `OrdemDeServicoStatusMachineTest`); os demais voltaram ao `STRICT_STUBS`.

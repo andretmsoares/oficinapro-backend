@@ -19,9 +19,11 @@ mascarada no `displayValues`. A conversão acontece em `src/services/formatters.
 (`parseCurrencyToCents` e `formatCurrencyDisplay`).
 
 > **Atenção na integração.** O backend espera decimal (`1234.56`); o frontend mantém
-> centavos (`123456`). A conversão na borda HTTP **ainda não existe**, porque a camada
-> HTTP ainda não existe. Quando ela for escrita, esta divisão por 100 é obrigatória —
-> ignorá-la multiplica todo valor por 100.
+> centavos (`123456`). A conversão na borda HTTP **ainda não existe** (a camada HTTP já
+> existe, mas envia centavos como estão). Hoje o backend grava centavos como se fossem
+> reais e as telas dividem por 100 ao exibir; o PDF mostra o valor sem divisão. Enquanto
+> isso não for decidido, todo valor exibido pelo frontend segue essa convenção (inclusive
+> o "Valor Pendente" da tela de OS).
 
 Nunca use `double` ou `float` para dinheiro. Nunca compare `BigDecimal` com `equals`:
 use `compareTo`, porque `equals` também compara escala e `2.0` não é `equals` a `2.00`.
@@ -203,7 +205,7 @@ pagamento integral. Essa regra já foi mais restritiva, e havia teste afirmando 
 Cada OS tem exatamente um pagamento. Garantido em dois níveis:
 
 - aplicação: `PagamentoAlreadyExistsException` → `409`;
-- banco: constraint `uk_pagamento_os` (`V13`).
+- banco: constraint `uk_pagamento_os` (`V11`).
 
 O pagamento é **criado automaticamente junto com a OS** — `OrdemDeServicoServiceImpl.criar`
 chama `pagamentoService.criar`. Não é preciso criá-lo à mão no fluxo normal.
@@ -295,6 +297,13 @@ sobrescrever o valor livremente.
 somente pagamentos `PAGAMENTO_PENDENTE` e `PAGO_PARCIALMENTE`. Exige `GERENTE` e valida
 acesso à oficina — esse endpoint já expôs o faturamento de qualquer oficina.
 
+### Valor pendente
+
+`valorPendente = valorComDesconto − valorPago`, calculado no backend em
+`PagamentoServiceImpl.toResponseDTO` e exposto em `PagamentoResponseDTO`. O backend nunca
+permite `valorPago > valorComDesconto`, então o valor pendente não é negativo; uma OS quitada
+tem `valorPendente = 0`. A tela de OS exibe esse campo (não recalcula).
+
 ### Registro de pagamento
 
 `RegistroPagamento` é o histórico: cada recebimento gera um registro com meio de
@@ -317,7 +326,7 @@ quando há `oficinaId`.
 
 ### Endereço da unidade
 
-Único **por oficina**: constraint `uq_unidade_oficina_endereco` (`V18`). Duas oficinas
+Único **por oficina**: constraint `uq_unidade_oficina_endereco` (`V2`). Duas oficinas
 podem operar no mesmo endereço (prédio compartilhado, troca de ponto comercial).
 
 Já foi único globalmente, e a oficina B recebia `409` por um endereço usado pela oficina
@@ -375,7 +384,8 @@ Contrato completo de erro em [api.md](./api.md).
 | `PagamentoServiceImplTest` | status, acúmulo, estorno, pagamento a maior, recálculo ao mudar o valor da OS, 1:1 |
 | `ItemOsPecaServiceTest` | cálculo do valor do item, exclusão vs. valor pago |
 | `MaoObraServiceTest` | CRUD, exclusão vs. valor pago, `osId` ignorado no update |
-| `OrdemDeServicoServiceTest` | desconto, troca de oficina, atribuições |
+| `OrdemDeServicoServiceTest` | desconto (válido, nulo, igual ao total, negativo, maior que o total), recálculo do total com trava do desconto, listagem por status escopada por oficina, troca de oficina, atribuições |
+| `FlywayMigrationsTest` | migrations reais do zero: tabelas esperadas, `chk_usuario_role`, unicidade por oficina |
 
 O grafo de estados no teste é declarado **independentemente da implementação**: ele
 descreve a regra pretendida. Alterar `transicaoPermitida` sem alterar a regra quebra o

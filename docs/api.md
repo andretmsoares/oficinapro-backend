@@ -285,9 +285,10 @@ Número decimal com 2 casas no JSON: `1234.56`. No banco, `NUMERIC(12,2)`; em Ja
 `BigDecimal`.
 
 > **O frontend usa outra representação.** Internamente ele guarda **centavos como
-> inteiro** (`123456`). A conversão na borda HTTP é obrigatória e **ainda não existe**,
-> porque a camada HTTP ainda não existe. Ver
-> [business-rules.md §1](./business-rules.md).
+> inteiro** (`123456`). ⚠️ **A conversão na borda HTTP ainda não existe**: hoje o frontend
+> envia o valor em centavos e o backend o grava como se fosse reais, e as telas dividem por
+> 100 ao exibir. Só o PDF (gerado no backend, sem divisão) mostra o valor "cru". Decisão
+> pendente — ver [business-rules.md §1](./business-rules.md).
 
 ### Data e hora
 

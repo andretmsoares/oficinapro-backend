@@ -86,7 +86,7 @@ O detalhe técnico vive em `docs/`. Este README é só a porta de entrada.
 | [`docs/permissions.md`](./docs/permissions.md) | **matriz papel × endpoint**, isolamento multi-tenant, hierarquia de usuários |
 | [`docs/business-rules.md`](./docs/business-rules.md) | máquina de estados da OS, cálculo de valores, desconto, pagamento |
 | [`docs/api.md`](./docs/api.md) | contrato de erro, fluxo de autenticação, paginação, convenções de tipo |
-| [`docs/database.md`](./docs/database.md) | ER, constraints, histórico das 19 migrations |
+| [`docs/database.md`](./docs/database.md) | ER, constraints, histórico das 12 migrations |
 | [`docs/development.md`](./docs/development.md) | como subir, variáveis de ambiente, testes, contribuição |
 | [`docs/frontend.md`](./docs/frontend.md) | arquitetura do frontend, componentes genéricos, integração |
 | [`frontend/README.md`](./frontend/README.md) | início rápido do frontend |
@@ -152,7 +152,7 @@ Tudo em [`docs/development.md`](./docs/development.md).
                             ligado                │ JPA + Flyway
                                                   ▼
                                     ┌──────────────────────────────┐
-                                    │  PostgreSQL 16 · 19 migrations│
+                                    │  PostgreSQL 16 · 12 migrations│
                                     └──────────────────────────────┘
 ```
 
@@ -220,8 +220,9 @@ ESLint + Prettier + husky. Sem biblioteca de HTTP ainda.
 > validam a borda HTTP e não o fluxo ponta a ponta. A versão anterior deste README os
 > chamava de E2E, o que dava falsa sensação de cobertura.
 
-O que a suíte **não** cobre: migrations (o perfil de teste desliga o Flyway e gera o
-schema pelas entidades), comportamento real do PostgreSQL, e o frontend. Ver
+O que a suíte **não** cobre: `ddl-auto=validate` contra PostgreSQL real (o perfil de teste
+desliga o Flyway e gera o schema pelas entidades; `FlywayMigrationsTest` só executa o SQL em
+H2), comportamento real do PostgreSQL, e o frontend. Ver
 [`docs/development.md`](./docs/development.md) §5.
 
 Lembre-se de `./gradlew spotlessApply` antes de commitar — `spotlessCheck` está pendurado
@@ -251,8 +252,8 @@ no `build`, e é a causa mais comum de CI vermelho aqui.
 | RF16 | Dashboard | **Parcial** — fluxo mensal no backend; tela com dados mockados |
 | RF17 | Auditoria | Pendente |
 
-RF10–RF14 têm tabelas criadas no banco (`fornecedor`, `nota_compra`, `item_nota_compra`)
-sem entidade nem código. Ver [`docs/database.md`](./docs/database.md) §5.
+RF10–RF14 não têm tabelas nem código: as tabelas órfãs de compras foram removidas na
+consolidação das migrations. Ver [`docs/database.md`](./docs/database.md) §4.
 
 ---
 
