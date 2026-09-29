@@ -46,6 +46,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   private static final Color COR_ZEBRA = new Color(247, 248, 250);
   private static final Color COR_DESTAQUE = new Color(31, 78, 121);
 
+  private static final float LOGO_ALTURA = 50f;
+
   private final ItemOsPecaRepository itemOsPecaRepository;
   private final MaoObraRepository maoObraRepository;
   private final PagamentoService pagamentoService;
@@ -68,7 +70,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       Document document = new Document(PageSize.A4, 30, 30, 36, 40);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       PdfWriter writer = PdfWriter.getInstance(document, out);
-      writer.setPageEvent(new CabecalhoRepeticaoEvent(os, "OS #" + os.getId()));
+      writer.setPageEvent(new CabecalhoRepeticaoEvent(os, "OS #" + formatarId(os.getId())));
 
       document.open();
       montarCabecalhoPrincipal(document, os);
@@ -90,7 +92,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       PdfWriter writer = PdfWriter.getInstance(document, out);
       writer.setPageEvent(
-          new CabecalhoRepeticaoEvent(os, "Comprovante de pagamento — OS #" + os.getId()));
+          new CabecalhoRepeticaoEvent(os, "Comprovante de pagamento — OS #" + formatarId(os.getId())));
 
       document.open();
       montarCabecalhoComprovante(document, os);
@@ -109,41 +111,61 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private void montarCabecalhoPrincipal(Document document, OrdemDeServico os)
       throws DocumentException {
-    Paragraph titulo = new Paragraph("ORDEM DE SERVIÇO #" + os.getId(), FONT_TITULO);
-    titulo.setSpacingAfter(2f);
-    document.add(titulo);
-
-    Paragraph status =
-        new Paragraph(
-            "Status: "
-                + os.getStatus()
-                + (os.getDataAbertura() != null
-                    ? " | Abertura: " + os.getDataAbertura().format(DATA_FMT)
-                    : "")
-                + (os.getDataFechamento() != null
-                    ? " | Fechamento: " + os.getDataFechamento().format(DATA_FMT)
-                    : ""),
-            FONT_TEXTO);
-    status.setSpacingAfter(4f);
-    document.add(status);
+    montarCabecalhoComLogo(
+        document,
+        "ORDEM DE SERVIÇO #" + formatarId(os.getId()),
+        (os.getDataAbertura() != null ? "Abertura: " + os.getDataAbertura().format(DATA_FMT) : "")
+            + (os.getDataFechamento() != null
+                ? (os.getDataAbertura() != null ? " | " : "")
+                    + "Fechamento: "
+                    + os.getDataFechamento().format(DATA_FMT)
+                : ""));
   }
 
   private void montarCabecalhoComprovante(Document document, OrdemDeServico os)
       throws DocumentException {
-    Paragraph titulo = new Paragraph("COMPROVANTE DE PAGAMENTO", FONT_TITULO);
-    titulo.setSpacingAfter(2f);
-    document.add(titulo);
+    montarCabecalhoComLogo(
+        document,
+        "COMPROVANTE DE PAGAMENTO",
+        "Ordem de serviço #"
+            + formatarId(os.getId())
+            + (os.getDataAbertura() != null
+                ? " | Abertura: " + os.getDataAbertura().format(DATA_FMT)
+                : ""));
+  }
 
-    Paragraph subtitulo =
-        new Paragraph(
-            "Ordem de serviço #"
-                + os.getId()
-                + (os.getDataAbertura() != null
-                    ? " | Abertura: " + os.getDataAbertura().format(DATA_FMT)
-                    : ""),
-            FONT_TEXTO);
-    subtitulo.setSpacingAfter(4f);
-    document.add(subtitulo);
+  /**
+   * Cabeçalho com título à esquerda e um slot reservado para a logo da oficina à direita. Para
+   * ativar a logo, substitua o conteúdo da célula retornada por {@link #slotLogo()} por um {@link
+   * Image} ajustado ao tamanho do slot.
+   */
+  private void montarCabecalhoComLogo(Document document, String titulo, String subtitulo)
+      throws DocumentException {
+    PdfPTable cab = new PdfPTable(2);
+    cab.setWidthPercentage(100);
+    cab.setWidths(new float[] {4f, 1f});
+
+    PdfPCell esquerda = celulaSemBorda();
+    esquerda.setVerticalAlignment(Element.ALIGN_MIDDLE);
+    esquerda.addElement(new Paragraph(titulo, FONT_TITULO));
+    if (!subtitulo.isBlank()) esquerda.addElement(new Paragraph(subtitulo, FONT_TEXTO));
+    cab.addCell(esquerda);
+
+    cab.addCell(slotLogo());
+    document.add(cab);
+  }
+
+  private PdfPCell slotLogo() {
+    PdfPCell logo = new PdfPCell(new Phrase(" ", FONT_TEXTO));
+    logo.setFixedHeight(LOGO_ALTURA);
+    logo.setBorderColor(COR_BORDA_SECAO);
+    logo.setHorizontalAlignment(Element.ALIGN_CENTER);
+    logo.setVerticalAlignment(Element.ALIGN_MIDDLE);
+    return logo;
+  }
+
+  private String formatarId(Long id) {
+    return String.format("%04d", id);
   }
 
   // ---------- SEÇÃO — IDENTIFICAÇÃO ----------
@@ -346,9 +368,6 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     caixaValor(valores, "Saldo restante", pagamento.valorPendente());
     conteudo.addElement(valores);
 
-    Paragraph status = campo("Status do pagamento", statusPagamento(pagamento));
-    conteudo.addElement(status);
-
     adicionarSecao(document, "PAGAMENTO", conteudo);
   }
 
@@ -360,7 +379,6 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     PdfPCell conteudo = novaCelulaConteudo();
     tabelaRegistrosPagamento(conteudo, registros);
-    conteudo.addElement(campo("Status do pagamento", statusPagamento(pagamento)));
     adicionarSecao(document, "REGISTROS DE PAGAMENTO", conteudo);
   }
 
@@ -390,10 +408,6 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       tabela.addCell(celulaTexto(formatarMoeda(r.valor()), Element.ALIGN_RIGHT, z));
     }
     conteudo.addElement(tabela);
-  }
-
-  private String statusPagamento(PagamentoResponseDTO pagamento) {
-    return pagamento.status() != null ? pagamento.status().toString() : null;
   }
 
   // ---------- helpers de layout (cartões/seções) ----------
