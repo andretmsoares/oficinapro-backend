@@ -436,11 +436,11 @@ class DtoValidationTest {
       assertThat(camposInvalidos(new MaoObraRequestDTO(1L, fracionado, "Servico")))
           .contains("valor");
       assertThat(
-              camposInvalidos(new ItemOsPecaRequestDTO(1L, "Peca", new BigDecimal("1"), fracionado)))
+              camposInvalidos(
+                  new ItemOsPecaRequestDTO(1L, "Peca", new BigDecimal("1"), fracionado)))
           .contains("valorUnitario");
       assertThat(
-              camposInvalidos(
-                  new RegistroPagamentoRequestDTO(1L, fracionado, MeioPagamento.PIX)))
+              camposInvalidos(new RegistroPagamentoRequestDTO(1L, fracionado, MeioPagamento.PIX)))
           .contains("valor");
     }
 

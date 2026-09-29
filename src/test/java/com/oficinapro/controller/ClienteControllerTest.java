@@ -96,7 +96,9 @@ class ClienteControllerTest {
   @DisplayName("GET /api/clientes/buscar - ADMIN deve retornar 403")
   @WithMockUser(roles = "ADMIN")
   void deveNegarBuscaDeClientesParaAdmin() throws Exception {
-    mockMvc.perform(get("/api/clientes/buscar").param("q", "joao")).andExpect(status().isForbidden());
+    mockMvc
+        .perform(get("/api/clientes/buscar").param("q", "joao"))
+        .andExpect(status().isForbidden());
   }
 
   @Test

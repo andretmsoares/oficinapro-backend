@@ -201,13 +201,9 @@ class ItemOsPecaServiceTest {
   class Criar {
 
     @ParameterizedTest(name = "{0} x {1} = {2}")
-    @CsvSource({
-      "2, 12000, 24000",
-      "1, 3550, 3550",
-      "0.500, 10001, 5001",
-      "3, 3333, 9999"
-    })
-    @DisplayName("deve calcular valorTotal = quantidade x valorUnitario em centavos (sem casas decimais)")
+    @CsvSource({"2, 12000, 24000", "1, 3550, 3550", "0.500, 10001, 5001", "3, 3333, 9999"})
+    @DisplayName(
+        "deve calcular valorTotal = quantidade x valorUnitario em centavos (sem casas decimais)")
     void deveCalcularValorTotal(String quantidade, String valorUnitario, String esperado) {
       oficinaDoUsuarioExiste();
       salvarAtribuindoId();

@@ -130,11 +130,11 @@ class JwtServiceTest {
     String tokenExpirado =
         config
             .jwtEncoder(config.jwtSecretKey())
-            .encode(
-                JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
+            .encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
             .getTokenValue();
 
-    assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado)).isInstanceOf(JwtException.class);
+    assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado))
+        .isInstanceOf(JwtException.class);
   }
 
   @Test
