@@ -268,8 +268,10 @@ class OrdemDeServicoPdfServiceImplTest {
 
     assertEhPdfValido(pdfService.gerar(os));
 
-    when(logoStorage.ler("logos/quebrada.png"))
-        .thenReturn(java.util.Optional.of(new byte[] {1, 2, 3}));
+    // doReturn: com when(...) o mock ainda lancaria a excecao configurada acima ao ser chamado.
+    org.mockito.Mockito.doReturn(java.util.Optional.of(new byte[] {1, 2, 3}))
+        .when(logoStorage)
+        .ler("logos/quebrada.png");
     assertEhPdfValido(pdfService.gerar(os));
   }
 
