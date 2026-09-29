@@ -1,1 +1,0 @@
-UPDATE usuario SET role='GERENTE' WHERE role='ADMINISTRATIVO'
