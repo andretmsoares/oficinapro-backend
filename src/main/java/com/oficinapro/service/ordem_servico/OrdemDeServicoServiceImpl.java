@@ -20,18 +20,21 @@ import com.oficinapro.service.oficina.OficinaService;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.unidade.UnidadeService;
 import com.oficinapro.service.veiculo.VeiculoService;
+
+import lombok.RequiredArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
   private final OrdemDeServicoRepository ordemServicoRepository;
@@ -43,40 +46,6 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final PagamentoService pagamentoService;
   private final OficinaAccessValidator oficinaAccessValidator;
   private final OrdemDeServicoPdfService ordemDeServicoPdfService;
-
-  /**
-   * Construtor escrito à mão (em vez de {@code @RequiredArgsConstructor}) porque {@code
-   * pagamentoService} precisa do {@code @Lazy} no parâmetro.
-   *
-   * <p>Existe uma dependência circular real entre este service e o de pagamento: a OS abre o
-   * pagamento ao ser criada e consulta o pagamento para permitir a transição para FECHADA, enquanto
-   * o pagamento resolve e valida a OS. Como o Spring Boot proíbe referências circulares por padrão,
-   * sem o {@code @Lazy} o contexto não sobe — a aplicação inteira falha na inicialização.
-   *
-   * <p>O {@code @Lazy} precisa estar no ponto de injeção: anotar a classe {@code
-   * PagamentoServiceImpl} apenas adiaria a instanciação do bean, sem criar o proxy que efetivamente
-   * rompe o ciclo.
-   */
-  public OrdemDeServicoServiceImpl(
-      OrdemDeServicoRepository ordemServicoRepository,
-      OficinaService oficinaService,
-      UnidadeService unidadeService,
-      VeiculoService veiculoService,
-      ClienteService clienteService,
-      MecanicoService mecanicoService,
-      @Lazy PagamentoService pagamentoService,
-      OficinaAccessValidator oficinaAccessValidator,
-      OrdemDeServicoPdfService ordemDeServicoPdfService) {
-    this.ordemServicoRepository = ordemServicoRepository;
-    this.oficinaService = oficinaService;
-    this.unidadeService = unidadeService;
-    this.veiculoService = veiculoService;
-    this.clienteService = clienteService;
-    this.mecanicoService = mecanicoService;
-    this.pagamentoService = pagamentoService;
-    this.oficinaAccessValidator = oficinaAccessValidator;
-    this.ordemDeServicoPdfService = ordemDeServicoPdfService;
-  }
 
   private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
