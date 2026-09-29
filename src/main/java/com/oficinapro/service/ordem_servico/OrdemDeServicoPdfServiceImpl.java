@@ -27,21 +27,24 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private static final DateTimeFormatter DATA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-  private static final Font FONT_TITULO = new Font(Font.HELVETICA, 16, Font.BOLD);
-  private static final Font FONT_SUBTITULO = new Font(Font.HELVETICA, 12, Font.BOLD);
+  private static final Font FONT_TITULO = new Font(Font.HELVETICA, 16, Font.BOLD, new Color(31, 78, 121));
+  private static final Font FONT_SUBTITULO = new Font(Font.HELVETICA, 10, Font.BOLD);
   private static final Font FONT_LABEL = new Font(Font.HELVETICA, 9, Font.BOLD, Color.DARK_GRAY);
-  private static final Font FONT_TEXTO = new Font(Font.HELVETICA, 10, Font.NORMAL);
+  private static final Font FONT_TEXTO = new Font(Font.HELVETICA, 9, Font.NORMAL);
   private static final Font FONT_HEADER_TABELA =
       new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
   private static final Font FONT_HEADER_SECAO =
-      new Font(Font.HELVETICA, 11, Font.BOLD, Color.WHITE);
-  private static final Font FONT_RESUMO = new Font(Font.HELVETICA, 11, Font.BOLD);
+      new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE);
+  private static final Font FONT_VALOR_LABEL = new Font(Font.HELVETICA, 9, Font.BOLD);
+  private static final Font FONT_TOTAL = new Font(Font.HELVETICA, 11, Font.BOLD);
+  private static final Font FONT_RODAPE = new Font(Font.HELVETICA, 8, Font.NORMAL, Color.GRAY);
 
   // Paleta alinhada ao card de pagamento do modal do frontend (border #e5e7eb,
   // fundo branco), para que o PDF pareça uma extensão da mesma tela.
-  private static final Color COR_HEADER_SECAO = new Color(51, 51, 51);
+  private static final Color COR_HEADER_SECAO = new Color(31, 78, 121);
   private static final Color COR_BORDA_SECAO = new Color(229, 231, 235);
-  private static final Color COR_FUNDO_RESUMO = new Color(240, 240, 240);
+  private static final Color COR_ZEBRA = new Color(247, 248, 250);
+  private static final Color COR_DESTAQUE = new Color(31, 78, 121);
 
   private final ItemOsPecaRepository itemOsPecaRepository;
   private final MaoObraRepository maoObraRepository;
@@ -62,7 +65,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   @Override
   public byte[] gerar(OrdemDeServico os) {
     try {
-      Document document = new Document(PageSize.A4, 36, 36, 54, 54);
+      Document document = new Document(PageSize.A4, 30, 30, 36, 40);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       PdfWriter writer = PdfWriter.getInstance(document, out);
       writer.setPageEvent(new CabecalhoRepeticaoEvent(os, "OS #" + os.getId()));
@@ -83,7 +86,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   @Override
   public byte[] gerarComprovantePagamento(OrdemDeServico os) {
     try {
-      Document document = new Document(PageSize.A4, 36, 36, 54, 54);
+      Document document = new Document(PageSize.A4, 30, 30, 36, 40);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       PdfWriter writer = PdfWriter.getInstance(document, out);
       writer.setPageEvent(
@@ -107,7 +110,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   private void montarCabecalhoPrincipal(Document document, OrdemDeServico os)
       throws DocumentException {
     Paragraph titulo = new Paragraph("ORDEM DE SERVIÇO #" + os.getId(), FONT_TITULO);
-    titulo.setSpacingAfter(4f);
+    titulo.setSpacingAfter(2f);
     document.add(titulo);
 
     Paragraph status =
@@ -121,14 +124,14 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                     ? " | Fechamento: " + os.getDataFechamento().format(DATA_FMT)
                     : ""),
             FONT_TEXTO);
-    status.setSpacingAfter(12f);
+    status.setSpacingAfter(4f);
     document.add(status);
   }
 
   private void montarCabecalhoComprovante(Document document, OrdemDeServico os)
       throws DocumentException {
     Paragraph titulo = new Paragraph("COMPROVANTE DE PAGAMENTO", FONT_TITULO);
-    titulo.setSpacingAfter(4f);
+    titulo.setSpacingAfter(2f);
     document.add(titulo);
 
     Paragraph subtitulo =
@@ -139,7 +142,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                     ? " | Abertura: " + os.getDataAbertura().format(DATA_FMT)
                     : ""),
             FONT_TEXTO);
-    subtitulo.setSpacingAfter(12f);
+    subtitulo.setSpacingAfter(4f);
     document.add(subtitulo);
   }
 
@@ -155,43 +158,50 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     PdfPCell conteudo = novaCelulaConteudo();
 
-    PdfPTable topo = new PdfPTable(2);
-    topo.setWidthPercentage(100);
-    topo.setWidths(new float[] {1f, 1f});
+    PdfPTable t = new PdfPTable(3);
+    t.setWidthPercentage(100);
 
-    PdfPCell celulaOficina = celulaSemBorda();
-    celulaOficina.addElement(new Paragraph(nullToDash(oficina.getNome()), FONT_SUBTITULO));
-    celulaOficina.addElement(campo("CNPJ", oficina.getCnpj()));
-    celulaOficina.addElement(campo("Telefone", oficina.getTelefone()));
-    topo.addCell(celulaOficina);
+    PdfPCell cOficina = celulaSemBorda();
+    cOficina.addElement(new Paragraph(nullToDash(oficina.getNome()), FONT_SUBTITULO));
+    cOficina.addElement(campo("CNPJ", oficina.getCnpj()));
+    cOficina.addElement(campo("Telefone", oficina.getTelefone()));
+    t.addCell(cOficina);
 
-    PdfPCell celulaUnidade = celulaSemBorda();
-    celulaUnidade.addElement(new Paragraph("Unidade", FONT_SUBTITULO));
+    PdfPCell cUnidade = celulaSemBorda();
+    cUnidade.addElement(new Paragraph("Unidade", FONT_SUBTITULO));
     if (unidade != null) {
-      celulaUnidade.addElement(campo("Nome", unidade.getNome()));
-      celulaUnidade.addElement(campo("Endereço", unidade.getEndereco()));
-      celulaUnidade.addElement(campo("Telefone", unidade.getTelefone()));
+      cUnidade.addElement(campo("Nome", unidade.getNome()));
+      cUnidade.addElement(campo("Endereço", unidade.getEndereco()));
+      cUnidade.addElement(campo("Telefone", unidade.getTelefone()));
     } else {
-      celulaUnidade.addElement(new Paragraph("Não informado", FONT_TEXTO));
+      cUnidade.addElement(new Paragraph("Não informado", FONT_TEXTO));
     }
-    topo.addCell(celulaUnidade);
-    conteudo.addElement(topo);
+    t.addCell(cUnidade);
 
-    PdfPTable meio = new PdfPTable(3);
-    meio.setWidthPercentage(100);
-    meio.setSpacingBefore(10f);
+    PdfPCell cMecanico = celulaSemBorda();
+    cMecanico.addElement(new Paragraph("Mecânico responsável", FONT_SUBTITULO));
+    cMecanico.addElement(
+        new Paragraph(mecanico != null ? mecanico.getNome() : "Não informado", FONT_TEXTO));
+    t.addCell(cMecanico);
 
     PdfPCell cVeiculo = celulaSemBorda();
+    cVeiculo.setPaddingTop(6f);
     cVeiculo.addElement(new Paragraph("Veículo", FONT_SUBTITULO));
     cVeiculo.addElement(campo("Placa", veiculo.getPlaca()));
-    cVeiculo.addElement(campo("Marca", veiculo.getMarca()));
-    cVeiculo.addElement(campo("Modelo", veiculo.getModelo()));
     cVeiculo.addElement(
-        campo("Ano", veiculo.getAno() != null ? String.valueOf(veiculo.getAno()) : null));
-    cVeiculo.addElement(campo("Cor", veiculo.getCor()));
-    meio.addCell(cVeiculo);
+        campo(
+            "Modelo",
+            (nullToDash(veiculo.getMarca()) + " " + nullToDash(veiculo.getModelo())).trim()));
+    cVeiculo.addElement(
+        campo(
+            "Ano / Cor",
+            (veiculo.getAno() != null ? String.valueOf(veiculo.getAno()) : "-")
+                + " / "
+                + nullToDash(veiculo.getCor())));
+    t.addCell(cVeiculo);
 
     PdfPCell cCliente = celulaSemBorda();
+    cCliente.setPaddingTop(6f);
     cCliente.addElement(new Paragraph("Cliente", FONT_SUBTITULO));
     if (cliente != null) {
       cCliente.addElement(campo("Nome", cliente.getNome()));
@@ -200,15 +210,12 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     } else {
       cCliente.addElement(new Paragraph("Não informado", FONT_TEXTO));
     }
-    meio.addCell(cCliente);
+    t.addCell(cCliente);
 
-    PdfPCell cMecanico = celulaSemBorda();
-    cMecanico.addElement(new Paragraph("Mecânico responsável", FONT_SUBTITULO));
-    cMecanico.addElement(
-        new Paragraph(mecanico != null ? mecanico.getNome() : "Não informado", FONT_TEXTO));
-    meio.addCell(cMecanico);
+    PdfPCell vazio = celulaSemBorda();
+    t.addCell(vazio);
 
-    conteudo.addElement(meio);
+    conteudo.addElement(t);
 
     adicionarSecao(document, "IDENTIFICAÇÃO", conteudo);
   }
@@ -259,7 +266,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     if (os.getObs() != null && !os.getObs().isBlank()) {
       Paragraph obs = new Paragraph(os.getObs(), FONT_TEXTO);
-      obs.setSpacingAfter(10f);
+      obs.setSpacingAfter(5f);
       conteudo.addElement(obs);
     }
 
@@ -268,15 +275,6 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     List<MaoObra> maoObras = maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId());
     tabelaMaoObra(conteudo, maoObras);
-
-    // Subtotal fica alinhado ao domínio: valorTotal já é a fonte de verdade calculada
-    // no fluxo de negócio (recalcularValorTotal), então usamos ele em vez de somar
-    // peças + mão de obra de novo aqui, evitando duas fontes de verdade divergentes.
-    Paragraph subtotalPar =
-        new Paragraph(
-            "Subtotal itens/serviços: " + formatarMoeda(os.getValorTotal()), FONT_SUBTITULO);
-    subtotalPar.setSpacingBefore(6f);
-    conteudo.addElement(subtotalPar);
 
     adicionarSecao(document, "SERVIÇOS DA ORDEM DE SERVIÇO", conteudo);
   }
@@ -291,15 +289,19 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     PdfPTable tabela = new PdfPTable(4);
     tabela.setWidthPercentage(100);
     tabela.setSpacingBefore(4f);
-    tabela.setSpacingAfter(10f);
+    tabela.setSpacingAfter(5f);
     tabela.setWidths(new float[] {3f, 1f, 1.3f, 1.3f});
     cabecalhoLinha(tabela, "Peça", "Qtd", "Valor unit.", "Valor total");
+    int idx = 0;
 
     for (ItemOsPeca p : pecas) {
-      tabela.addCell(celulaTexto(p.getNome()));
-      tabela.addCell(celulaTexto(p.getQuantidade().stripTrailingZeros().toPlainString()));
-      tabela.addCell(celulaTexto(formatarMoeda(p.getValorUnitario())));
-      tabela.addCell(celulaTexto(formatarMoeda(p.getValorTotal())));
+      boolean z = idx++ % 2 == 1;
+      tabela.addCell(celulaTexto(p.getNome(), Element.ALIGN_LEFT, z));
+      tabela.addCell(
+          celulaTexto(
+              p.getQuantidade().stripTrailingZeros().toPlainString(), Element.ALIGN_CENTER, z));
+      tabela.addCell(celulaTexto(formatarMoeda(p.getValorUnitario()), Element.ALIGN_RIGHT, z));
+      tabela.addCell(celulaTexto(formatarMoeda(p.getValorTotal()), Element.ALIGN_RIGHT, z));
     }
     conteudo.addElement(tabela);
   }
@@ -314,14 +316,16 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     PdfPTable tabela = new PdfPTable(2);
     tabela.setWidthPercentage(100);
     tabela.setSpacingBefore(4f);
-    tabela.setSpacingAfter(10f);
+    tabela.setSpacingAfter(5f);
     tabela.setWidths(new float[] {3f, 1.3f});
     cabecalhoLinha(tabela, "Descrição", "Valor");
 
+    int idx = 0;
     for (MaoObra m : itens) {
-      tabela.addCell(celulaTexto(m.getDescricao()));
+      boolean z = idx++ % 2 == 1;
+      tabela.addCell(celulaTexto(m.getDescricao(), Element.ALIGN_LEFT, z));
       BigDecimal valor = m.getValor() != null ? m.getValor() : BigDecimal.ZERO;
-      tabela.addCell(celulaTexto(formatarMoeda(valor)));
+      tabela.addCell(celulaTexto(formatarMoeda(valor), Element.ALIGN_RIGHT, z));
     }
     conteudo.addElement(tabela);
   }
@@ -330,27 +334,20 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private void montarSecaoPagamento(Document document, OrdemDeServico os) throws DocumentException {
     PagamentoResponseDTO pagamento = pagamentoService.buscarPorOsId(os.getId());
-    List<RegistroPagamentoResponseDTO> registros =
-        registroPagamentoService.listarPorPagamento(pagamento.id());
 
     PdfPCell conteudo = novaCelulaConteudo();
 
-    Paragraph valores =
-        new Paragraph(
-            "Valor total: "
-                + formatarMoeda(os.getValorTotal())
-                + "   |   Desconto: "
-                + formatarMoeda(os.getDesconto())
-                + "   |   Valor com desconto: "
-                + formatarMoeda(os.getValorComDesconto()),
-            FONT_TEXTO);
-    valores.setSpacingAfter(8f);
+    PdfPTable valores = new PdfPTable(4);
+    valores.setWidthPercentage(100);
+    valores.setSpacingAfter(6f);
+    caixaValor(valores, "Valor da OS", os.getValorTotal());
+    caixaValor(valores, "Valor com desconto", os.getValorComDesconto());
+    caixaValor(valores, "Valor pago", pagamento.valorPago());
+    caixaValor(valores, "Saldo restante", pagamento.valorPendente());
     conteudo.addElement(valores);
 
-    conteudo.addElement(new Paragraph("Registros de pagamento", FONT_LABEL));
-    tabelaRegistrosPagamento(conteudo, registros);
-
-    conteudo.addElement(resumoFinanceiro(os, pagamento));
+    Paragraph status = campo("Status do pagamento", statusPagamento(pagamento));
+    conteudo.addElement(status);
 
     adicionarSecao(document, "PAGAMENTO", conteudo);
   }
@@ -363,11 +360,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     PdfPCell conteudo = novaCelulaConteudo();
     tabelaRegistrosPagamento(conteudo, registros);
+    conteudo.addElement(campo("Status do pagamento", statusPagamento(pagamento)));
     adicionarSecao(document, "REGISTROS DE PAGAMENTO", conteudo);
-
-    PdfPCell resumoConteudo = novaCelulaConteudo();
-    resumoConteudo.addElement(resumoFinanceiro(os, pagamento));
-    adicionarSecao(document, "RESUMO DO PAGAMENTO", resumoConteudo);
   }
 
   private void tabelaRegistrosPagamento(
@@ -383,42 +377,23 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     tabela.setWidths(new float[] {1.5f, 1.5f, 1f});
     cabecalhoLinha(tabela, "Data", "Forma de pagamento", "Valor");
 
+    int idx = 0;
     for (RegistroPagamentoResponseDTO r : registros) {
-      tabela.addCell(celulaTexto(r.data() != null ? r.data().format(DATA_FMT) : "-"));
-      tabela.addCell(celulaTexto(r.meioPagamento() != null ? r.meioPagamento().toString() : "-"));
-      tabela.addCell(celulaTexto(formatarMoeda(r.valor())));
+      boolean z = idx++ % 2 == 1;
+      tabela.addCell(
+          celulaTexto(r.data() != null ? r.data().format(DATA_FMT) : "-", Element.ALIGN_LEFT, z));
+      tabela.addCell(
+          celulaTexto(
+              r.meioPagamento() != null ? r.meioPagamento().toString() : "-",
+              Element.ALIGN_LEFT,
+              z));
+      tabela.addCell(celulaTexto(formatarMoeda(r.valor()), Element.ALIGN_RIGHT, z));
     }
     conteudo.addElement(tabela);
   }
 
-  private PdfPTable resumoFinanceiro(OrdemDeServico os, PagamentoResponseDTO pagamento) {
-    PdfPTable resumo = new PdfPTable(1);
-    resumo.setWidthPercentage(100);
-    resumo.setSpacingBefore(12f);
-
-    PdfPCell resumoCell = new PdfPCell();
-    resumoCell.setPadding(10f);
-    resumoCell.setBackgroundColor(COR_FUNDO_RESUMO);
-    resumoCell.setBorderColor(COR_BORDA_SECAO);
-    resumoCell.addElement(new Paragraph("Resumo financeiro", FONT_SUBTITULO));
-    resumoCell.addElement(
-        new Paragraph("Valor total: " + formatarMoeda(os.getValorTotal()), FONT_RESUMO));
-    resumoCell.addElement(
-        new Paragraph("Desconto: " + formatarMoeda(os.getDesconto()), FONT_RESUMO));
-    resumoCell.addElement(
-        new Paragraph(
-            "Valor com desconto: " + formatarMoeda(os.getValorComDesconto()), FONT_RESUMO));
-    resumoCell.addElement(
-        new Paragraph("Total pago: " + formatarMoeda(pagamento.valorPago()), FONT_RESUMO));
-    resumoCell.addElement(
-        new Paragraph(
-            "Restante a pagar: " + formatarMoeda(pagamento.valorPendente()), FONT_RESUMO));
-    resumoCell.addElement(
-        new Paragraph(
-            "Status do pagamento: " + (pagamento.status() != null ? pagamento.status() : "-"),
-            FONT_RESUMO));
-    resumo.addCell(resumoCell);
-    return resumo;
+  private String statusPagamento(PagamentoResponseDTO pagamento) {
+    return pagamento.status() != null ? pagamento.status().toString() : null;
   }
 
   // ---------- helpers de layout (cartões/seções) ----------
@@ -432,12 +407,12 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       throws DocumentException {
     PdfPTable secao = new PdfPTable(1);
     secao.setWidthPercentage(100);
-    secao.setSpacingBefore(14f);
+    secao.setSpacingBefore(8f);
     secao.setKeepTogether(false);
 
     PdfPCell header = new PdfPCell(new Phrase(titulo, FONT_HEADER_SECAO));
     header.setBackgroundColor(COR_HEADER_SECAO);
-    header.setPadding(7f);
+    header.setPadding(4f);
     header.setBorder(Rectangle.NO_BORDER);
     secao.addCell(header);
 
@@ -447,7 +422,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private PdfPCell novaCelulaConteudo() {
     PdfPCell conteudo = new PdfPCell();
-    conteudo.setPadding(12f);
+    conteudo.setPadding(7f);
     conteudo.setBorderColor(COR_BORDA_SECAO);
     conteudo.setBorderWidthTop(0f);
     return conteudo;
@@ -462,23 +437,41 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   // ---------- helpers ----------
 
   private void cabecalhoLinha(PdfPTable tabela, String... titulos) {
-    for (String t : titulos) {
-      PdfPCell c = new PdfPCell(new Phrase(t, FONT_HEADER_TABELA));
-      c.setBackgroundColor(new Color(51, 51, 51));
-      c.setPadding(5f);
+    for (int i = 0; i < titulos.length; i++) {
+      PdfPCell c = new PdfPCell(new Phrase(titulos[i], FONT_HEADER_TABELA));
+      c.setBackgroundColor(COR_DESTAQUE);
+      c.setBorderColor(COR_BORDA_SECAO);
+      c.setPadding(3f);
+      c.setHorizontalAlignment(i == 0 ? Element.ALIGN_LEFT : Element.ALIGN_RIGHT);
       tabela.addCell(c);
     }
   }
 
-  private PdfPCell celulaTexto(String texto) {
+  private PdfPCell celulaTexto(String texto, int alinhamento, boolean zebra) {
     PdfPCell c = new PdfPCell(new Phrase(texto != null ? texto : "-", FONT_TEXTO));
-    c.setPadding(4f);
+    c.setPadding(2.5f);
+    c.setBorderColor(COR_BORDA_SECAO);
+    c.setHorizontalAlignment(alinhamento);
+    if (zebra) c.setBackgroundColor(COR_ZEBRA);
     return c;
   }
 
+  private void caixaValor(PdfPTable t, String label, BigDecimal valor) {
+    PdfPCell c = new PdfPCell();
+    c.setBorderColor(COR_BORDA_SECAO);
+    c.setBackgroundColor(COR_ZEBRA);
+    c.setPadding(4f);
+    c.addElement(new Paragraph(label, FONT_LABEL));
+    c.addElement(new Paragraph(formatarMoeda(valor), FONT_TOTAL));
+    t.addCell(c);
+  }
+
   private Paragraph campo(String label, String valor) {
-    return new Paragraph(
-        label + ": " + (valor != null && !valor.isBlank() ? valor : "-"), FONT_TEXTO);
+    Paragraph p = new Paragraph();
+    p.setSpacingAfter(2f);
+    p.add(new Chunk(label + ": ", FONT_VALOR_LABEL));
+    p.add(new Chunk(valor != null && !valor.isBlank() ? valor : "-", FONT_TEXTO));
+    return p;
   }
 
   private String nullToDash(String v) {
@@ -506,8 +499,15 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
     @Override
     public void onEndPage(PdfWriter writer, Document document) {
-      if (writer.getPageNumber() == 1) return;
       PdfContentByte cb = writer.getDirectContent();
+      ColumnText.showTextAligned(
+          cb,
+          Element.ALIGN_CENTER,
+          new Phrase("Página " + writer.getPageNumber(), FONT_RODAPE),
+          (document.left() + document.right()) / 2,
+          document.bottom() - 20,
+          0);
+      if (writer.getPageNumber() == 1) return;
       Phrase header = new Phrase(os.getOficina().getNome() + " — " + texto, FONT_LABEL);
       ColumnText.showTextAligned(
           cb, Element.ALIGN_LEFT, header, document.left(), document.top() + 20, 0);

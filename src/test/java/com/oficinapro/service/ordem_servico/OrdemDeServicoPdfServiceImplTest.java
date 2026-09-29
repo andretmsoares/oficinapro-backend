@@ -165,7 +165,7 @@ class OrdemDeServicoPdfServiceImplTest {
   }
 
   @Test
-  @DisplayName("gerar() deve produzir um PDF válido com peças, mão de obra e pagamentos")
+  @DisplayName("gerar() deve produzir um PDF válido com peças, mão de obra e pagamento")
   void deveGerarPdfComTodosOsDados() {
     OrdemDeServico os = osCompleta();
 
@@ -175,8 +175,6 @@ class OrdemDeServicoPdfServiceImplTest {
         .thenReturn(List.of(maoObra()));
     when(pagamentoService.buscarPorOsId(OS_ID))
         .thenReturn(pagamento("450.00", StatusPagamento.PAGA));
-    when(registroPagamentoService.listarPorPagamento(PAGAMENTO_ID))
-        .thenReturn(List.of(registroPagamento()));
 
     byte[] pdf = pdfService.gerar(os);
 
@@ -192,7 +190,6 @@ class OrdemDeServicoPdfServiceImplTest {
     when(maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(pagamentoService.buscarPorOsId(os.getId()))
         .thenReturn(pagamento("0.00", StatusPagamento.PAGAMENTO_PENDENTE));
-    when(registroPagamentoService.listarPorPagamento(PAGAMENTO_ID)).thenReturn(List.of());
 
     byte[] pdf = pdfService.gerar(os);
 
