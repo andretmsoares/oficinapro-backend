@@ -77,7 +77,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita um lançamento válido")
     void aceitaLancamentoValido() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("250.00")))).isEmpty();
+      assertThat(camposInvalidos(comValor(new BigDecimal("25000")))).isEmpty();
     }
 
     @Test
@@ -158,7 +158,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita uma peça válida")
     void aceitaPecaValida() {
-      assertThat(camposInvalidos(com(new BigDecimal("2"), new BigDecimal("120.00")))).isEmpty();
+      assertThat(camposInvalidos(com(new BigDecimal("2"), new BigDecimal("12000")))).isEmpty();
     }
 
     @Test
@@ -242,7 +242,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita uma atualização válida")
     void aceitaAtualizacaoValida() {
-      assertThat(camposInvalidos(com(new BigDecimal("3"), new BigDecimal("120.00")))).isEmpty();
+      assertThat(camposInvalidos(com(new BigDecimal("3"), new BigDecimal("12000")))).isEmpty();
     }
 
     @ParameterizedTest
@@ -445,7 +445,7 @@ class DtoValidationTest {
     }
 
     @Test
-    @DisplayName("aceita valor inteiro, mesmo escrito com zeros a direita")
+    @DisplayName("aceita valor inteiro em centavos")
     void aceitaValorInteiro() {
       assertThat(
               camposInvalidos(

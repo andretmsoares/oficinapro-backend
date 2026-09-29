@@ -218,8 +218,9 @@ arquivo descreve o schema atual, não o histórico de alterações.
 
 Duas camadas:
 
-1. **`FlywayMigrationsTest`** (roda em `gradlew test`, sem Docker): executa as migrations reais
-   do zero em H2 (modo PostgreSQL) e confere a quantidade de migrations, o conjunto exato de
+1. **`FlywayMigrationsTest`** (roda em `gradlew test`, sem Docker): executa os scripts reais, na
+   ordem de versão e do zero, em H2 (modo PostgreSQL) — sem o motor do Flyway — e confere versões
+   sequenciais sem buracos, o conjunto exato de
    tabelas (sem as órfãs de compras) e constraints que já falharam em produção-like
    (`GERENTE` no `chk_usuario_role`, endereço único por oficina, CNPJ único). Não substitui o
    PostgreSQL real: `ddl-auto=validate` não é exercido nele.

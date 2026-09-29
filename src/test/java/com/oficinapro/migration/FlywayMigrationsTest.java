@@ -3,27 +3,36 @@ package com.oficinapro.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import org.flywaydb.core.Flyway;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.EncodedResource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 /**
- * Executa as migrations reais (src/main/resources/db/migration) do zero, sem passar pelo schema
- * gerado pelas entidades JPA. Os demais testes usam {@code ddl-auto=create-drop} e Flyway
- * desligado, entao um erro apenas no SQL (constraint errada, coluna duplicada, ordem de criacao)
- * passaria despercebido.
+ * Executa os scripts reais de src/main/resources/db/migration, na ordem de versão, do zero e sem
+ * passar pelo schema gerado pelas entidades JPA. Os demais testes usam {@code ddl-auto=create-drop}
+ * e Flyway desligado, então um erro apenas no SQL (constraint errada, coluna duplicada, ordem de
+ * criação) passaria despercebido.
  *
- * <p>Roda em H2 (modo PostgreSQL) para nao exigir Docker na suite. A validacao completa contra um
- * PostgreSQL real (incluindo {@code ddl-auto=validate}) continua sendo subir a aplicacao com o
- * banco limpo, descrito em docs/development.md.
+ * <p>Roda em H2 (modo PostgreSQL) para não exigir Docker. Não usa o motor do Flyway: ele valida a
+ * nomenclatura e o histórico só na subida real. A validação completa contra um PostgreSQL de
+ * verdade (Flyway + {@code ddl-auto=validate}) continua sendo subir a aplicação com o banco limpo,
+ * descrito em docs/database.md.
  */
 class FlywayMigrationsTest {
 
@@ -45,13 +54,28 @@ class FlywayMigrationsTest {
           "PAGAMENTO",
           "REGISTRO_PAGAMENTO");
 
-  private static int migrationsAplicadas;
+  private static List<Integer> versoes;
 
   @BeforeAll
-  static void migrar() {
-    Flyway flyway =
-        Flyway.configure().dataSource(URL, "sa", "").locations("classpath:db/migration").load();
-    migrationsAplicadas = flyway.migrate().migrationsExecuted;
+  static void migrar() throws Exception {
+    Resource[] scripts =
+        new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*__*.sql");
+
+    List<Resource> ordenados =
+        Arrays.stream(scripts).sorted(Comparator.comparingInt(FlywayMigrationsTest::versao)).toList();
+
+    versoes = ordenados.stream().map(FlywayMigrationsTest::versao).toList();
+
+    try (Connection con = conectar()) {
+      for (Resource script : ordenados) {
+        ScriptUtils.executeSqlScript(con, new EncodedResource(script, StandardCharsets.UTF_8));
+      }
+    }
+  }
+
+  private static int versao(Resource script) {
+    String nome = script.getFilename();
+    return Integer.parseInt(nome.substring(1, nome.indexOf("__")));
   }
 
   private static Connection conectar() throws SQLException {
@@ -59,9 +83,10 @@ class FlywayMigrationsTest {
   }
 
   @Test
-  @DisplayName("deve aplicar uma migration por entidade persistente, sem sobras")
-  void deveAplicarUmaMigrationPorEntidade() {
-    assertThat(migrationsAplicadas).isEqualTo(TABELAS_ESPERADAS.size());
+  @DisplayName("deve haver uma migration por entidade, com versões sequenciais sem buracos")
+  void deveTerUmaMigrationPorEntidadeSemBuracos() {
+    assertThat(versoes)
+        .containsExactlyElementsOf(IntStream.rangeClosed(1, TABELAS_ESPERADAS.size()).boxed().toList());
   }
 
   @Test
@@ -79,8 +104,6 @@ class FlywayMigrationsTest {
         tabelas.add(rs.getString(1).toUpperCase());
       }
     }
-
-    tabelas.remove("FLYWAY_SCHEMA_HISTORY");
 
     assertThat(tabelas)
         .containsExactlyInAnyOrderElementsOf(TABELAS_ESPERADAS)
