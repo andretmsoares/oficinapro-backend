@@ -89,7 +89,7 @@ class ClienteControllerTest {
     mockMvc
         .perform(get("/api/clientes/buscar").param("q", "joao"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.content[0].nome").value("Joao Silva"));
+        .andExpect(jsonPath("$.content[0].nome").value("João Silva"));
   }
 
   @Test

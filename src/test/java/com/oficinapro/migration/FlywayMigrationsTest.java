@@ -3,6 +3,7 @@ package com.oficinapro.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,9 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 /**
  * Executa os scripts reais de src/main/resources/db/migration, na ordem de versão, do zero e sem
@@ -68,7 +67,29 @@ class FlywayMigrationsTest {
 
     try (Connection con = conectar()) {
       for (Resource script : ordenados) {
-        ScriptUtils.executeSqlScript(con, new EncodedResource(script, StandardCharsets.UTF_8));
+        executar(con, script);
+      }
+    }
+  }
+
+  /** Remove comentários de linha e executa cada comando, informando o script que falhou. */
+  private static void executar(Connection con, Resource script) throws Exception {
+    String sql;
+
+    try (InputStream in = script.getInputStream()) {
+      sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    for (String comando : sql.replaceAll("(?m)--.*$", "").split(";")) {
+      if (comando.isBlank()) {
+        continue;
+      }
+
+      try (Statement st = con.createStatement()) {
+        st.execute(comando);
+      } catch (SQLException e) {
+        throw new IllegalStateException(
+            "Falha em " + script.getFilename() + ": " + e.getMessage(), e);
       }
     }
   }
