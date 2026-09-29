@@ -102,6 +102,9 @@ class LoginBloqueioIntegrationTest {
   }
 
   private Usuario recarregar(String username) {
+    // Sem o flush, o em.clear() descartaria as alteracoes ainda nao gravadas (a transacao do
+    // teste nunca faz commit) e o teste leria o estado antigo do banco.
+    em.flush();
     em.clear();
     return usuarioRepository.findByUsername(username).orElseThrow();
   }
