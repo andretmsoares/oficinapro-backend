@@ -374,7 +374,7 @@ public class OrdemDeServicoController {
     return ResponseEntity.ok()
             .header(
                     org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                    "inline; filename=\"" + filename + "\"")
+                    "attachment; filename=\"" + filename + "\"")
             .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
             .body(pdf);
   }
@@ -402,7 +402,7 @@ public class OrdemDeServicoController {
     return ResponseEntity.ok()
             .header(
                     org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                    "inline; filename=\"" + filename + "\"")
+                    "attachment; filename=\"" + filename + "\"")
             .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
             .body(pdf);
   }
