@@ -69,10 +69,10 @@ existe um papel de administrador da plataforma separado dos papéis de oficina.
 11 telas implementadas: Login, Dashboard, Clientes, Veículos, Mecânicos, Peças, Ordens de
 Serviço, Pagamentos, Usuários, Unidades e Oficinas.
 
-> ⚠️ **O frontend ainda não está integrado ao backend.** Não existe camada HTTP: as telas
-> leem de `frontend/src/mocks/` e o login aceita qualquer credencial. É o maior item em
-> aberto do projeto. Detalhes e plano de integração em
-> [`docs/frontend.md`](./docs/frontend.md).
+> O frontend está integrado ao backend por `fetch` (`frontend/src/services/api.ts`) com JWT.
+> Valores monetários trafegam em **centavos** de ponta a ponta. Limitação do MVP: listagens
+> de clientes, veículos, mecânicos e usuários pedem até 500 registros e não têm paginação
+> na tela. Detalhes em [`docs/frontend.md`](./docs/frontend.md).
 
 ---
 
@@ -147,9 +147,9 @@ Tudo em [`docs/development.md`](./docs/development.md).
 │  frontend               │        │  backend                     │
 │  React 19 + TS + Vite   │        │  Spring Boot 4.1 · Java 21   │
 │  porta 3000 (nginx)     │╌╌╌╌╌╌╌>│  REST /api/** · JWT HS256    │
-│  ⚠️ dados mockados       │ ainda  │  porta 8080                  │
+│  fetch + JWT             │ HTTP   │  porta 8080                  │
 └─────────────────────────┘  não   └──────────────┬───────────────┘
-                            ligado                │ JPA + Flyway
+                                                  │ JPA + Flyway
                                                   ▼
                                     ┌──────────────────────────────┐
                                     │  PostgreSQL 16 · 12 migrations│

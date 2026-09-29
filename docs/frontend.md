@@ -123,7 +123,7 @@ Quando `isAuthenticated === false`, `App` retorna `<Login/>` **antes** do
 
 | Rota | Página | Papéis |
 |---|---|---|
-| `/dashboard` | `Dashboard` | MECANICO, GERENTE |
+| `/dashboard` | `Dashboard` | MECANICO, GERENTE (o MECANICO vê só gráfico e OS recentes; o endpoint de dados é do GERENTE) |
 | `/clientes` | `Clientes` | MECANICO, GERENTE |
 | `/veiculos` | `Veiculos` | MECANICO, GERENTE |
 | `/ordens-servico` | `OrdensServico` | MECANICO, GERENTE |

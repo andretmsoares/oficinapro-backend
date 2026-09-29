@@ -92,6 +92,10 @@ ordem: persiste primeiro, recalcula depois (verificado com `InOrder` nos testes)
 - Não pode ser negativo → `400` (`DescontoInvalidoException`).
 - Não pode ser maior que o `valorTotal` → `400`.
 - Aplicado por `PATCH /api/ordens-servico/{id}/desconto`, exclusivo do `GERENTE`.
+- Não pode deixar o `valorComDesconto` abaixo do que já foi pago → `409`
+  (`PagamentoValorExcedidoException`). Depois de aplicado, o status do pagamento é recalculado.
+- Bloqueado em OS `CANCELADA` (`OSCanceledException`) e `FECHADA` (`OSFinishedException`), assim
+  como `PUT` da OS e as atribuições de cliente/mecânico: são histórico.
 
 ### Desconto quando o total diminui
 

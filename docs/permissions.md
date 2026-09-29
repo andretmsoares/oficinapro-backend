@@ -211,6 +211,21 @@ MECANICO — ela informa se a OS está paga, sem expor valores agregados da ofic
 
 Todos os quatro endpoints: apenas `GERENTE`.
 
+### Ajustes de fechamento do MVP (valem sobre as tabelas acima)
+
+As tabelas acima foram escritas antes de várias mudanças e nem todas as células refletem o
+código. Decisões confirmadas na revisão final, que **prevalecem**:
+
+| Assunto | Regra atual |
+|---|---|
+| `PUT /api/ordens-servico/{id}`, `PATCH .../mecanico`, `PATCH .../cliente` | `GERENTE` e `MECANICO` (decisão de produto: o mecânico pode reatribuir). Em OS `CANCELADA` ou `FECHADA` ninguém altera — `422` |
+| `PATCH .../desconto` | só `GERENTE`; bloqueado em OS `CANCELADA`/`FECHADA`; recusado (`409`) se a OS ficar abaixo do valor já pago |
+| `GET /api/dashboard/data` | só `GERENTE`. O `MECANICO` vê o dashboard sem os cartões numéricos |
+| `DELETE /api/oficinas/{id}` | **removido**. Oficina só é desativada/ativada (`PATCH .../desativar`, `.../ativar`) |
+| `GET /api/pagamentos/os/{osId}` | valida a oficina da OS; OS de outra oficina responde `404` |
+| `PUT/DELETE /api/itens-os-peca/{id}/os...` (vincular/desvincular) | `GERENTE` e `MECANICO`, explícito no controller |
+| Token de usuário cuja oficina foi desativada | deixa de valer na próxima requisição (`401`), não só no login |
+
 ---
 
 ## 4. Hierarquia na gestão de usuários
