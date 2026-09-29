@@ -46,6 +46,19 @@ public class ClienteController {
   }
 
   @Operation(
+      summary = "Buscar clientes (paginado)",
+      description =
+          "Busca, na oficina do usuário autenticado, clientes cujo nome, documento ou telefone"
+              + " contenha o termo `q`, com paginação. Sem `q`, equivale à listagem.")
+  @GetMapping("/buscar")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  public ResponseEntity<Page<ClienteResponseDTO>> buscar(
+      @RequestParam(name = "q", required = false) String termo,
+      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+    return ResponseEntity.ok(clienteService.buscar(termo, pageable));
+  }
+
+  @Operation(
       summary = "Buscar cliente por ID",
       description =
           "Busca um cliente pelo ID, restrito à oficina do GERENTE autenticado. Cliente"

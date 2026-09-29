@@ -81,6 +81,25 @@ class ClienteControllerTest {
   // ─── GET /api/clientes/{id} ──────────────────────────────────────────────────
 
   @Test
+  @DisplayName("GET /api/clientes/buscar - GERENTE deve retornar 200 com a página filtrada")
+  @WithMockUser(roles = "GERENTE")
+  void deveBuscarClientesPaginado() throws Exception {
+    when(clienteService.buscar(eq("joao"), any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/clientes/buscar").param("q", "joao"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].nome").value("Joao Silva"));
+  }
+
+  @Test
+  @DisplayName("GET /api/clientes/buscar - ADMIN deve retornar 403")
+  @WithMockUser(roles = "ADMIN")
+  void deveNegarBuscaDeClientesParaAdmin() throws Exception {
+    mockMvc.perform(get("/api/clientes/buscar").param("q", "joao")).andExpect(status().isForbidden());
+  }
+
+  @Test
   @DisplayName("GET /api/clientes/{id} - GERENTE deve retornar 200 com o cliente correto")
   @WithMockUser(roles = "GERENTE")
   void deveBuscarClientePorId() throws Exception {

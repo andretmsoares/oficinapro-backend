@@ -11,6 +11,8 @@ import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,6 +93,21 @@ public class ClienteServiceImpl
   @Override
   protected RuntimeException alreadyExistsException() {
     return new ClienteAlreadyExistsException();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<ClienteResponseDTO> buscar(String termo, Pageable pageable) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    String termoLimpo = termo == null ? "" : termo.trim();
+
+    if (termoLimpo.isEmpty()) {
+      return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+    }
+
+    return ((ClienteRepository) repository)
+        .buscar(oficinaId, termoLimpo, pageable)
+        .map(this::toResponse);
   }
 
   @Override

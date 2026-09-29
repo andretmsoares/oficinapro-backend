@@ -36,6 +36,26 @@ public class VeiculoServiceImpl implements VeiculoService {
 
   @Override
   @Transactional(readOnly = true)
+  public Page<VeiculoResponseDTO> buscar(String termo, Pageable pageable) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    String termoLimpo = termo == null ? "" : termo.trim();
+
+    if (termoLimpo.isEmpty()) {
+      return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+    }
+
+    String placa = normalizarPlaca(termoLimpo);
+
+    // Termo sem nenhum caractere de placa (ex.: "-"): não pode casar com todas as placas.
+    if (placa.isEmpty()) {
+      placa = termoLimpo.toUpperCase();
+    }
+
+    return veiculoRepository.buscar(oficinaId, termoLimpo, placa, pageable).map(this::toResponse);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public Integer count() {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
     return veiculoRepository.countByOficinaId(oficinaId);

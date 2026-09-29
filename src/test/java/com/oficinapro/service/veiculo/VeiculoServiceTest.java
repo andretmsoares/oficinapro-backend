@@ -131,6 +131,42 @@ class VeiculoServiceTest {
   }
 
   // ---------------------------------------------------------------
+  // buscar() paginado
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("buscar() deve normalizar o termo para comparar com a placa")
+  void deveBuscarPaginadoNormalizandoAPlaca() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.buscar(1L, "abc-12", "ABC12", pageable))
+        .thenReturn(new PageImpl<>(List.of(veiculo)));
+
+    Page<VeiculoResponseDTO> resultado = veiculoService.buscar(" abc-12 ", pageable);
+
+    assertThat(resultado).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("buscar() com termo sem caracteres de placa não pode casar todas as placas")
+  void deveBuscarPaginadoComTermoSemCaracteresDePlaca() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.buscar(1L, "-", "-", pageable)).thenReturn(new PageImpl<>(List.of()));
+
+    assertThat(veiculoService.buscar("-", pageable)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("buscar() sem termo deve listar a oficina do usuário")
+  void deveBuscarPaginadoSemTermoListandoAOficina() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(veiculo)));
+
+    assertThat(veiculoService.buscar("", pageable)).hasSize(1);
+    verify(veiculoRepository, never()).buscar(any(), any(), any(), any());
+  }
+
+  // ---------------------------------------------------------------
   // buscarPorPlaca()
   // ---------------------------------------------------------------
 

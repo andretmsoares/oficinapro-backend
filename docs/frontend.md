@@ -343,6 +343,17 @@ calculado pelo backend como `valorComDesconto − valorPago` (ver
 (`Math.max`) e mostra `R$ 0,00` para OS quitada. A lista é recarregada ao criar OS e sempre que
 o `ViewOrdemServicoModal` reporta uma alteração (peça, mão de obra, desconto, pagamento).
 
+### Busca e paginação no servidor
+
+`/clientes` usa `GET /api/clientes/buscar?q=&page=&size=20&sort=nome`: o termo (nome, documento
+ou telefone, parcial) é aplicado no banco, sempre dentro da oficina do usuário, então acha
+qualquer cliente independentemente da página. A tela usa o componente `Pagination`
+(Anterior/Próxima) e espera 300 ms depois de digitar antes de consultar. O autocomplete de
+veículo da OS usa `GET /api/veiculos/buscar?q=&size=10`. Sem `q`, os dois endpoints equivalem
+à listagem. A busca de nome distingue acentos ("Jose" não acha "José").
+
+Ainda no modelo antigo (até 500 registros, filtro no navegador): Veículos, Mecânicos e Usuários.
+
 ### Sobre as telas que foram pedidas
 
 | Pedido | Situação |

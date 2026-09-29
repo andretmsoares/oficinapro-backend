@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
 
@@ -20,6 +21,20 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
   boolean existsByOficinaIdAndPlacaAndIdNot(Long oficinaId, String placa, Long id);
 
   Integer countByOficinaId(Long oficinaId);
+
+  @Query(
+      """
+      select v from Veiculo v
+      where v.oficina.id = :oficinaId
+        and (upper(v.placa) like concat('%', :placa, '%')
+             or lower(v.modelo) like lower(concat('%', :termo, '%'))
+             or lower(v.marca) like lower(concat('%', :termo, '%')))
+      """)
+  Page<Veiculo> buscar(
+      @Param("oficinaId") Long oficinaId,
+      @Param("termo") String termo,
+      @Param("placa") String placa,
+      Pageable pageable);
 
   // LEFT JOIN a partir de Oficina para que oficina sem nenhum registro apareça
   // com zero, em vez de sumir do relatório.

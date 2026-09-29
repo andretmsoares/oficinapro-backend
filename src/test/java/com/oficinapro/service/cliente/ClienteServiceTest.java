@@ -96,6 +96,37 @@ class ClienteServiceTest {
     verify(clienteRepository, never()).findAll(any(Pageable.class));
   }
 
+  // ─────────────────────────── buscar (paginado) ───────────────────────────
+
+  @Test
+  @DisplayName("buscar() deve consultar a oficina do usuário com o termo sem espaços nas pontas")
+  void buscar_comTermo_consultaNaOficinaDoUsuario() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.buscar(1L, "joao", pageable))
+        .thenReturn(new PageImpl<>(List.of(cliente)));
+
+    Page<ClienteResponseDTO> resultado = service.buscar("  joao ", pageable);
+
+    assertThat(resultado.getContent()).extracting(ClienteResponseDTO::id).containsExactly(1L);
+  }
+
+  @Test
+  @DisplayName("buscar() sem termo deve listar a oficina do usuário")
+  void buscar_semTermo_listaDaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(cliente)));
+
+    Page<ClienteResponseDTO> resultado = service.buscar("   ", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(clienteRepository, never()).buscar(any(), any(), any());
+  }
+
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test
