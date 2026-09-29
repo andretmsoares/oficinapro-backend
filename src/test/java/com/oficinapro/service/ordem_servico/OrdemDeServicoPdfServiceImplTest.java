@@ -188,8 +188,7 @@ class OrdemDeServicoPdfServiceImplTest {
   void deveGerarPdfComDadosMinimos() {
     OrdemDeServico os = osMinima();
 
-    when(itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId()))
-        .thenReturn(List.of());
+    when(itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(pagamentoService.buscarPorOsId(os.getId()))
         .thenReturn(pagamento("0.00", StatusPagamento.PAGAMENTO_PENDENTE));
@@ -201,7 +200,8 @@ class OrdemDeServicoPdfServiceImplTest {
   }
 
   @Test
-  @DisplayName("gerarComprovantePagamento() deve produzir um PDF válido com os registros de pagamento")
+  @DisplayName(
+      "gerarComprovantePagamento() deve produzir um PDF válido com os registros de pagamento")
   void deveGerarComprovanteComRegistros() {
     OrdemDeServico os = osCompleta();
 

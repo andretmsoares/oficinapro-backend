@@ -3,10 +3,9 @@ package com.oficinapro.service.ordem_servico;
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface OrdemDeServicoService {
 
@@ -48,9 +47,9 @@ public interface OrdemDeServicoService {
 
   List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano);
 
-    @Transactional(readOnly = true)
-    byte[] gerarPdf(Long id);
+  @Transactional(readOnly = true)
+  byte[] gerarPdf(Long id);
 
-    @Transactional(readOnly = true)
-    byte[] gerarComprovantePagamento(Long id);
+  @Transactional(readOnly = true)
+  byte[] gerarComprovantePagamento(Long id);
 }
