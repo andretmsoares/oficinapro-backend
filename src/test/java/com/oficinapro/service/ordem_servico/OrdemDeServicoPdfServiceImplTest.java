@@ -238,8 +238,7 @@ class OrdemDeServicoPdfServiceImplTest {
   }
 
   private void mockPagamentoBasico(OrdemDeServico os) {
-    when(itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId()))
-        .thenReturn(List.of());
+    when(itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(pagamentoService.buscarPorOsId(os.getId()))
         .thenReturn(pagamento("0.00", StatusPagamento.PAGAMENTO_PENDENTE));

@@ -51,7 +51,8 @@ public class GcsLogoStorage implements LogoStorage {
   @Override
   public String salvar(Long oficinaId, byte[] conteudo, String contentType) {
     String caminho = "logos/oficina-" + oficinaId + "-" + UUID.randomUUID() + extensao(contentType);
-    BlobInfo info = BlobInfo.newBuilder(BlobId.of(bucket, caminho)).setContentType(contentType).build();
+    BlobInfo info =
+        BlobInfo.newBuilder(BlobId.of(bucket, caminho)).setContentType(contentType).build();
     storage.create(info, conteudo);
     cache.put(caminho, conteudo);
     return caminho;
