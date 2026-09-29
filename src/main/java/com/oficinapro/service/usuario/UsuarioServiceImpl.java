@@ -81,7 +81,9 @@ public class UsuarioServiceImpl
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return usuarioRepository.buscarPorOficina(oficinaId, termoLimpo, pageable).map(this::toResponse);
+    return usuarioRepository
+        .buscarPorOficina(oficinaId, termoLimpo, pageable)
+        .map(this::toResponse);
   }
 
   @Override

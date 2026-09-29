@@ -179,8 +179,7 @@ class VeiculoServiceTest {
     // o ADMIN do SaaS não tem oficina, e o endpoint é restrito a GERENTE/MECANICO.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     // placa normalizada: "ABC-1234" -> "ABC1234"
-    when(veiculoRepository.findByOficinaIdAndPlaca(1L, "ABC1234"))
-        .thenReturn(Optional.of(veiculo));
+    when(veiculoRepository.findByOficinaIdAndPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
 
     VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca("abc 12-34");
 
@@ -250,7 +249,8 @@ class VeiculoServiceTest {
   }
 
   @Test
-  @DisplayName("deve lançar PlacaAlreadyExistsException ao mudar para placa usada por outro veículo")
+  @DisplayName(
+      "deve lançar PlacaAlreadyExistsException ao mudar para placa usada por outro veículo")
   void deveLancarExcecaoAoAtualizarParaPlacaJaUsadaNaOficina() {
     VeiculoRequestDTO request = new VeiculoRequestDTO("Civic", 2020, "Honda", "Azul", "XYZ9876");
 

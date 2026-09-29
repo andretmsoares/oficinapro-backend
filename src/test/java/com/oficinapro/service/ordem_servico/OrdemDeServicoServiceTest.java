@@ -271,6 +271,7 @@ class OrdemDeServicoServiceTest {
     assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
     verify(ordemServicoRepository, never()).findByStatus(any());
   }
+
   // ---------------------------------------------------------------
   // aplicarDesconto()
   // ---------------------------------------------------------------

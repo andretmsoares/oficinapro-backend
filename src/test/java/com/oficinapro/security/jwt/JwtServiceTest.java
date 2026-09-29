@@ -114,7 +114,8 @@ class JwtServiceTest {
 
     String tokenExpirado = emissor.gerarToken(gerente);
 
-    assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado)).isInstanceOf(JwtException.class);
+    assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado))
+        .isInstanceOf(JwtException.class);
   }
 
   @Test
