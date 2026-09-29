@@ -24,7 +24,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   private final OficinaAccessValidator oficinaAccessValidator;
 
   private String normalizarPlaca(String placa) {
-    return placa == null ? null : placa.toUpperCase().replace("-", "").trim();
+    return placa == null ? null : placa.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
   }
 
   @Override
@@ -66,7 +66,7 @@ public class VeiculoServiceImpl implements VeiculoService {
 
     Veiculo veiculo =
         veiculoRepository
-            .findByPlaca(oficinaId, normalizarPlaca(placa))
+            .findByOficinaIdAndPlaca(oficinaId, normalizarPlaca(placa))
             .orElseThrow(() -> new VeiculoNotFoundException(null));
 
     oficinaAccessValidator.validarAcessoAoRegistro(

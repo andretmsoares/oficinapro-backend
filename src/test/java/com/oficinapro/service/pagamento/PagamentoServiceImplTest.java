@@ -3,6 +3,7 @@ package com.oficinapro.service.pagamento;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -307,6 +308,46 @@ class PagamentoServiceImplTest {
     }
 
     @Test
+    @DisplayName("deve preencher a data de quitação ao completar o valor da OS")
+    void devePreencherDataDeQuitacao() {
+
+      OrdemDeServico os = os("500.00");
+
+      Pagamento existente = pagamento(os, "300.00", StatusPagamento.PAGO_PARCIALMENTE);
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+
+      devolveOArgumentoSalvo();
+
+      PagamentoResponseDTO resposta =
+          service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("200.00"));
+
+      assertThat(resposta.dataPagamentoTotal()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("estorno de pagamento quitado deve limpar a data de quitação")
+    void estornoDeveLimparDataDeQuitacao() {
+
+      OrdemDeServico os = os("500.00");
+
+      Pagamento existente = pagamento(os, "500.00", StatusPagamento.PAGA);
+
+      existente.setDataPagamentoTotal(LocalDateTime.now());
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+
+      devolveOArgumentoSalvo();
+
+      PagamentoResponseDTO resposta =
+          service.estornarValorPago(PAGAMENTO_ID, new BigDecimal("100.00"));
+
+      assertThat(resposta.status()).isEqualTo(StatusPagamento.PAGO_PARCIALMENTE);
+
+      assertThat(resposta.dataPagamentoTotal()).isNull();
+    }
+
+    @Test
     @DisplayName("não deve estornar mais do que já foi pago")
     void naoDeveEstornarMaisDoQueFoiPago() {
 
@@ -486,6 +527,38 @@ class PagamentoServiceImplTest {
     void deveLancarQuandoOsNaoTemPagamento() {
 
       when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
+
+      assertThatThrownBy(() -> service.buscarPorOsId(OS_ID))
+          .isInstanceOf(PagamentoNotFoundForThisOsException.class);
+    }
+
+    @Test
+    @DisplayName("deve validar a oficina da OS ao buscar pagamento por osId")
+    void deveValidarOficinaAoBuscarPorOsId() {
+
+      OrdemDeServico os = os("500.00");
+
+      when(repository.findByOrdemDeServicoId(OS_ID))
+          .thenReturn(pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE));
+
+      service.buscarPorOsId(OS_ID);
+
+      verify(oficinaAccessValidator)
+          .validarAcessoAoRegistro(eq(OFICINA_ID), any(PagamentoNotFoundForThisOsException.class));
+    }
+
+    @Test
+    @DisplayName("deve recusar como não encontrado o pagamento da OS de outra oficina")
+    void deveRecusarPagamentoDeOutraOficinaPorOsId() {
+
+      OrdemDeServico osDeOutraOficina = os("500.00");
+
+      when(repository.findByOrdemDeServicoId(OS_ID))
+          .thenReturn(pagamento(osDeOutraOficina, "0.00", StatusPagamento.PAGAMENTO_PENDENTE));
+
+      doThrow(new PagamentoNotFoundForThisOsException(OS_ID))
+          .when(oficinaAccessValidator)
+          .validarAcessoAoRegistro(any(), any(RuntimeException.class));
 
       assertThatThrownBy(() -> service.buscarPorOsId(OS_ID))
           .isInstanceOf(PagamentoNotFoundForThisOsException.class);

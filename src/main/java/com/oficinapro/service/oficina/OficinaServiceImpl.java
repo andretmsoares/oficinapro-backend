@@ -111,19 +111,6 @@ public class OficinaServiceImpl implements OficinaService {
     return toResponse(updated);
   }
 
-  @Transactional
-  @Override
-  public void deletar(Long id) {
-
-    oficinaAccessValidator.validarRole(Role.ADMIN);
-
-    if (!oficinaRepository.existsById(id)) {
-      throw new OficinaNotFoundException(id);
-    }
-
-    oficinaRepository.deleteById(id);
-  }
-
   private OficinaResponseDTO toResponse(Oficina oficina) {
 
     return new OficinaResponseDTO(

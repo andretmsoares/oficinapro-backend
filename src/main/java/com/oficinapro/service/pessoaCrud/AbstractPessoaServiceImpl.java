@@ -88,7 +88,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return repository.findByOficinaIdAndNome(oficinaId, nome).stream()
+    return repository.findByOficinaIdAndNomeContainingIgnoreCase(oficinaId, nome).stream()
         .map(this::toResponse)
         .toList();
   }

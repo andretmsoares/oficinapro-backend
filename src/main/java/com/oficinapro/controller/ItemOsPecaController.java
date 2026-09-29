@@ -152,12 +152,14 @@ public class ItemOsPecaController {
   }
 
   @PutMapping("/{id}/os/{osId}")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<ItemOsPecaResponseDTO> vincularOs(
       @PathVariable Long id, @PathVariable Long osId) {
     return ResponseEntity.ok(itemOsPecaService.vincularOs(id, osId));
   }
 
   @DeleteMapping("/{id}/os")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<ItemOsPecaResponseDTO> desvincularOs(@PathVariable Long id) {
     return ResponseEntity.ok(itemOsPecaService.desvincularOs(id));
   }

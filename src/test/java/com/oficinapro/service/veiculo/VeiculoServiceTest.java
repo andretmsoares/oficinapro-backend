@@ -143,13 +143,14 @@ class VeiculoServiceTest {
     // o ADMIN do SaaS não tem oficina, e o endpoint é restrito a GERENTE/MECANICO.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     // placa normalizada: "ABC-1234" -> "ABC1234"
-    when(veiculoRepository.findByPlaca(1L, "ABC1234")).thenReturn(Optional.of(veiculo));
+    when(veiculoRepository.findByOficinaIdAndPlaca(1L, "ABC1234"))
+        .thenReturn(Optional.of(veiculo));
 
-    VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca("ABC-1234");
+    VeiculoResponseDTO resultado = veiculoService.buscarPorPlaca("abc 12-34");
 
     assertThat(resultado).isNotNull();
     assertThat(resultado.placa()).isEqualTo("ABC1234");
-    verify(veiculoRepository).findByPlaca(1L, "ABC1234");
+    verify(veiculoRepository).findByOficinaIdAndPlaca(1L, "ABC1234");
   }
 
   // ---------------------------------------------------------------

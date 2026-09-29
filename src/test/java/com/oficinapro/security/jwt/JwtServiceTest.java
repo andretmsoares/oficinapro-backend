@@ -107,6 +107,17 @@ class JwtServiceTest {
   }
 
   @Test
+  @DisplayName("Token expirado deve ser rejeitado")
+  void tokenExpirado_rejeitado() {
+    // -5 min fica além da tolerância de 60s do validador padrão do Nimbus.
+    JwtService emissor = construir(SECRET, ISSUER, Duration.ofMinutes(-5));
+
+    String tokenExpirado = emissor.gerarToken(gerente);
+
+    assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado)).isInstanceOf(JwtException.class);
+  }
+
+  @Test
   @DisplayName("Segredo curto demais para HS256 deve impedir a subida da aplicação")
   void segredoCurto_falhaNaConstrucao() {
     assertThatThrownBy(() -> construir("curto", ISSUER, Duration.ofHours(8)))

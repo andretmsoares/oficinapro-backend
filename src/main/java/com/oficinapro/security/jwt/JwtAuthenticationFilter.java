@@ -1,5 +1,6 @@
 package com.oficinapro.security.jwt;
 
+import com.oficinapro.enums.Role;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.security.UsuarioDetailsService;
 import jakarta.servlet.FilterChain;
@@ -65,6 +66,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
       Usuario usuario = (Usuario) usuarioDetailsService.loadUserByUsername(jwt.getSubject());
 
+      if (!oficinaAtiva(usuario)) {
+        // Oficina desativada depois da emissao do token: o acesso cai imediatamente.
+        logger.debug("Token JWT de usuario cuja oficina esta desativada");
+        SecurityContextHolder.clearContext();
+        return;
+      }
+
       UsernamePasswordAuthenticationToken authentication =
           new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
 
@@ -82,6 +90,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       logger.debug("Usuário do token JWT não existe mais");
       SecurityContextHolder.clearContext();
     }
+  }
+
+  /** O ADMIN do SaaS nao tem oficina; os demais exigem oficina ativa. */
+  private boolean oficinaAtiva(Usuario usuario) {
+    return usuario.getRole() == Role.ADMIN
+        || (usuario.getOficina() != null && Boolean.TRUE.equals(usuario.getOficina().getAtivo()));
   }
 
   private String extrairToken(HttpServletRequest request) {

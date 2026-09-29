@@ -12,9 +12,12 @@ import com.oficinapro.dto.ordemDeServico.OrdemDeServicoRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoResponseDTO;
 import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
+import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Mecanico;
@@ -36,6 +39,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -253,24 +259,18 @@ class OrdemDeServicoServiceTest {
   // ---------------------------------------------------------------
 
   @Test
-  @DisplayName("listarPorStatus() deve devolver apenas as OS da oficina do usuário logado")
-  void deveListarPorStatusApenasDaOficinaDoUsuario() {
-    Oficina outraOficina = new Oficina(2L, "Outra Oficina", "98765432000110", "83888888888", true);
-    OrdemDeServico osDeOutraOficina = new OrdemDeServico();
-    ReflectionTestUtils.setField(osDeOutraOficina, "id", 2L);
-    osDeOutraOficina.setOficina(outraOficina);
-    osDeOutraOficina.setStatus(StatusOrdemDeServico.ABERTA);
-
+  @DisplayName("listarPorStatus() deve consultar o status já filtrando pela oficina do usuário")
+  void deveListarPorStatusFiltrandoNoBancoPelaOficinaDoUsuario() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(ordemServicoRepository.findByStatus(StatusOrdemDeServico.ABERTA))
-        .thenReturn(List.of(os, osDeOutraOficina));
+    when(ordemServicoRepository.findByOficinaIdAndStatus(1L, StatusOrdemDeServico.ABERTA))
+        .thenReturn(List.of(os));
 
     List<OrdemDeServicoResponseDTO> resultado =
         ordemDeServicoService.listarPorStatus(StatusOrdemDeServico.ABERTA);
 
     assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+    verify(ordemServicoRepository, never()).findByStatus(any());
   }
-
   // ---------------------------------------------------------------
   // aplicarDesconto()
   // ---------------------------------------------------------------
@@ -283,6 +283,10 @@ class OrdemDeServicoServiceTest {
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
   }
 
+  private void pagamentoSemValorPago() {
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0"));
+  }
+
   private void salvarDevolvendoOMesmoObjeto() {
     when(ordemServicoRepository.save(any(OrdemDeServico.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -293,6 +297,7 @@ class OrdemDeServicoServiceTest {
   void deveAplicarDescontoSobreOValorTotal() {
     prepararOsComTotal("500.00", "0.00");
     salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
 
     OrdemDeServicoResponseDTO resultado =
         ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("120.00"));
@@ -307,6 +312,7 @@ class OrdemDeServicoServiceTest {
   void deveTratarDescontoNuloComoZero() {
     prepararOsComTotal("500.00", "100.00");
     salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
 
     OrdemDeServicoResponseDTO resultado = ordemDeServicoService.aplicarDesconto(1L, null);
 
@@ -319,6 +325,7 @@ class OrdemDeServicoServiceTest {
   void deveAceitarDescontoIgualAoValorTotal() {
     prepararOsComTotal("500.00", "0.00");
     salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
 
     OrdemDeServicoResponseDTO resultado =
         ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("500.00"));
@@ -344,6 +351,58 @@ class OrdemDeServicoServiceTest {
 
     assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("500.01")))
         .isInstanceOf(DescontoInvalidoException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recalcular o status do pagamento depois de salvar")
+  void deveRecalcularStatusDoPagamentoAposDesconto() {
+    prepararOsComTotal("500.00", "0.00");
+    salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
+
+    ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("100.00"));
+
+    InOrder ordem = inOrder(ordemServicoRepository, pagamentoService);
+    ordem.verify(ordemServicoRepository).save(any(OrdemDeServico.class));
+    ordem.verify(pagamentoService).recalcularStatus(1L);
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recusar desconto que deixa a OS abaixo do valor já pago")
+  void deveRecusarDescontoAbaixoDoValorJaPago() {
+    prepararOsComTotal("100.00", "0.00");
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("100.00"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("20.00")))
+        .isInstanceOf(PagamentoValorExcedidoException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+    verify(pagamentoService, never()).recalcularStatus(any());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = StatusOrdemDeServico.class,
+      names = {"CANCELADA", "FECHADA"})
+  @DisplayName("OS cancelada ou fechada não aceita desconto, troca de cliente/mecânico nem PUT")
+  void naoDeveAlterarOsTerminal(StatusOrdemDeServico status) {
+    os.setStatus(status);
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+
+    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(1L, 1L, null, null, null);
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, BigDecimal.ZERO))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(
+            () -> ordemDeServicoService.atribuirMecanico(1L, new AtribuirMecanicoRequestDTO(1L)))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(
+            () -> ordemDeServicoService.atribuirCliente(1L, new AtribuirClienteRequestDTO(1L)))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(() -> ordemDeServicoService.atualizar(1L, request))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
 
     verify(ordemServicoRepository, never()).save(any());
   }

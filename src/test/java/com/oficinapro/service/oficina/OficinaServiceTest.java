@@ -3,7 +3,6 @@ package com.oficinapro.service.oficina;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -35,7 +34,7 @@ class OficinaServiceTest {
   @Mock private OficinaRepository oficinaRepository;
 
   // Adicionado no refactor: OficinaServiceImpl passou a exigir role ADMIN em
-  // listar/buscarPorId/criar/atualizar/deletar via OficinaAccessValidator.
+  // listar/buscarPorId/criar/atualizar via OficinaAccessValidator.
   @Mock private com.oficinapro.security.OficinaAccessValidator oficinaAccessValidator;
 
   @InjectMocks private OficinaServiceImpl service;
@@ -244,29 +243,6 @@ class OficinaServiceTest {
         .isInstanceOf(CnpjAlreadyExistsException.class);
 
     verify(oficinaRepository, never()).save(any());
-  }
-
-  // ─────────────────────────── deletar ───────────────────────────
-
-  @Test
-  @DisplayName("deletar() deve remover a oficina quando ID existe")
-  void deletar_idExistente_sucesso() {
-    when(oficinaRepository.existsById(1L)).thenReturn(true);
-    doNothing().when(oficinaRepository).deleteById(1L);
-
-    service.deletar(1L);
-
-    verify(oficinaRepository, times(1)).deleteById(1L);
-  }
-
-  @Test
-  @DisplayName("deletar() deve lançar OficinaNotFoundException quando ID não existe")
-  void deletar_idNaoExistente_lancaOficinaNotFoundException() {
-    when(oficinaRepository.existsById(99L)).thenReturn(false);
-
-    assertThatThrownBy(() -> service.deletar(99L)).isInstanceOf(OficinaNotFoundException.class);
-
-    verify(oficinaRepository, never()).deleteById(anyLong());
   }
 
   // ─────────────────────────── desativar / ativar ───────────────────────────
