@@ -45,6 +45,7 @@ class AuthServiceImplTest {
   @Mock private AuthenticationManager authenticationManager;
   @Mock private JwtService jwtService;
   @Mock private OficinaAccessValidator oficinaAccessValidator;
+  @Mock private LoginAttemptService loginAttemptService;
   @Mock private Authentication authentication;
 
   @InjectMocks private AuthServiceImpl service;

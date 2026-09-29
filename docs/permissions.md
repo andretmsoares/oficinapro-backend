@@ -60,6 +60,17 @@ Há também **código morto** decorrente da mudança: `OrdemDeServicoServiceImpl
 `UnidadeServiceImpl.listar()` têm um branch `if (role == ADMIN) findAll()` que nenhum
 ADMIN alcança, porque os controllers correspondentes não permitem `ADMIN`.
 
+### ADMIN em rota operacional: `403` por design
+
+O ADMIN não pertence a nenhuma oficina. Toda rota operacional que depende "da oficina do
+usuário logado" (`getOficinaIdUsuarioLogado()`) responde **`403`** ao ADMIN, mesmo nas
+rotas cujo `@PreAuthorize` aceitaria o papel — por exemplo `GET /api/itens-os-peca`,
+`GET /api/ordens-servico` ou o dashboard. Isso é intencional e não deve ser corrigido para
+"listar tudo": o ADMIN vê apenas contagens agregadas em `/api/admin/estatisticas`.
+
+O comportamento é `403` (e não lista vazia) porque devolver `[]` esconderia o erro de uso
+atrás de uma resposta de sucesso — bug que já ocorreu neste projeto (ver §6).
+
 ---
 
 ## 3. Matriz completa papel × endpoint
@@ -98,8 +109,13 @@ Exclusivo do ADMIN, e o service reforça com `validarRole(ADMIN)` nos cinco mét
 | POST | `/` | ✅ | ✅ | ❌ |
 | PUT | `/{id}` | ✅ | ✅ | ❌ |
 | DELETE | `/{id}` | ✅ | ✅ | ❌ |
+| PATCH | `/{id}/desbloquear` | ✅ | ✅ | ❌ |
 
 Único módulo compartilhado entre ADMIN e GERENTE. As regras de hierarquia estão na §4.
+
+`PATCH /{id}/desbloquear` remove o bloqueio de login por excesso de tentativas (temporário ou
+permanente). O GERENTE só desbloqueia usuário da própria oficina; de outra oficina, ou de um
+ADMIN, recebe `404`.
 
 ### Unidades — `/api/unidades`
 

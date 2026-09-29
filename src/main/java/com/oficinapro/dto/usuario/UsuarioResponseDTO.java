@@ -10,10 +10,12 @@ public record UsuarioResponseDTO(
     String documento,
     Long oficinaId,
     String username,
-    Role role) {
+    Role role,
+    boolean bloqueado) {
   /**
    * Fonte única de mapeamento. {@code oficinaId} vem nulo para o ADMIN do SaaS, que não é vinculado
-   * a nenhuma oficina.
+   * a nenhuma oficina. {@code bloqueado} indica login bloqueado por excesso de tentativas
+   * (temporário ainda vigente ou permanente).
    */
   public static UsuarioResponseDTO de(Usuario usuario) {
     return new UsuarioResponseDTO(
@@ -23,6 +25,7 @@ public record UsuarioResponseDTO(
         usuario.getDocumento(),
         usuario.getOficina() != null ? usuario.getOficina().getId() : null,
         usuario.getUsername(),
-        usuario.getRole());
+        usuario.getRole(),
+        usuario.isLoginBloqueado());
   }
 }

@@ -176,6 +176,10 @@ arquivo descreve o schema atual, não o histórico de alterações.
 | V10 | `create_mao_obra` | `mao_obra` | `ordem_servico` |
 | V11 | `create_pagamento` | `pagamento` (`uk_pagamento_os`, `chk_pagamento_status`) | `ordem_servico` |
 | V12 | `create_registro_pagamento` | `registro_pagamento` (`chk_registro_pagamento_meio`) | `pagamento` |
+| V13 | `add_login_lockout_usuario` | `usuario` (`falhas_login`, `bloqueado_ate`, `bloqueio_permanente`) | `usuario` |
+
+`V13` é a primeira migration **incremental** depois da consolidação: bancos que já aplicaram
+V1–V12 seguem normalmente, sem recriar o volume.
 
 ### O que mudou na consolidação
 

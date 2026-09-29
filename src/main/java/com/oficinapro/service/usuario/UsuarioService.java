@@ -19,4 +19,7 @@ public interface UsuarioService
   Page<UsuarioResponseDTO> buscar(String termo, Pageable pageable);
 
   UsuarioResponseDTO atualizarMe(UsuarioMeUpdateRequestDTO request);
+
+  /** Remove o bloqueio de login (temporário ou permanente) e zera o contador de falhas. */
+  void desbloquear(Long id);
 }

@@ -258,6 +258,15 @@ public class UsuarioServiceImpl
     return toResponse(usuario);
   }
 
+  @Override
+  @Transactional
+  public void desbloquear(Long id) {
+    // buscarPorEntidadeId valida o isolamento: GERENTE só desbloqueia usuário da própria oficina.
+    Usuario usuario = buscarPorEntidadeId(id);
+    usuario.resetarBloqueioLogin();
+    usuarioRepository.save(usuario);
+  }
+
   @Transactional
   @Override
   public void deletar(Long id) {

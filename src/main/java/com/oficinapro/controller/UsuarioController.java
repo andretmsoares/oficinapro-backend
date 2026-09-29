@@ -227,6 +227,25 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.atualizar(id, request));
   }
 
+  @Operation(
+      summary = "Desbloquear login do usuário",
+      description =
+          "Remove o bloqueio de login por excesso de tentativas (temporário ou permanente)."
+              + " GERENTE só desbloqueia usuários da própria oficina.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Usuário desbloqueado"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão"),
+    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+  })
+  @PatchMapping("/{id}/desbloquear")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+  public ResponseEntity<Void> desbloquear(
+      @Parameter(description = "ID do usuário") @PathVariable Long id) {
+    usuarioService.desbloquear(id);
+    return ResponseEntity.noContent().build();
+  }
+
   @Operation(summary = "Excluir usuário", description = "Remove uma conta de acesso.")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "Usuário excluído com sucesso"),

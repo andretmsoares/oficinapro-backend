@@ -2,9 +2,11 @@ package com.oficinapro.repository;
 
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Usuario;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -48,4 +50,9 @@ public interface UsuarioRepository extends PessoaCrudRepository<Usuario> {
    */
   @Query("select u from Usuario u left join fetch u.oficina where u.username = :username")
   Optional<Usuario> findByUsernameComOficina(@Param("username") String username);
+
+  /** Lock pessimista para que tentativas paralelas nao percam incrementos do contador. */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select u from Usuario u where u.username = :username")
+  Optional<Usuario> findByUsernameParaAtualizar(@Param("username") String username);
 }

@@ -117,8 +117,29 @@ expirar.
 | Credenciais erradas no login | 401 | `Credenciais inválidas` |
 | Autenticado, sem permissão | 403 | `Acesso negado: Você não tem permissão para acessar este recurso.` |
 
+| Login bloqueado temporariamente (excesso de tentativas) | 429 | `Muitas tentativas de login. Tente novamente em N minuto(s).` (+ header `Retry-After` e `retryAfterSeconds` no corpo) |
+| Login bloqueado até intervenção do administrador | 423 | `Conta bloqueada por excesso de tentativas de login. Fale com o administrador do sistema.` |
+
 `Credenciais inválidas` é intencionalmente genérica: não diz se o problema foi o usuário
 inexistente ou a senha errada. Diferenciar permitiria enumerar usuários válidos.
+
+### Proteção contra força bruta no login
+
+O estado fica no banco (`usuario.falhas_login`, `bloqueado_ate`, `bloqueio_permanente`), por
+isso sobrevive a reinício e vale com várias instâncias.
+
+- A cada **5 falhas seguidas** o usuário fica bloqueado por `5 min × n` (n = número do
+  bloqueio: 5 min, depois 10 min).
+- No **3º bloqueio** (15 falhas) o bloqueio passa a ser permanente: só volta com
+  `PATCH /api/usuarios/{id}/desbloquear` (ADMIN, ou GERENTE da mesma oficina).
+- Durante o bloqueio **até a senha correta é recusada**. Login bem-sucedido zera o contador.
+- Username inexistente não tem estado: recebe sempre `401 Credenciais inválidas`. Já um
+  usuário real bloqueado recebe 429/423, o que revela que a conta existe — trade-off aceito
+  em troca de o usuário saber por que não consegue entrar.
+- Configurável em `application.yml`: `oficinapro.login.tentativas-por-bloqueio` (5),
+  `oficinapro.login.duracao-bloqueio` (`5m`) e `oficinapro.login.bloqueios-ate-permanente` (3).
+- Um token já emitido continua válido até expirar mesmo se a conta for bloqueada depois.
+- O `UsuarioResponseDTO` traz `bloqueado` (`true` se o bloqueio é permanente ou temporário ainda vigente); a tela de Usuários usa isso para exibir "Bloqueado" e o botão de desbloqueio.
 
 Os dois primeiros grupos (401 de filtro e 403) são respondidos pelo
 `SecurityErrorResponder`, não pelo `GlobalExceptionHandler` — erro de filtro acontece
@@ -185,7 +206,7 @@ errado. Note que `error` aqui é `"Validation Error"`, não a reason phrase.
 | `InvalidDataAccessApiUsageException` | uso incorreto da API de dados |
 | `DateTimeException` | data inválida (mês 13 no fluxo mensal) |
 
-**401 — não autenticado** · **403 — sem permissão**
+**401 — não autenticado** · **403 — sem permissão** · **423 / 429 — login bloqueado**
 
 Ver §2.
 

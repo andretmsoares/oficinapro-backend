@@ -54,7 +54,7 @@ class UsuarioControllerTest {
   void setUp() {
     responseDTO =
         new UsuarioResponseDTO(
-            1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN);
+            1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN, false);
     requestDTO =
         new UsuarioRequestDTO(
             "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", "senha1234", Role.ADMIN);

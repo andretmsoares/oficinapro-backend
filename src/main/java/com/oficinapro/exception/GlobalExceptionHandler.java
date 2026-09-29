@@ -1,5 +1,7 @@
 package com.oficinapro.exception;
 
+import com.oficinapro.exception.auth.ContaBloqueadaException;
+import com.oficinapro.exception.auth.LoginTemporariamenteBloqueadoException;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaJaVinculadoException;
@@ -65,6 +67,23 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleAuthenticationFailure(
       AuthenticationException exception) {
     return buildResponse(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
+  }
+
+  @ExceptionHandler(LoginTemporariamenteBloqueadoException.class)
+  public ResponseEntity<Map<String, Object>> handleLoginTemporariamenteBloqueado(
+      LoginTemporariamenteBloqueadoException exception) {
+    Map<String, Object> body =
+        buildResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage()).getBody();
+    body.put("retryAfterSeconds", exception.getSegundosRestantes());
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .header("Retry-After", String.valueOf(exception.getSegundosRestantes()))
+        .body(body);
+  }
+
+  @ExceptionHandler(ContaBloqueadaException.class)
+  public ResponseEntity<Map<String, Object>> handleContaBloqueada(
+      ContaBloqueadaException exception) {
+    return buildResponse(HttpStatus.LOCKED, exception.getMessage());
   }
 
   @ExceptionHandler(OficinaNotFoundException.class)
