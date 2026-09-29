@@ -283,7 +283,8 @@ pagamentos, unidades, oficinas. Numa oficina com histórico grande, `GET
 
 Número inteiro **em centavos** no JSON (123456 = R$ 1.234,56). No banco, `NUMERIC(12,0)`; em Java,
 `BigDecimal` com escala 0. É a mesma representação do frontend, sem conversão na borda HTTP;
-quem exibe (telas, PDF) divide por 100. Ver [business-rules.md §1](./business-rules.md).
+quem exibe (telas, PDF) divide por 100. Ver [business-rules.md §1](./business-rules.md). Os DTOs de dinheiro (peça, mão de obra e registro
+de pagamento) recusam casas decimais: `25000` é aceito, `250.00` responde `400`.
 
 ### Data e hora
 

@@ -40,7 +40,7 @@ class RegistroPagamentoControllerTest {
 
   private RegistroPagamentoResponseDTO responseDTO() {
     return new RegistroPagamentoResponseDTO(
-        100L, 10L, new BigDecimal("150.00"), MeioPagamento.PIX, LocalDateTime.now());
+        100L, 10L, new BigDecimal("15000"), MeioPagamento.PIX, LocalDateTime.now());
   }
 
   // ---------------------------------------------------------
@@ -51,7 +51,7 @@ class RegistroPagamentoControllerTest {
   @WithMockUser(roles = "GERENTE")
   void criar_gerente_retorna201() throws Exception {
     RegistroPagamentoRequestDTO request =
-        new RegistroPagamentoRequestDTO(10L, new BigDecimal("150.00"), MeioPagamento.PIX);
+        new RegistroPagamentoRequestDTO(10L, new BigDecimal("15000"), MeioPagamento.PIX);
     when(registroPagamentoService.criar(any())).thenReturn(responseDTO());
 
     mockMvc
@@ -69,7 +69,7 @@ class RegistroPagamentoControllerTest {
   @WithMockUser(roles = "MECANICO")
   void criar_mecanico_retorna403() throws Exception {
     RegistroPagamentoRequestDTO request =
-        new RegistroPagamentoRequestDTO(10L, new BigDecimal("150.00"), MeioPagamento.PIX);
+        new RegistroPagamentoRequestDTO(10L, new BigDecimal("15000"), MeioPagamento.PIX);
 
     mockMvc
         .perform(

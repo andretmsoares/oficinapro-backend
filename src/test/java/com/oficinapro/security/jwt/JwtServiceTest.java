@@ -7,11 +7,16 @@ import com.oficinapro.enums.Role;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import java.time.Duration;
+import java.time.Instant;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwtException;
 
 /** Usa o JwtConfig real (e não mocks) para que a fiação encoder/decoder também seja testada. */
@@ -109,10 +114,25 @@ class JwtServiceTest {
   @Test
   @DisplayName("Token expirado deve ser rejeitado")
   void tokenExpirado_rejeitado() {
-    // -5 min fica além da tolerância de 60s do validador padrão do Nimbus.
-    JwtService emissor = construir(SECRET, ISSUER, Duration.ofMinutes(-5));
+    // Expirou há 10 min, além da tolerância de 60s do validador padrão do Nimbus.
+    JwtProperties properties = new JwtProperties(SECRET, ISSUER, Duration.ofHours(8));
+    JwtConfig config = new JwtConfig(properties);
+    Instant agora = Instant.now();
 
-    String tokenExpirado = emissor.gerarToken(gerente);
+    JwtClaimsSet claims =
+        JwtClaimsSet.builder()
+            .issuer(ISSUER)
+            .subject("ana.gerente")
+            .issuedAt(agora.minus(Duration.ofMinutes(20)))
+            .expiresAt(agora.minus(Duration.ofMinutes(10)))
+            .build();
+
+    String tokenExpirado =
+        config
+            .jwtEncoder(config.jwtSecretKey())
+            .encode(
+                JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
+            .getTokenValue();
 
     assertThatThrownBy(() -> jwtService.decodificar(tokenExpirado)).isInstanceOf(JwtException.class);
   }

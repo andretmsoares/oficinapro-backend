@@ -52,7 +52,7 @@ class MaoObraControllerTest {
   @MockitoBean private MaoObraService maoObraService;
 
   private MaoObraResponseDTO responseDTO() {
-    return new MaoObraResponseDTO(MAO_OBRA_ID, OS_ID, new BigDecimal("250.00"), "Revisão geral");
+    return new MaoObraResponseDTO(MAO_OBRA_ID, OS_ID, new BigDecimal("25000"), "Revisão geral");
   }
 
   private String json(Object body) throws Exception {
@@ -60,7 +60,7 @@ class MaoObraControllerTest {
   }
 
   private MaoObraRequestDTO requestValido() {
-    return new MaoObraRequestDTO(OS_ID, new BigDecimal("250.00"), "Revisão geral");
+    return new MaoObraRequestDTO(OS_ID, new BigDecimal("25000"), "Revisão geral");
   }
 
   // ---------------------------------------------------------
@@ -82,7 +82,7 @@ class MaoObraControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(MAO_OBRA_ID))
         .andExpect(jsonPath("$.osId").value(OS_ID))
-        .andExpect(jsonPath("$.valor").value(250.00))
+        .andExpect(jsonPath("$.valor").value(25000))
         .andExpect(jsonPath("$.descricao").value("Revisão geral"));
   }
 
@@ -180,7 +180,7 @@ class MaoObraControllerTest {
         .perform(get("/api/mao-obra/os/" + OS_ID))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(MAO_OBRA_ID))
-        .andExpect(jsonPath("$[0].valor").value(250.00));
+        .andExpect(jsonPath("$[0].valor").value(25000));
   }
 
   @Test
