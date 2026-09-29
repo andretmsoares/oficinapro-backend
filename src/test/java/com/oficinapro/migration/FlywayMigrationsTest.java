@@ -62,7 +62,9 @@ class FlywayMigrationsTest {
         new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*__*.sql");
 
     List<Resource> ordenados =
-        Arrays.stream(scripts).sorted(Comparator.comparingInt(FlywayMigrationsTest::versao)).toList();
+        Arrays.stream(scripts)
+            .sorted(Comparator.comparingInt(FlywayMigrationsTest::versao))
+            .toList();
 
     versoes = ordenados.stream().map(FlywayMigrationsTest::versao).toList();
 
@@ -86,7 +88,8 @@ class FlywayMigrationsTest {
   @DisplayName("deve haver uma migration por entidade, com versões sequenciais sem buracos")
   void deveTerUmaMigrationPorEntidadeSemBuracos() {
     assertThat(versoes)
-        .containsExactlyElementsOf(IntStream.rangeClosed(1, TABELAS_ESPERADAS.size()).boxed().toList());
+        .containsExactlyElementsOf(
+            IntStream.rangeClosed(1, TABELAS_ESPERADAS.size()).boxed().toList());
   }
 
   @Test
