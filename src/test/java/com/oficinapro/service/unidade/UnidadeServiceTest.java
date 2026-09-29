@@ -150,7 +150,7 @@ class UnidadeServiceTest {
         new UnidadeRequestDTO("Unidade Nova", "Rua Nova, 200", "83933334444");
 
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
-    when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "Rua Nova, 200")).thenReturn(false);
+    when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "RUA NOVA, 200")).thenReturn(false);
     when(unidadeRepository.save(any(Unidade.class))).thenReturn(unidade);
 
     UnidadeResponseDTO resultado = unidadeService.criar(1L, request);
@@ -167,7 +167,7 @@ class UnidadeServiceTest {
         new UnidadeRequestDTO("Duplicada", "Rua das Flores, 100", "83944445555");
 
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
-    when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "Rua das Flores, 100"))
+    when(unidadeRepository.existsByOficinaIdAndEndereco(1L, "RUA DAS FLORES, 100"))
         .thenReturn(true);
 
     assertThatThrownBy(() -> unidadeService.criar(1L, request))
@@ -187,7 +187,7 @@ class UnidadeServiceTest {
 
     when(oficinaService.buscarPorEntidadeId(outraOficinaId)).thenReturn(outraOficina);
     // O endereço já existe na oficina 1, mas a consulta é escopada pela oficina 2.
-    when(unidadeRepository.existsByOficinaIdAndEndereco(outraOficinaId, "Rua das Flores, 100"))
+    when(unidadeRepository.existsByOficinaIdAndEndereco(outraOficinaId, "RUA DAS FLORES, 100"))
         .thenReturn(false);
     when(unidadeRepository.save(any(Unidade.class))).thenReturn(unidade);
 
@@ -214,7 +214,7 @@ class UnidadeServiceTest {
 
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
     // A consulta exclui o próprio registro (IdNot), então manter o endereço não conflita.
-    when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "Rua das Flores, 100", 1L))
+    when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "RUA DAS FLORES, 100", 1L))
         .thenReturn(false);
     when(unidadeRepository.save(any(Unidade.class))).thenReturn(unidade);
 
@@ -232,7 +232,7 @@ class UnidadeServiceTest {
         new UnidadeRequestDTO("Unidade Atualizada", "Rua Ocupada, 500", "83955556666");
 
     when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
-    when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "Rua Ocupada, 500", 1L))
+    when(unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(1L, "RUA OCUPADA, 500", 1L))
         .thenReturn(true);
 
     assertThatThrownBy(() -> unidadeService.atualizar(1L, request))

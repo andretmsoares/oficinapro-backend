@@ -3,6 +3,8 @@ package com.oficinapro.repository;
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Usuario;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +17,28 @@ public interface UsuarioRepository extends PessoaCrudRepository<Usuario> {
   Optional<Usuario> findByUsername(String username);
 
   boolean existsByRole(Role role);
+
+  @Query(
+      """
+      select u from Usuario u
+      where lower(u.nome) like lower(concat('%', :termo, '%'))
+         or lower(u.username) like lower(concat('%', :termo, '%'))
+         or u.documento like concat('%', :termo, '%')
+         or u.telefone like concat('%', :termo, '%')
+      """)
+  Page<Usuario> buscarTodos(@Param("termo") String termo, Pageable pageable);
+
+  @Query(
+      """
+      select u from Usuario u
+      where u.oficina.id = :oficinaId
+        and (lower(u.nome) like lower(concat('%', :termo, '%'))
+             or lower(u.username) like lower(concat('%', :termo, '%'))
+             or u.documento like concat('%', :termo, '%')
+             or u.telefone like concat('%', :termo, '%'))
+      """)
+  Page<Usuario> buscarPorOficina(
+      @Param("oficinaId") Long oficinaId, @Param("termo") String termo, Pageable pageable);
 
   /**
    * Usada na autenticação. O {@code left join fetch} é obrigatório: a aplicação roda com {@code

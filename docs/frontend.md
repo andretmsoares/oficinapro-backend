@@ -345,14 +345,24 @@ o `ViewOrdemServicoModal` reporta uma alteração (peça, mão de obra, desconto
 
 ### Busca e paginação no servidor
 
-`/clientes` usa `GET /api/clientes/buscar?q=&page=&size=20&sort=nome`: o termo (nome, documento
-ou telefone, parcial) é aplicado no banco, sempre dentro da oficina do usuário, então acha
-qualquer cliente independentemente da página. A tela usa o componente `Pagination`
-(Anterior/Próxima) e espera 300 ms depois de digitar antes de consultar. O autocomplete de
-veículo da OS usa `GET /api/veiculos/buscar?q=&size=10`. Sem `q`, os dois endpoints equivalem
-à listagem. A busca de nome distingue acentos ("Jose" não acha "José").
+As telas de Clientes, Veículos, Mecânicos, Usuários e Oficinas usam busca e paginação no servidor
+(20 por página) por meio do hook `hooks/useServerSearch` e do componente `Pagination`:
 
-Ainda no modelo antigo (até 500 registros, filtro no navegador): Veículos, Mecânicos e Usuários.
+| Tela | Endpoint | Campos pesquisados |
+|---|---|---|
+| Clientes | `GET /api/clientes/buscar?q=` | nome, documento, telefone |
+| Veículos | `GET /api/veiculos/buscar?q=` | placa, modelo, marca |
+| Mecânicos | `GET /api/mecanicos/buscar?q=` | nome, documento, telefone |
+| Usuários | `GET /api/usuarios/buscar?q=` | nome, username, documento, telefone (ADMIN: todas as oficinas; GERENTE: a sua) |
+| Oficinas | `GET /api/oficinas/buscar?search=` | nome, CNPJ |
+
+O termo é aplicado no banco, dentro da oficina do usuário, então acha qualquer registro
+independentemente da página. O hook espera 300 ms depois de digitar, volta à página 0 ao mudar o
+termo e recarrega a página atual depois de criar, editar ou excluir. O autocomplete de veículo da OS
+usa `GET /api/veiculos/buscar?q=&size=10`. Sem `q`, os endpoints equivalem à listagem. O termo é
+normalizado no backend (sem acento, caixa alta), então "jose" acha "JOSE" (que era "José").
+
+Ainda carregam a lista inteira da oficina: Ordens de Serviço, Pagamentos, Peças e Unidades.
 
 ### Sobre as telas que foram pedidas
 

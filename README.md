@@ -70,11 +70,10 @@ existe um papel de administrador da plataforma separado dos papéis de oficina.
 Serviço, Pagamentos, Usuários, Unidades e Oficinas.
 
 > O frontend está integrado ao backend por `fetch` (`frontend/src/services/api.ts`) com JWT.
-> Valores monetários trafegam em **centavos** de ponta a ponta. Clientes têm busca e
-> paginação no servidor (`/api/clientes/buscar`, 20 por página) e o autocomplete de veículo
-> da OS usa `/api/veiculos/buscar`. Limitação do MVP: as telas de veículos, mecânicos e
-> usuários ainda carregam até 500 registros e filtram no navegador. Detalhes em
-> [`docs/frontend.md`](./docs/frontend.md).
+> Valores monetários trafegam em **centavos** de ponta a ponta. Clientes, veículos, mecânicos,
+> usuários e oficinas têm busca e paginação no servidor (20 por página). Limitação do MVP: as
+> telas de OS, pagamentos, peças e unidades ainda carregam a lista inteira da oficina. Textos
+> são gravados sem acento e em caixa alta. Detalhes em [`docs/frontend.md`](./docs/frontend.md).
 
 ---
 

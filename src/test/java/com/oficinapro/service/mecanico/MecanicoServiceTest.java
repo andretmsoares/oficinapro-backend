@@ -103,6 +103,33 @@ class MecanicoServiceTest {
     verify(mecanicoRepository, never()).findAll(any(Pageable.class));
   }
 
+  @Test
+  @DisplayName("buscar() deve normalizar o termo (sem acento, caixa alta) e consultar a oficina")
+  void buscar_comTermo_normalizaEConsultaNaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(mecanicoRepository.buscar(1L, "MECANICO", pageable))
+        .thenReturn(new PageImpl<>(List.of(mecanico)));
+
+    Page<MecanicoResponseDTO> resultado = service.buscar("  mecânico ", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("buscar() sem termo deve listar a oficina do usuário")
+  void buscar_semTermo_listaDaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(mecanicoRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(mecanico)));
+
+    assertThat(service.buscar(null, pageable).getContent()).hasSize(1);
+    verify(mecanicoRepository, never()).buscar(any(), any(), any());
+  }
+
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test

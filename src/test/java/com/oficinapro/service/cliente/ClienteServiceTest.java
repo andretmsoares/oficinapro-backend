@@ -104,7 +104,7 @@ class ClienteServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
 
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(clienteRepository.buscar(1L, "joao", pageable))
+    when(clienteRepository.buscar(1L, "JOAO", pageable))
         .thenReturn(new PageImpl<>(List.of(cliente)));
 
     Page<ClienteResponseDTO> resultado = service.buscar("  joao ", pageable);
@@ -256,7 +256,7 @@ class ClienteServiceTest {
 
     assertThat(resultado).isNotNull();
     // applyUpdate modifica o objeto cliente em lugar; o nome deve ter sido atualizado
-    assertThat(resultado.nome()).isEqualTo("JOÃO ATUALIZADO");
+    assertThat(resultado.nome()).isEqualTo("JOAO ATUALIZADO");
     verify(clienteRepository, times(1)).save(any(Cliente.class));
   }
 

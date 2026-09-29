@@ -15,5 +15,8 @@ public interface UsuarioService
   /** Todos os usuários da plataforma (ADMIN) ou só os da própria oficina (GERENTE). */
   Page<UsuarioResponseDTO> listar(Pageable pageable);
 
+  /** Busca paginada por nome, username, documento ou telefone, com o mesmo escopo de listar(). */
+  Page<UsuarioResponseDTO> buscar(String termo, Pageable pageable);
+
   UsuarioResponseDTO atualizarMe(UsuarioMeUpdateRequestDTO request);
 }

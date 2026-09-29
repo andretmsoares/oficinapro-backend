@@ -84,6 +84,26 @@ class UsuarioControllerTest {
   }
 
   @Test
+  @DisplayName("GET /api/usuarios/buscar - ADMIN deve retornar 200 com a página filtrada")
+  @WithMockUser(roles = "ADMIN")
+  void deveBuscarUsuariosPaginadoComoAdmin() throws Exception {
+    when(usuarioService.buscar(eq("ana"), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/usuarios/buscar").param("q", "ana"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+  }
+
+  @Test
+  @DisplayName("GET /api/usuarios/buscar - MECANICO deve retornar 403")
+  @WithMockUser(roles = "MECANICO")
+  void deveNegarBuscaDeUsuariosParaMecanico() throws Exception {
+    mockMvc.perform(get("/api/usuarios/buscar").param("q", "a")).andExpect(status().isForbidden());
+  }
+
+  @Test
   @DisplayName(
       "GET /api/usuarios - GERENTE deve retornar 200 com página de usuários da própria oficina")
   @WithMockUser(roles = "GERENTE")

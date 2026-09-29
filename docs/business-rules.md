@@ -318,6 +318,15 @@ pagamento (`MeioPagamento`: `PIX`, `DINHEIRO`, `CARTAO_CREDITO`, `CARTAO_DEBITO`
 
 ## 6. Cadastros
 
+### Textos são gravados normalizados
+
+Nomes (oficina, unidade, pessoa, usuário, mecânico, cliente), endereço da unidade, marca, modelo e
+cor do veículo, nome da peça e descrição da mão de obra são gravados **sem acentos e em caixa alta**
+(`TextoUtil.normalizar`, aplicado nos services). Assim "José" e "JOSE" são o mesmo texto para
+busca e para as verificações de unicidade (ex.: endereço da unidade). Os termos de busca passam
+pela mesma normalização. Não são alterados: `username`, senha, documento, telefone, placa
+(regra própria) e textos livres como `obs`.
+
 ### Documento único por oficina
 
 A unicidade de `documento` (CPF/CNPJ) em `pessoa` é **por oficina**, não global:

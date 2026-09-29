@@ -1,5 +1,7 @@
 package com.oficinapro.service.pessoaCrud;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Pessoa;
@@ -88,7 +90,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return repository.findByOficinaIdAndNomeContainingIgnoreCase(oficinaId, nome).stream()
+    return repository.findByOficinaIdAndNomeContainingIgnoreCase(oficinaId, normalizar(nome)).stream()
         .map(this::toResponse)
         .toList();
   }
@@ -145,7 +147,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     validateBeforeCreate(request);
 
     T entity = toEntity(request, oficina);
-    entity.setNome(entity.getNome().toUpperCase());
+    entity.setNome(normalizar(entity.getNome()));
     entity = repository.save(entity);
     return toResponse(entity);
   }
@@ -171,7 +173,7 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     validateBeforeUpdate(id, request);
 
     applyUpdate(entity, request);
-    entity.setNome(entity.getNome().toUpperCase());
+    entity.setNome(normalizar(entity.getNome()));
     repository.save(entity);
     return toResponse(entity);
   }

@@ -1,5 +1,7 @@
 package com.oficinapro.service.oficina;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.enums.Role;
@@ -36,7 +38,7 @@ public class OficinaServiceImpl implements OficinaService {
   public Page<OficinaResponseDTO> buscar(String search, Pageable pageable) {
     oficinaAccessValidator.validarRole(Role.ADMIN);
 
-    String termo = search == null ? "" : search.trim();
+    String termo = search == null ? "" : normalizar(search);
 
     return oficinaRepository
         .findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(termo, termo, pageable)
@@ -78,7 +80,7 @@ public class OficinaServiceImpl implements OficinaService {
 
     Oficina oficina = new Oficina();
 
-    oficina.setNome(request.nome().toUpperCase());
+    oficina.setNome(normalizar(request.nome()));
     oficina.setCnpj(request.cnpj());
     oficina.setTelefone(request.telefone());
 
@@ -102,7 +104,7 @@ public class OficinaServiceImpl implements OficinaService {
       throw new CnpjAlreadyExistsException(request.cnpj());
     }
 
-    oficina.setNome(request.nome().toUpperCase());
+    oficina.setNome(normalizar(request.nome()));
     oficina.setCnpj(request.cnpj());
     oficina.setTelefone(request.telefone());
 

@@ -1,5 +1,7 @@
 package com.oficinapro.service.mecanico;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
@@ -11,6 +13,8 @@ import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +50,7 @@ public class MecanicoServiceImpl
   protected Mecanico toEntity(MecanicoRequestDTO request, Oficina oficina) {
     Mecanico mecanico = new Mecanico();
 
-    mecanico.setNome(request.nome().toUpperCase());
+    mecanico.setNome(normalizar(request.nome()));
     mecanico.setDocumento(request.documento());
     mecanico.setTelefone(request.telefone());
     mecanico.setOficina(oficina);
@@ -60,7 +64,7 @@ public class MecanicoServiceImpl
   @Transactional
   protected void applyUpdate(Mecanico mecanico, MecanicoRequestDTO request) {
 
-    mecanico.setNome(request.nome().toUpperCase());
+    mecanico.setNome(normalizar(request.nome()));
     mecanico.setDocumento(request.documento());
     mecanico.setTelefone(request.telefone());
     mecanico.setSalario(request.salario());
@@ -101,5 +105,20 @@ public class MecanicoServiceImpl
   @Transactional(readOnly = true)
   protected RuntimeException alreadyExistsException() {
     return new MecanicoAlreadyExistsException();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<MecanicoResponseDTO> buscar(String termo, Pageable pageable) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    String termoLimpo = termo == null ? "" : normalizar(termo);
+
+    if (termoLimpo.isEmpty()) {
+      return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+    }
+
+    return ((MecanicoRepository) repository)
+        .buscar(oficinaId, termoLimpo, pageable)
+        .map(this::toResponse);
   }
 }

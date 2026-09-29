@@ -138,7 +138,7 @@ class VeiculoServiceTest {
   @DisplayName("buscar() deve normalizar o termo para comparar com a placa")
   void deveBuscarPaginadoNormalizandoAPlaca() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(veiculoRepository.buscar(1L, "abc-12", "ABC12", pageable))
+    when(veiculoRepository.buscar(1L, "ABC-12", "ABC12", pageable))
         .thenReturn(new PageImpl<>(List.of(veiculo)));
 
     Page<VeiculoResponseDTO> resultado = veiculoService.buscar(" abc-12 ", pageable);

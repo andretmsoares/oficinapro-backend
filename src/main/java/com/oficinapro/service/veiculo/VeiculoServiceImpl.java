@@ -1,5 +1,7 @@
 package com.oficinapro.service.veiculo;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoResponseDTO;
 import com.oficinapro.exception.veiculo.PlacaAlreadyExistsException;
@@ -38,7 +40,7 @@ public class VeiculoServiceImpl implements VeiculoService {
   @Transactional(readOnly = true)
   public Page<VeiculoResponseDTO> buscar(String termo, Pageable pageable) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
-    String termoLimpo = termo == null ? "" : termo.trim();
+    String termoLimpo = termo == null ? "" : normalizar(termo);
 
     if (termoLimpo.isEmpty()) {
       return veiculoRepository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
@@ -48,7 +50,7 @@ public class VeiculoServiceImpl implements VeiculoService {
 
     // Termo sem nenhum caractere de placa (ex.: "-"): não pode casar com todas as placas.
     if (placa.isEmpty()) {
-      placa = termoLimpo.toUpperCase();
+      placa = termoLimpo;
     }
 
     return veiculoRepository.buscar(oficinaId, termoLimpo, placa, pageable).map(this::toResponse);
@@ -109,10 +111,10 @@ public class VeiculoServiceImpl implements VeiculoService {
 
     Veiculo veiculo = new Veiculo();
     veiculo.setOficina(oficina);
-    veiculo.setModelo(request.modelo().toUpperCase());
+    veiculo.setModelo(normalizar(request.modelo()));
     veiculo.setAno(request.ano());
-    veiculo.setMarca(request.marca().toUpperCase());
-    veiculo.setCor(request.cor().toUpperCase());
+    veiculo.setMarca(normalizar(request.marca()));
+    veiculo.setCor(normalizar(request.cor()));
     veiculo.setPlaca(placa);
 
     Veiculo saved = veiculoRepository.save(veiculo);
@@ -133,11 +135,11 @@ public class VeiculoServiceImpl implements VeiculoService {
       throw new PlacaAlreadyExistsException(placa);
     }
 
-    veiculo.setModelo(request.modelo().toUpperCase());
+    veiculo.setModelo(normalizar(request.modelo()));
     veiculo.setAno(request.ano());
-    veiculo.setMarca(request.marca().toUpperCase());
+    veiculo.setMarca(normalizar(request.marca()));
     veiculo.setPlaca(placa);
-    veiculo.setCor(request.cor().toUpperCase());
+    veiculo.setCor(normalizar(request.cor()));
 
     Veiculo updated = veiculoRepository.save(veiculo);
 

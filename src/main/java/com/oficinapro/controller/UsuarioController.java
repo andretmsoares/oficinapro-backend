@@ -45,6 +45,20 @@ public class UsuarioController {
   }
 
   @Operation(
+      summary = "Buscar usuários (paginado)",
+      description =
+          "Busca usuários cujo nome, username, documento ou telefone contenha o termo `q`, com"
+              + " paginação. O ADMIN busca em toda a plataforma; o GERENTE, só na própria"
+              + " oficina. Sem `q`, equivale à listagem.")
+  @GetMapping("/buscar")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+  public ResponseEntity<Page<UsuarioResponseDTO>> buscar(
+      @RequestParam(name = "q", required = false) String termo,
+      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+    return ResponseEntity.ok(usuarioService.buscar(termo, pageable));
+  }
+
+  @Operation(
       summary = "Atualizar meus dados",
       description =
           "Atualiza os dados do usuário autenticado. O usuário pode alterar nome, "

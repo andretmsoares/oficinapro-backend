@@ -175,6 +175,37 @@ class UsuarioServiceTest {
     verify(usuarioRepository, never()).findAll(any(Pageable.class));
   }
 
+  @Test
+  @DisplayName("buscar() como ADMIN deve procurar em todas as oficinas, com o termo normalizado")
+  void buscar_comoAdmin_procuraEmTodasAsOficinas() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.buscarTodos("ANA", pageable))
+        .thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar("ana", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(usuarioRepository, never()).buscarPorOficina(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("buscar() como GERENTE deve ficar restrito à própria oficina")
+  void buscar_comoGerente_restritoAPropriaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(usuarioRepository.buscarPorOficina(1L, "ANA", pageable))
+        .thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar("Ana", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(usuarioRepository, never()).buscarTodos(any(), any());
+  }
+
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test

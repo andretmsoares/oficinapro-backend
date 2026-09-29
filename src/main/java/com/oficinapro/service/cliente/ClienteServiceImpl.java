@@ -1,5 +1,7 @@
 package com.oficinapro.service.cliente;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
@@ -44,7 +46,7 @@ public class ClienteServiceImpl
   @Transactional
   protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
     Cliente cliente = new Cliente();
-    cliente.setNome(request.nome().toUpperCase());
+    cliente.setNome(normalizar(request.nome()));
     cliente.setDocumento(request.documento());
     cliente.setTelefone(request.telefone());
     cliente.setOficina(oficina);
@@ -54,7 +56,7 @@ public class ClienteServiceImpl
   @Override
   @Transactional
   protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
-    cliente.setNome(request.nome().toUpperCase());
+    cliente.setNome(normalizar(request.nome()));
     cliente.setDocumento(request.documento());
     cliente.setTelefone(request.telefone());
   }
@@ -99,7 +101,7 @@ public class ClienteServiceImpl
   @Transactional(readOnly = true)
   public Page<ClienteResponseDTO> buscar(String termo, Pageable pageable) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
-    String termoLimpo = termo == null ? "" : termo.trim();
+    String termoLimpo = termo == null ? "" : normalizar(termo);
 
     if (termoLimpo.isEmpty()) {
       return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
