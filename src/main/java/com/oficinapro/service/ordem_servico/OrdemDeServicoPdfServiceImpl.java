@@ -9,14 +9,17 @@ import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.repository.MaoObraRepository;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.registro_pagamento.RegistroPagamentoService;
+import com.oficinapro.storage.LogoStorage;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -56,16 +59,19 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
   private final MaoObraRepository maoObraRepository;
   private final PagamentoService pagamentoService;
   private final RegistroPagamentoService registroPagamentoService;
+  private final LogoStorage logoStorage;
 
   public OrdemDeServicoPdfServiceImpl(
       ItemOsPecaRepository itemOsPecaRepository,
       MaoObraRepository maoObraRepository,
       PagamentoService pagamentoService,
-      RegistroPagamentoService registroPagamentoService) {
+      RegistroPagamentoService registroPagamentoService,
+      LogoStorage logoStorage) {
     this.itemOsPecaRepository = itemOsPecaRepository;
     this.maoObraRepository = maoObraRepository;
     this.pagamentoService = pagamentoService;
     this.registroPagamentoService = registroPagamentoService;
+    this.logoStorage = logoStorage;
   }
 
   @Override
@@ -118,6 +124,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       throws DocumentException {
     montarCabecalhoComLogo(
         document,
+        os.getOficina(),
         "ORDEM DE SERVIÇO #" + formatarId(os.getId()),
         (os.getDataAbertura() != null ? "Abertura: " + os.getDataAbertura().format(DATA_FMT) : "")
             + (os.getDataFechamento() != null
@@ -131,6 +138,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       throws DocumentException {
     montarCabecalhoComLogo(
         document,
+        os.getOficina(),
         "COMPROVANTE DE PAGAMENTO",
         "Ordem de serviço #"
             + formatarId(os.getId())
@@ -139,8 +147,9 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
                 : ""));
   }
 
-  /** Cabeçalho com título à esquerda e a logo do sistema à direita (slot reservado). */
-  private void montarCabecalhoComLogo(Document document, String titulo, String subtitulo)
+  /** Cabeçalho com título à esquerda e a logo da oficina (ou a do sistema) à direita. */
+  private void montarCabecalhoComLogo(
+      Document document, Oficina oficina, String titulo, String subtitulo)
       throws DocumentException {
     PdfPTable cab = new PdfPTable(2);
     cab.setWidthPercentage(100);
@@ -152,24 +161,46 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     if (!subtitulo.isBlank()) esquerda.addElement(new Paragraph(subtitulo, FONT_TEXTO));
     cab.addCell(esquerda);
 
-    cab.addCell(slotLogo());
+    cab.addCell(slotLogo(oficina));
     document.add(cab);
   }
 
-  private PdfPCell slotLogo() {
+  private PdfPCell slotLogo(Oficina oficina) {
     PdfPCell logo = new PdfPCell();
     logo.setFixedHeight(LOGO_ALTURA);
     logo.setBorder(Rectangle.NO_BORDER);
     logo.setHorizontalAlignment(Element.ALIGN_RIGHT);
     logo.setVerticalAlignment(Element.ALIGN_MIDDLE);
-    try (InputStream in = new ClassPathResource(LOGO_PATH).getInputStream()) {
-      Image img = Image.getInstance(in.readAllBytes());
+    try {
+      Image img = Image.getInstance(bytesDaLogo(oficina));
       img.scaleToFit(120f, LOGO_ALTURA);
       logo.setImage(img);
     } catch (Exception e) {
-      log.warn("Logo não carregada para o PDF ({}): {}", LOGO_PATH, e.getMessage());
+      log.warn("Logo não carregada para o PDF: {}", e.getMessage());
     }
     return logo;
+  }
+
+  /**
+   * Logo da oficina; qualquer falha (sem logo, bucket fora do ar, imagem corrompida) cai na logo
+   * padrão do sistema. A geração do PDF nunca pode falhar por causa da logo.
+   */
+  private byte[] bytesDaLogo(Oficina oficina) throws IOException {
+    String caminho = oficina != null ? oficina.getLogoPath() : null;
+    if (caminho != null) {
+      try {
+        Optional<byte[]> bytes = logoStorage.ler(caminho);
+        if (bytes.isPresent()) {
+          Image.getInstance(bytes.get());
+          return bytes.get();
+        }
+      } catch (Exception e) {
+        log.warn("Logo da oficina indisponível ({}): {}", caminho, e.getMessage());
+      }
+    }
+    try (InputStream in = new ClassPathResource(LOGO_PATH).getInputStream()) {
+      return in.readAllBytes();
+    }
   }
 
   private String formatarId(Long id) {

@@ -26,6 +26,12 @@ spring:
     enabled: true
     baseline-on-migrate: false
 
+  # Upload da logo da oficina (limite de negocio: 2 MB, validado tambem no service).
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+
 oficinapro:
   jwt:
     # Default vazio apenas para que a falha venha do JwtConfig,
@@ -42,6 +48,13 @@ oficinapro:
     username: ${ADMIN_USERNAME:}
     password: ${ADMIN_PASSWORD:}
     nome: ${ADMIN_NOME:Administrador do SaaS}
+
+  # Logo da oficina nos PDFs. Sem bucket, o upload fica desabilitado (503) e os PDFs usam
+  # a logo padrao do sistema. Credenciais: ADC (service account anexada ao servico no GCP ou
+  # GOOGLE_APPLICATION_CREDENTIALS apontando para o JSON da chave).
+  storage:
+    gcs:
+      bucket: ${GCS_BUCKET:}
 
 server:
   port: ${SERVER_PORT:8080}

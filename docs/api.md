@@ -123,6 +123,28 @@ expirar.
 `Credenciais inválidas` é intencionalmente genérica: não diz se o problema foi o usuário
 inexistente ou a senha errada. Diferenciar permitiria enumerar usuários válidos.
 
+### Logo da oficina (PDFs)
+
+A logo impressa no cabeçalho da OS e do comprovante fica num bucket do Google Cloud Storage;
+`oficina.logo_path` guarda só o caminho do objeto (gerado pelo servidor). Sem logo, ou se o
+bucket falhar, o PDF usa a logo padrão do sistema (`resources/images/logo.png`) — a geração
+do PDF nunca falha por causa da logo.
+
+| Método | Rota | Papéis | Observação |
+|---|---|---|---|
+| PUT | `/api/oficinas/{id}/logo` | ADMIN, GERENTE | multipart, campo `arquivo`; PNG/JPEG até 2 MB |
+| DELETE | `/api/oficinas/{id}/logo` | ADMIN, GERENTE | volta à logo padrão; idempotente |
+| GET | `/api/oficinas/{id}/logo` | ADMIN, GERENTE, MECANICO | imagem; `404` se não houver |
+
+GERENTE/MECANICO só acessam a própria oficina (`403` para outra). O tipo é verificado pelos
+bytes do arquivo (não pelo content-type); SVG é recusado. Erros: `400` arquivo inválido,
+`413` grande demais, `503` storage não configurado.
+
+Configuração: `GCS_BUCKET` (sem ele o upload fica desabilitado) e credenciais por Application
+Default Credentials — service account anexada ao serviço no GCP, ou
+`GOOGLE_APPLICATION_CREDENTIALS` com o caminho do JSON da chave (nunca commitar). A service
+account precisa de `roles/storage.objectAdmin` no bucket, que deve ser **privado**.
+
 ### Proteção contra força bruta no login
 
 O estado fica no banco (`usuario.falhas_login`, `bloqueado_ate`, `bloqueio_permanente`), por

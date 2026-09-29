@@ -31,4 +31,12 @@ public class Oficina {
 
   @Column(nullable = false)
   private Boolean ativo = true;
+
+  /** Caminho do objeto da logo no bucket; nulo = usa a logo padrão do sistema. */
+  @Column(name = "logo_path", length = 255)
+  private String logoPath;
+
+  public Oficina(Long id, String nome, String cnpj, String telefone, Boolean ativo) {
+    this(id, nome, cnpj, telefone, ativo, null);
+  }
 }
