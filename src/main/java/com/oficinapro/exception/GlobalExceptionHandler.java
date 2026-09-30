@@ -100,6 +100,7 @@ public class GlobalExceptionHandler {
     return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
   }
 
+  @SuppressWarnings("deprecation")
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   public ResponseEntity<Map<String, Object>> handleUploadGrande(
       MaxUploadSizeExceededException exception) {

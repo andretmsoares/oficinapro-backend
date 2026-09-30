@@ -531,6 +531,7 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     return v != null && !v.isBlank() ? v : "-";
   }
 
+  @SuppressWarnings("deprecation")
   private String formatarMoeda(BigDecimal valor) {
     // Valores monetarios sao persistidos em centavos; converte para reais so na exibicao.
     BigDecimal v =
