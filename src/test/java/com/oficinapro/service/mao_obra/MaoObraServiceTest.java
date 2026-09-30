@@ -110,7 +110,7 @@ class MaoObraServiceTest {
       assertThat(resposta.id()).isEqualTo(MAO_OBRA_ID);
       assertThat(resposta.osId()).isEqualTo(OS_ID);
       assertThat(resposta.valor()).isEqualByComparingTo("250.00");
-      assertThat(resposta.descricao()).isEqualTo("REVISÃO GERAL");
+      assertThat(resposta.descricao()).isEqualTo("REVISAO GERAL");
       verify(valorRecalculator).recalcular(os);
     }
 

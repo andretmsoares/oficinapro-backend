@@ -1,5 +1,7 @@
 package com.oficinapro.service.item_os_peca;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaRequestDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaResponseDTO;
 import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
@@ -73,7 +75,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
     ItemOsPeca item = new ItemOsPeca();
     item.setOficina(oficina);
     item.setOrdemDeServico(os);
-    item.setNome(request.nome().toUpperCase());
+    item.setNome(normalizar(request.nome()));
     item.setQuantidade(request.quantidade());
     item.setValorUnitario(request.valorUnitario());
     item.setValorTotal(calcularValorTotal(request.quantidade(), request.valorUnitario()));
@@ -107,7 +109,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
       }
     }
 
-    item.setNome(request.nome().toUpperCase());
+    item.setNome(normalizar(request.nome()));
     item.setQuantidade(request.quantidade());
     item.setValorUnitario(request.valorUnitario());
     item.setValorTotal(novoValor);
@@ -224,7 +226,7 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
   }
 
   private BigDecimal calcularValorTotal(BigDecimal quantidade, BigDecimal valorUnitario) {
-    return quantidade.multiply(valorUnitario).setScale(2, RoundingMode.HALF_UP);
+    return quantidade.multiply(valorUnitario).setScale(0, RoundingMode.HALF_UP);
   }
 
   private ItemOsPecaResponseDTO toResponse(ItemOsPeca item) {

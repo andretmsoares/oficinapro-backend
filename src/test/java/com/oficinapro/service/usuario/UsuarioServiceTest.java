@@ -175,6 +175,37 @@ class UsuarioServiceTest {
     verify(usuarioRepository, never()).findAll(any(Pageable.class));
   }
 
+  @Test
+  @DisplayName("buscar() como ADMIN deve procurar em todas as oficinas, com o termo normalizado")
+  void buscar_comoAdmin_procuraEmTodasAsOficinas() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.buscarTodos("ANA", pageable))
+        .thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar("ana", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(usuarioRepository, never()).buscarPorOficina(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("buscar() como GERENTE deve ficar restrito à própria oficina")
+  void buscar_comoGerente_restritoAPropriaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(usuarioRepository.buscarPorOficina(1L, "ANA", pageable))
+        .thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar("Ana", pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(usuarioRepository, never()).buscarTodos(any(), any());
+  }
+
   // ─────────────────────────── buscarPorId ───────────────────────────
 
   @Test
@@ -591,5 +622,278 @@ class UsuarioServiceTest {
     assertThat(resultado.role()).isEqualTo(Role.ADMIN);
     assertThat(resultado.oficinaId()).isNull();
     assertThat(usuarioAlvo.getOficina()).isNull();
+  }
+
+  // ─────────────────────────── buscar (termo vazio) ───────────────────────────
+
+  @Test
+  @DisplayName("buscar() sem termo como GERENTE deve listar apenas a oficina dele")
+  void buscar_semTermo_comoGerente_listaDaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(usuarioRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar("   ", pageable);
+
+    assertThat(resultado.getContent()).extracting(UsuarioResponseDTO::id).containsExactly(1L);
+    verify(usuarioRepository, never()).buscarTodos(any(), any());
+    verify(usuarioRepository, never()).buscarPorOficina(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("buscar() com termo nulo como ADMIN deve listar todos os usuários")
+  void buscar_termoNulo_comoAdmin_listaTodos() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(usuarioAlvo)));
+
+    Page<UsuarioResponseDTO> resultado = service.buscar(null, pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(usuarioRepository, never()).buscarTodos(any(), any());
+  }
+
+  // ─────────────────────────── atualizar (regras extras) ───────────────────────────
+
+  @Test
+  @DisplayName("atualizar() com senha informada deve gravar o hash da nova senha")
+  void atualizar_comSenha_gravaHashDaNovaSenha() {
+    UsuarioUpdateRequestDTO comSenha =
+        new UsuarioUpdateRequestDTO(
+            "Usuario Original",
+            "83988887777",
+            "12345678901",
+            1L,
+            "usuario.original",
+            "novaSenha123",
+            Role.GERENTE);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+    when(passwordEncoder.encode("novaSenha123")).thenReturn("hash-novo");
+    when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioAlvo);
+
+    service.atualizar(1L, comSenha);
+
+    assertThat(usuarioAlvo.getPassword()).isEqualTo("hash-novo");
+  }
+
+  @Test
+  @DisplayName("atualizar() com senha em branco deve preservar a senha atual")
+  void atualizar_comSenhaEmBranco_preservaSenhaAtual() {
+    UsuarioUpdateRequestDTO senhaEmBranco =
+        new UsuarioUpdateRequestDTO(
+            "Usuario Original",
+            "83988887777",
+            "12345678901",
+            1L,
+            "usuario.original",
+            "   ",
+            Role.GERENTE);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+    when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioAlvo);
+
+    service.atualizar(1L, senhaEmBranco);
+
+    assertThat(usuarioAlvo.getPassword()).isEqualTo("$2a$10$hashOriginal");
+    verify(passwordEncoder, never()).encode(any());
+  }
+
+  @Test
+  @DisplayName("atualizar() GERENTE não pode editar uma conta ADMIN")
+  void atualizar_gerenteEditandoAdmin_lancaAccessDenied() {
+    usuarioAlvo.setRole(Role.ADMIN);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
+    assertThatThrownBy(() -> service.atualizar(1L, updateRequest))
+        .isInstanceOf(AccessDeniedException.class)
+        .hasMessageContaining("ADMIN");
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizar() GERENTE não pode promover outro usuário a ADMIN")
+  void atualizar_gerentePromovendoParaAdmin_lancaAccessDenied() {
+    UsuarioUpdateRequestDTO promocao =
+        new UsuarioUpdateRequestDTO(
+            "Usuario Original",
+            "83988887777",
+            "12345678901",
+            null,
+            "usuario.original",
+            null,
+            Role.ADMIN);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(administrativoUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+
+    assertThatThrownBy(() -> service.atualizar(1L, promocao))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizar() MECANICO logado não pode gerenciar usuários")
+  void atualizar_comoMecanico_lancaAccessDenied() {
+    Usuario mecanicoUser = new Usuario();
+    mecanicoUser.setRole(Role.MECANICO);
+    mecanicoUser.setOficina(oficina);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(mecanicoUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+
+    assertThatThrownBy(() -> service.atualizar(1L, updateRequest))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizar() rebaixando para GERENTE sem oficina deve lançar OficinaIncompativel")
+  void atualizar_gerenteSemOficina_lancaOficinaIncompativel() {
+    UsuarioUpdateRequestDTO semOficina =
+        new UsuarioUpdateRequestDTO(
+            "Usuario Original",
+            "83988887777",
+            "12345678901",
+            null,
+            "usuario.original",
+            null,
+            Role.GERENTE);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+
+    assertThatThrownBy(() -> service.atualizar(1L, semOficina))
+        .isInstanceOf(OficinaIncompativelComRoleException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  // ─────────────────────────── atualizarMe ───────────────────────────
+
+  @Test
+  @DisplayName("atualizarMe() deve atualizar os dados e regravar o hash quando há nova senha")
+  void atualizarMe_comSenha_atualizaDadosEHash() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+    logado.setRole(Role.GERENTE);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(usuarioRepository.existsByUsernameAndIdNot("novo.login", 1L)).thenReturn(false);
+    when(passwordEncoder.encode("senhaNova1")).thenReturn("hash-me");
+    when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    UsuarioResponseDTO resultado =
+        service.atualizarMe(
+            new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+                "Novo Nome", "11122233344", "83900001111", "novo.login", "senhaNova1"));
+
+    assertThat(resultado.nome()).isEqualTo("Novo Nome");
+    assertThat(resultado.username()).isEqualTo("novo.login");
+    assertThat(resultado.documento()).isEqualTo("11122233344");
+    assertThat(resultado.telefone()).isEqualTo("83900001111");
+    assertThat(usuarioAlvo.getPassword()).isEqualTo("hash-me");
+  }
+
+  @Test
+  @DisplayName("atualizarMe() sem senha (nula ou em branco) deve preservar a senha atual")
+  void atualizarMe_semSenha_preservaSenha() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    service.atualizarMe(
+        new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+            "Nome", "12345678901", "83900001111", "usuario.original", null));
+    service.atualizarMe(
+        new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+            "Nome", "12345678901", "83900001111", "usuario.original", "  "));
+
+    assertThat(usuarioAlvo.getPassword()).isEqualTo("$2a$10$hashOriginal");
+    verify(passwordEncoder, never()).encode(any());
+  }
+
+  @Test
+  @DisplayName("atualizarMe() com username de outro usuário deve lançar UsernameAlreadyExists")
+  void atualizarMe_usernameEmUso_lancaUsernameAlreadyExists() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(usuarioRepository.existsByUsernameAndIdNot("ocupado", 1L)).thenReturn(true);
+
+    assertThatThrownBy(
+            () ->
+                service.atualizarMe(
+                    new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+                        "Nome", "12345678901", "83900001111", "ocupado", null)))
+        .isInstanceOf(UsernameAlreadyExistsException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  // ─────────────────────────── desbloquear ───────────────────────────
+
+  @Test
+  @DisplayName("desbloquear() deve zerar falhas e bloqueios do usuário e persistir")
+  void desbloquear_zeraBloqueios() {
+    usuarioAlvo.setFalhasLogin(7);
+    usuarioAlvo.setBloqueioPermanente(true);
+    usuarioAlvo.setBloqueadoAte(java.time.LocalDateTime.now().plusHours(1));
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+
+    service.desbloquear(1L);
+
+    assertThat(usuarioAlvo.getFalhasLogin()).isZero();
+    assertThat(usuarioAlvo.isBloqueioPermanente()).isFalse();
+    assertThat(usuarioAlvo.getBloqueadoAte()).isNull();
+    assertThat(usuarioAlvo.isLoginBloqueado()).isFalse();
+    verify(usuarioRepository).save(usuarioAlvo);
+  }
+
+  @Test
+  @DisplayName("desbloquear() de usuário inexistente deve lançar UsuarioNotFoundException")
+  void desbloquear_inexistente_lancaUsuarioNotFoundException() {
+    when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.desbloquear(99L)).isInstanceOf(UsuarioNotFoundException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  // ─────────────────────────── deletar (própria conta) ───────────────────────────
+
+  @Test
+  @DisplayName("deletar() da própria conta deve lançar UsuarioCannotDeleteSelfException")
+  void deletar_propriaConta_lancaUsuarioCannotDeleteSelf() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+    logado.setRole(Role.GERENTE);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+
+    assertThatThrownBy(() -> service.deletar(1L))
+        .isInstanceOf(com.oficinapro.exception.usuario.UsuarioCannotDeleteSelfException.class);
+
+    verify(usuarioRepository, never()).delete(any());
   }
 }

@@ -34,9 +34,9 @@ public class ItemOsPeca {
   @Column(nullable = false, precision = 12, scale = 3)
   private BigDecimal quantidade;
 
-  @Column(name = "valor_unitario", nullable = false, precision = 12, scale = 2)
+  @Column(name = "valor_unitario", nullable = false, precision = 12, scale = 0)
   private BigDecimal valorUnitario;
 
-  @Column(name = "valor_total", nullable = false, precision = 12, scale = 2)
+  @Column(name = "valor_total", nullable = false, precision = 12, scale = 0)
   private BigDecimal valorTotal;
 }

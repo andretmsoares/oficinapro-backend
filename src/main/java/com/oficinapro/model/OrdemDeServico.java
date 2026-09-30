@@ -62,12 +62,12 @@ public class OrdemDeServico {
   @Column(columnDefinition = "TEXT")
   private String obs;
 
-  @Column(name = "valor_total", nullable = false, precision = 12, scale = 2)
+  @Column(name = "valor_total", nullable = false, precision = 12, scale = 0)
   private BigDecimal valorTotal = BigDecimal.ZERO;
 
-  @Column(name = "valor_com_desconto", nullable = false, precision = 12, scale = 2)
+  @Column(name = "valor_com_desconto", nullable = false, precision = 12, scale = 0)
   private BigDecimal valorComDesconto = BigDecimal.ZERO;
 
-  @Column(name = "desconto", precision = 12, scale = 2, nullable = false)
+  @Column(name = "desconto", precision = 12, scale = 0, nullable = false)
   private BigDecimal desconto = BigDecimal.ZERO;
 }

@@ -3,9 +3,12 @@ package com.oficinapro.service.pagamento;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
@@ -22,8 +25,10 @@ import com.oficinapro.exception.pagamento.PagamentoValorInvalidoException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Pagamento;
+import com.oficinapro.model.RegistroPagamento;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.repository.PagamentoRepository;
+import com.oficinapro.repository.RegistroPagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +58,8 @@ class PagamentoServiceImplTest {
   @Mock private OrdemDeServicoRepository ordemDeServicoRepository;
 
   @Mock private OficinaAccessValidator oficinaAccessValidator;
+
+  @Mock private RegistroPagamentoRepository registroPagamentoRepository;
 
   @InjectMocks private PagamentoServiceImpl service;
 
@@ -307,6 +315,46 @@ class PagamentoServiceImplTest {
     }
 
     @Test
+    @DisplayName("deve preencher a data de quitação ao completar o valor da OS")
+    void devePreencherDataDeQuitacao() {
+
+      OrdemDeServico os = os("500.00");
+
+      Pagamento existente = pagamento(os, "300.00", StatusPagamento.PAGO_PARCIALMENTE);
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+
+      devolveOArgumentoSalvo();
+
+      PagamentoResponseDTO resposta =
+          service.atualizarValorPago(PAGAMENTO_ID, new BigDecimal("200.00"));
+
+      assertThat(resposta.dataPagamentoTotal()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("estorno de pagamento quitado deve limpar a data de quitação")
+    void estornoDeveLimparDataDeQuitacao() {
+
+      OrdemDeServico os = os("500.00");
+
+      Pagamento existente = pagamento(os, "500.00", StatusPagamento.PAGA);
+
+      existente.setDataPagamentoTotal(LocalDateTime.now());
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+
+      devolveOArgumentoSalvo();
+
+      PagamentoResponseDTO resposta =
+          service.estornarValorPago(PAGAMENTO_ID, new BigDecimal("100.00"));
+
+      assertThat(resposta.status()).isEqualTo(StatusPagamento.PAGO_PARCIALMENTE);
+
+      assertThat(resposta.dataPagamentoTotal()).isNull();
+    }
+
+    @Test
     @DisplayName("não deve estornar mais do que já foi pago")
     void naoDeveEstornarMaisDoQueFoiPago() {
 
@@ -492,6 +540,38 @@ class PagamentoServiceImplTest {
     }
 
     @Test
+    @DisplayName("deve validar a oficina da OS ao buscar pagamento por osId")
+    void deveValidarOficinaAoBuscarPorOsId() {
+
+      OrdemDeServico os = os("500.00");
+
+      when(repository.findByOrdemDeServicoId(OS_ID))
+          .thenReturn(pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE));
+
+      service.buscarPorOsId(OS_ID);
+
+      verify(oficinaAccessValidator)
+          .validarAcessoAoRegistro(eq(OFICINA_ID), any(PagamentoNotFoundForThisOsException.class));
+    }
+
+    @Test
+    @DisplayName("deve recusar como não encontrado o pagamento da OS de outra oficina")
+    void deveRecusarPagamentoDeOutraOficinaPorOsId() {
+
+      OrdemDeServico osDeOutraOficina = os("500.00");
+
+      when(repository.findByOrdemDeServicoId(OS_ID))
+          .thenReturn(pagamento(osDeOutraOficina, "0.00", StatusPagamento.PAGAMENTO_PENDENTE));
+
+      doThrow(new PagamentoNotFoundForThisOsException(OS_ID))
+          .when(oficinaAccessValidator)
+          .validarAcessoAoRegistro(any(), any(RuntimeException.class));
+
+      assertThatThrownBy(() -> service.buscarPorOsId(OS_ID))
+          .isInstanceOf(PagamentoNotFoundForThisOsException.class);
+    }
+
+    @Test
     @DisplayName("deve validar o acesso à oficina antes de listar pagamentos dela")
     void deveValidarAcessoAntesDeListarPorOficina() {
 
@@ -560,6 +640,152 @@ class PagamentoServiceImplTest {
       service.buscarPorStatus(OFICINA_ID, StatusPagamento.PAGAMENTO_PENDENTE);
 
       verify(oficinaAccessValidator).validarAcessoOficina(OFICINA_ID);
+    }
+
+    @Test
+    @DisplayName("não deve filtrar pagamentos por status de oficina de terceiros")
+    void naoDeveFiltrarPorStatusDeOutraOficina() {
+
+      Long outraOficina = 99L;
+
+      doThrow(new AccessDeniedException("oficina alheia"))
+          .when(oficinaAccessValidator)
+          .validarAcessoOficina(outraOficina);
+
+      assertThatThrownBy(
+              () -> service.buscarPorStatus(outraOficina, StatusPagamento.PAGAMENTO_PENDENTE))
+          .isInstanceOf(AccessDeniedException.class);
+
+      verify(repository, never()).findByOrdemDeServicoOficinaIdAndStatus(any(), any());
+    }
+
+    @Test
+    @DisplayName("deve devolver valor restante e valor total da OS (com desconto) no DTO")
+    void deveCalcularValorRestanteNoDto() {
+
+      OrdemDeServico os = os("500.00");
+      os.setValorTotal(new BigDecimal("600.00"));
+      os.setDesconto(new BigDecimal("100.00"));
+
+      when(repository.findById(PAGAMENTO_ID))
+          .thenReturn(Optional.of(pagamento(os, "150.00", StatusPagamento.PAGO_PARCIALMENTE)));
+
+      PagamentoResponseDTO resposta = service.buscarPorId(PAGAMENTO_ID);
+
+      assertThat(resposta.valorTotal()).isEqualByComparingTo("500.00");
+      assertThat(resposta.valorPago()).isEqualByComparingTo("150.00");
+      assertThat(resposta.valorPendente()).isEqualByComparingTo("350.00");
+      assertThat(resposta.status()).isEqualTo(StatusPagamento.PAGO_PARCIALMENTE);
+    }
+  }
+
+  @Nested
+  @DisplayName("recalcularStatus sem pagamento")
+  class RecalcularStatusSemPagamento {
+
+    @Test
+    @DisplayName("deve lançar PagamentoNotFoundForThisOsException quando a OS não tem pagamento")
+    void deveLancarQuandoOsNaoTemPagamento() {
+
+      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
+
+      assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
+          .isInstanceOf(PagamentoNotFoundForThisOsException.class);
+
+      verify(repository, never()).save(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("criar - OS sem oficina")
+  class CriarOsSemOficina {
+
+    @Test
+    @DisplayName("OS sem oficina deve ter o acesso validado com oficina nula")
+    void deveValidarAcessoComOficinaNula() {
+
+      OrdemDeServico os = os("500.00");
+      os.setOficina(null);
+
+      when(ordemDeServicoRepository.findById(OS_ID)).thenReturn(Optional.of(os));
+      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
+      devolveOArgumentoSalvo();
+
+      service.criar(new PagamentoRequestDTO(OS_ID, ""));
+
+      verify(oficinaAccessValidator)
+          .validarAcessoAoRegistro(eq(null), any(OrdemDeServicoNotFoundException.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("deletar")
+  class Deletar {
+
+    @Test
+    @DisplayName("deve apagar todos os registros do pagamento antes de apagar o pagamento")
+    void deveApagarRegistrosEPagamento() {
+
+      Pagamento existente = pagamento(os("500.00"), "300.00", StatusPagamento.PAGO_PARCIALMENTE);
+      RegistroPagamento primeiro = new RegistroPagamento();
+      RegistroPagamento segundo = new RegistroPagamento();
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+      when(registroPagamentoRepository.findByPagamentoId(PAGAMENTO_ID))
+          .thenReturn(List.of(primeiro, segundo));
+
+      service.deletar(PAGAMENTO_ID);
+
+      InOrder ordem = inOrder(registroPagamentoRepository, repository);
+      ordem.verify(registroPagamentoRepository).delete(primeiro);
+      ordem.verify(registroPagamentoRepository).delete(segundo);
+      ordem.verify(repository).delete(existente);
+    }
+
+    @Test
+    @DisplayName("pagamento sem registros deve ser apagado normalmente")
+    void deveApagarPagamentoSemRegistros() {
+
+      Pagamento existente = pagamento(os("500.00"), "0.00", StatusPagamento.PAGAMENTO_PENDENTE);
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(existente));
+      when(registroPagamentoRepository.findByPagamentoId(PAGAMENTO_ID)).thenReturn(List.of());
+
+      service.deletar(PAGAMENTO_ID);
+
+      verify(registroPagamentoRepository, never()).delete(any());
+      verify(repository).delete(existente);
+    }
+
+    @Test
+    @DisplayName("pagamento inexistente deve lançar PagamentoNotFoundException sem apagar nada")
+    void deveLancarParaPagamentoInexistente() {
+
+      when(repository.findById(404L)).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> service.deletar(404L))
+          .isInstanceOf(PagamentoNotFoundException.class);
+
+      verify(repository, never()).delete(any());
+      verifyNoInteractions(registroPagamentoRepository);
+    }
+
+    @Test
+    @DisplayName("pagamento de outra oficina deve ser tratado como não encontrado")
+    void deveRecusarPagamentoDeOutraOficina() {
+
+      Pagamento alheio = pagamento(os("500.00"), "0.00", StatusPagamento.PAGAMENTO_PENDENTE);
+
+      when(repository.findById(PAGAMENTO_ID)).thenReturn(Optional.of(alheio));
+      doThrow(new PagamentoNotFoundException(PAGAMENTO_ID))
+          .when(oficinaAccessValidator)
+          .validarAcessoAoRegistro(any(), any(RuntimeException.class));
+
+      assertThatThrownBy(() -> service.deletar(PAGAMENTO_ID))
+          .isInstanceOf(PagamentoNotFoundException.class);
+
+      verify(repository, never()).delete(any());
+      verifyNoInteractions(registroPagamentoRepository);
     }
   }
 }

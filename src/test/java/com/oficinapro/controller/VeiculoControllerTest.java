@@ -68,6 +68,18 @@ class VeiculoControllerTest {
   // ─── GET /api/veiculos/{id} ───────────────────────────────────────────────────
 
   @Test
+  @DisplayName("GET /api/veiculos/buscar - MECANICO deve retornar 200 com a página filtrada")
+  @WithMockUser(roles = "MECANICO")
+  void deveBuscarVeiculosPaginadoComoMecanico() throws Exception {
+    when(veiculoService.buscar(eq("abc"), any())).thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/veiculos/buscar").param("q", "abc"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].placa").value("ABC1234"));
+  }
+
+  @Test
   @DisplayName("GET /api/veiculos/{id} - MECANICO deve retornar 200 (acesso de leitura)")
   @WithMockUser(roles = "MECANICO")
   void deveBuscarVeiculoPorIdComoMecanico() throws Exception {

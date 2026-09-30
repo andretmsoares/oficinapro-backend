@@ -23,4 +23,7 @@ public interface VeiculoService {
   void deletar(Long id);
 
   Integer count();
+
+  /** Busca paginada, na oficina do usuário, por placa, modelo ou marca (parcial). */
+  Page<VeiculoResponseDTO> buscar(String termo, Pageable pageable);
 }

@@ -76,6 +76,11 @@ public class PagamentoServiceImpl implements PagamentoService {
   @Transactional(readOnly = true)
   public PagamentoResponseDTO buscarPorOsId(Long osId) {
     Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        pagamento.getOrdemDeServico().getOficina().getId(),
+        new PagamentoNotFoundForThisOsException(osId));
+
     return toResponseDTO(pagamento);
   }
 
@@ -148,23 +153,11 @@ public class PagamentoServiceImpl implements PagamentoService {
     BigDecimal valorPago = pagamento.getValorPago();
     BigDecimal valorOS = pagamento.getOrdemDeServico().getValorComDesconto();
 
-    int comparacao = valorPago.compareTo(valorOS);
-
-    if (valorPago.compareTo(BigDecimal.ZERO) == 0) {
-      pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
-      pagamento.setDataPagamentoTotal(null);
-
-    } else if (comparacao == 0) {
-      pagamento.setStatus(StatusPagamento.PAGA);
-      pagamento.setDataPagamentoTotal(LocalDateTime.now());
-
-    } else if (comparacao < 0) {
-      pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
-      pagamento.setDataPagamentoTotal(null);
-
-    } else {
+    if (valorPago.compareTo(valorOS) > 0) {
       throw new PagamentoValorExcedidoException(valorPago, valorOS);
     }
+
+    atualizarStatusEData(pagamento, valorOS);
 
     repository.save(pagamento);
   }
@@ -196,21 +189,35 @@ public class PagamentoServiceImpl implements PagamentoService {
     }
 
     OrdemDeServico os = pagamento.getOrdemDeServico();
-    int comparacao = novoValor.compareTo(os.getValorComDesconto());
 
-    if (comparacao > 0) {
+    if (novoValor.compareTo(os.getValorComDesconto()) > 0) {
       throw new PagamentoValorExcedidoException(novoValor, os.getValorComDesconto());
-    } else if (comparacao == 0 && novoValor.compareTo(BigDecimal.ZERO) > 0) {
-      pagamento.setStatus(StatusPagamento.PAGA);
-    } else if (novoValor.compareTo(BigDecimal.ZERO) == 0) {
-      pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
-    } else {
-      pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
     }
 
     pagamento.setValorPago(novoValor);
+    atualizarStatusEData(pagamento, os.getValorComDesconto());
 
     return toResponseDTO(repository.save(pagamento));
+  }
+
+  /**
+   * Única regra de status: pendente sem nada pago, parcial abaixo do valor da OS, paga ao igualar.
+   * A data de quitação só existe enquanto o pagamento está PAGA. OS zerada sem pagamento permanece
+   * pendente de propósito.
+   */
+  private void atualizarStatusEData(Pagamento pagamento, BigDecimal valorOS) {
+    BigDecimal valorPago = pagamento.getValorPago();
+
+    if (valorPago.compareTo(BigDecimal.ZERO) == 0) {
+      pagamento.setStatus(StatusPagamento.PAGAMENTO_PENDENTE);
+      pagamento.setDataPagamentoTotal(null);
+    } else if (valorPago.compareTo(valorOS) == 0) {
+      pagamento.setStatus(StatusPagamento.PAGA);
+      pagamento.setDataPagamentoTotal(LocalDateTime.now());
+    } else {
+      pagamento.setStatus(StatusPagamento.PAGO_PARCIALMENTE);
+      pagamento.setDataPagamentoTotal(null);
+    }
   }
 
   /** Mesma regra de {@code OrdemDeServicoServiceImpl#buscarPorEntidadeId}, sem depender dele. */

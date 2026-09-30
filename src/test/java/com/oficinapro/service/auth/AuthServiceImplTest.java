@@ -3,15 +3,20 @@ package com.oficinapro.service.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.oficinapro.dto.auth.LoginRequestDTO;
 import com.oficinapro.dto.auth.LoginResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.enums.Role;
+import com.oficinapro.exception.auth.ContaBloqueadaException;
+import com.oficinapro.exception.auth.LoginTemporariamenteBloqueadoException;
 import com.oficinapro.exception.oficina.OficinaDisabledException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
@@ -45,6 +50,7 @@ class AuthServiceImplTest {
   @Mock private AuthenticationManager authenticationManager;
   @Mock private JwtService jwtService;
   @Mock private OficinaAccessValidator oficinaAccessValidator;
+  @Mock private LoginAttemptService loginAttemptService;
   @Mock private Authentication authentication;
 
   @InjectMocks private AuthServiceImpl service;
@@ -156,6 +162,83 @@ class AuthServiceImplTest {
     verify(oficinaAccessValidator, never())
         .validarOficinaAtiva(
             any()); // se rodasse antes, a mensagem denunciaria que o usuário existe
+  }
+
+  // ------------------------------------------------------------------
+  // Proteção contra força bruta
+  // ------------------------------------------------------------------
+
+  @Test
+  @DisplayName("conta bloqueada recusa o login antes mesmo de validar a senha")
+  void contaBloqueadaNaoValidaSenha() {
+    doThrow(new ContaBloqueadaException()).when(loginAttemptService).verificarBloqueio("ana");
+
+    assertThatThrownBy(() -> service.login(new LoginRequestDTO("ana", "senha1234")))
+        .isInstanceOf(ContaBloqueadaException.class);
+
+    verifyNoInteractions(authenticationManager, jwtService);
+  }
+
+  @Test
+  @DisplayName("senha errada registra a falha e mantém a resposta de credenciais inválidas")
+  void senhaErradaRegistraFalha() {
+    when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+        .thenThrow(new BadCredentialsException("Bad credentials"));
+
+    assertThatThrownBy(() -> service.login(new LoginRequestDTO("ana", "errada")))
+        .isInstanceOf(BadCredentialsException.class);
+
+    verify(loginAttemptService).registrarFalha("ana");
+    verify(loginAttemptService, never()).registrarSucesso(any());
+  }
+
+  @Test
+  @DisplayName(
+      "a falha que aciona o bloqueio deve avisar o bloqueio em vez de 'credenciais inválidas'")
+  void falhaQueAcionaBloqueioAvisaBloqueio() {
+    // 1ª checagem (antes da senha) passa; a 2ª (depois de registrar a falha) já encontra bloqueio
+    doNothing()
+        .doThrow(new LoginTemporariamenteBloqueadoException(300))
+        .when(loginAttemptService)
+        .verificarBloqueio("ana");
+    when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+        .thenThrow(new BadCredentialsException("Bad credentials"));
+
+    assertThatThrownBy(() -> service.login(new LoginRequestDTO("ana", "errada")))
+        .isInstanceOfSatisfying(
+            LoginTemporariamenteBloqueadoException.class,
+            e -> assertThat(e.getSegundosRestantes()).isEqualTo(300));
+
+    verify(loginAttemptService).registrarFalha("ana");
+    verify(loginAttemptService, times(2)).verificarBloqueio("ana");
+  }
+
+  @Test
+  @DisplayName("login bem-sucedido zera o contador de falhas")
+  void loginBemSucedidoRegistraSucesso() {
+    Usuario gerente = usuario(Role.GERENTE, true);
+    autenticaComSucesso(gerente);
+    when(jwtService.gerarToken(gerente)).thenReturn(TOKEN);
+    when(jwtService.expiracao()).thenReturn(Duration.ofHours(8));
+
+    service.login(new LoginRequestDTO("ana", "senha1234"));
+
+    verify(loginAttemptService).registrarSucesso("ana");
+  }
+
+  @Test
+  @DisplayName("oficina desativada não zera o contador de falhas nem emite token")
+  void oficinaDesativadaNaoRegistraSucesso() {
+    Usuario gerente = usuario(Role.GERENTE, false);
+    autenticaComSucesso(gerente);
+    doThrow(new OficinaDisabledException())
+        .when(oficinaAccessValidator)
+        .validarOficinaAtiva(gerente);
+
+    assertThatThrownBy(() -> service.login(new LoginRequestDTO("ana", "senha1234")))
+        .isInstanceOf(OficinaDisabledException.class);
+
+    verify(loginAttemptService, never()).registrarSucesso(any());
   }
 
   // ------------------------------------------------------------------

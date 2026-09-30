@@ -5,6 +5,7 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface OrdemDeServicoRepository extends JpaRepository<OrdemDeServico, Long> {
 
+  @EntityGraph(attributePaths = {"oficina", "unidade", "veiculo", "cliente", "mecanico"})
   List<OrdemDeServico> findByOficinaId(Long oficinaId);
 
   List<OrdemDeServico> findByStatus(StatusOrdemDeServico status);
@@ -25,6 +27,7 @@ public interface OrdemDeServicoRepository extends JpaRepository<OrdemDeServico, 
 
   List<OrdemDeServico> findByUnidadeId(Long unidadeId);
 
+  @EntityGraph(attributePaths = {"oficina", "unidade", "veiculo", "cliente", "mecanico"})
   List<OrdemDeServico> findByOficinaIdAndStatus(Long oficinaId, StatusOrdemDeServico status);
 
   @Query(

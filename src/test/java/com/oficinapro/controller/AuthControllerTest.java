@@ -52,7 +52,7 @@ class AuthControllerTest {
     // ADMIN do SaaS: oficinaId nulo
     usuarioAdmin =
         new UsuarioResponseDTO(
-            1L, "Administrador do SaaS", null, null, null, "admin.saas", Role.ADMIN);
+            1L, "Administrador do SaaS", null, null, null, "admin.saas", Role.ADMIN, false);
   }
 
   // ─── POST /api/auth/login ─────────────────────────────────────────────────────

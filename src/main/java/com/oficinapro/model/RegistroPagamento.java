@@ -25,7 +25,7 @@ public class RegistroPagamento {
       foreignKey = @ForeignKey(name = "fk_registro_pagamento"))
   private Pagamento pagamento;
 
-  @Column(name = "valor", precision = 12, scale = 2, nullable = false)
+  @Column(name = "valor", precision = 12, scale = 0, nullable = false)
   private BigDecimal valor;
 
   @Column(name = "meio_pagamento", nullable = false)

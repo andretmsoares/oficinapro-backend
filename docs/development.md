@@ -160,10 +160,10 @@ Consequência prática: `@WebMvcTest` **não carrega o `SecurityConfig`**. Ali s
 
 Saber disso vale mais que o número de testes:
 
-1. **Migrations.** O perfil de teste desliga o Flyway e gera o schema pelas entidades.
-   Constraint declarada apenas em SQL não é exercida — foi assim que `chk_usuario_role`
-   proibindo `'GERENTE'` passou sem ninguém notar. Ver
-   [database.md §1](./database.md).
+1. **Migrations em PostgreSQL real.** O perfil de teste desliga o Flyway e gera o schema
+   pelas entidades; só `FlywayMigrationsTest` executa o SQL das migrations, e em H2 (modo
+   PostgreSQL). `ddl-auto=validate` contra PostgreSQL só é exercido subindo a aplicação
+   com banco limpo — ver [database.md §6](./database.md).
 2. **Comportamento real do PostgreSQL.** O H2 em modo de compatibilidade não reproduz
    tudo.
 3. **Frontend.** Zero testes.
@@ -171,14 +171,15 @@ Saber disso vale mais que o número de testes:
 
 ### Dívida conhecida na suíte
 
-Sete classes de teste de service estão com `@MockitoSettings(strictness = LENIENT)` e um
-`TODO` para voltar a `STRICT_STUBS`. O motivo: quando o isolamento por oficina migrou para
-o `OficinaAccessValidator`, vários stubs de `AuthenticatedUserProvider` deixaram de ser
-exercidos, e com strict stubs a classe inteira cairia por `UnnecessaryStubbingException`
-em vez de apontar problema real.
+Seis das oito classes que usavam `@MockitoSettings(strictness = LENIENT)` voltaram ao
+`STRICT_STUBS` padrão (`UnidadeServiceTest`, `OrdemDeServicoServiceTest`,
+`VeiculoServiceTest`, `ClienteServiceTest`, `MecanicoServiceTest`, `OficinaServiceTest`): os
+stubs ociosos de `getUsuarioAutenticado()` foram removidos e testes que passavam por acidente
+(stub de `getOficinaIdUsuarioLogado()` ausente) foram corrigidos.
 
-`LENIENT` deixa passar stub morto. Limpar isso é trabalho pendente — faça depois de ter a
-suíte verde, não antes.
+Continuam em `LENIENT`, por ainda não terem sido limpas: `UsuarioServiceTest` e
+`OrdemDeServicoStatusMachineTest`. Elas dependem de stubs de `getUsuarioAutenticado()` com
+papéis diferentes por cenário e precisam ser revisadas com a suíte rodando.
 
 ---
 
@@ -306,9 +307,10 @@ ela é seguida.
 | App não sobe: `docker compose` reclama de env | falta `cp .env-example .env` |
 | App não sobe: `BeanCurrentlyInCreationException` | dependência circular reintroduzida — ver [architecture.md §5](./architecture.md) |
 | App não sobe: erro de `validate` do Hibernate | entidade e schema divergem; falta migration |
-| Migration falha em banco limpo | ver o risco V10/V16 em [database.md §6](./database.md) |
+| Migration falha em banco limpo | rode `FlywayMigrationsTest` e siga [database.md §6](./database.md) |
+| Flyway recusa o banco existente (checksum/versão) | as migrations foram consolidadas; recrie o banco com `docker compose down -v` |
 | Subiu, mas não consigo logar | `ADMIN_USERNAME`/`ADMIN_PASSWORD` não definidos na primeira subida |
-| Cadastro de gerente dá 409 sem motivo | `chk_usuario_role` desatualizada; conferir se a V19 foi aplicada |
+| Cadastro de gerente dá 409 sem motivo | `chk_usuario_role` desatualizada em relação ao enum `Role`; conferir a `V5` |
 | CI vermelho com testes passando | `spotlessCheck` — rode `./gradlew spotlessApply` |
 | 401 onde era esperado 403 | não é bug: sem token válido o filtro responde 401 antes do `@PreAuthorize` |
 | 404 em registro que existe | isolamento por oficina — é o comportamento correto. Ver [permissions.md §6](./permissions.md) |

@@ -12,7 +12,7 @@ import org.springframework.data.repository.NoRepositoryBean;
 public interface PessoaCrudRepository<T extends Pessoa> extends JpaRepository<T, Long> {
   Page<T> findByOficinaId(Long oficinaId, Pageable pageable);
 
-  List<T> findByOficinaIdAndNome(Long oficinaId, String nome);
+  List<T> findByOficinaIdAndNomeContainingIgnoreCase(Long oficinaId, String nome);
 
   List<T> findByNome(String nome);
 

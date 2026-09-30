@@ -1,5 +1,7 @@
 package com.oficinapro.service.usuario;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
@@ -61,6 +63,27 @@ public class UsuarioServiceImpl
       return usuarioRepository.findAll(pageable).map(this::toResponse);
     }
     return super.listar(pageable);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<UsuarioResponseDTO> buscar(String termo, Pageable pageable) {
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
+    String termoLimpo = termo == null ? "" : normalizar(termo);
+
+    if (termoLimpo.isEmpty()) {
+      return listar(pageable);
+    }
+
+    if (logado.getRole() == Role.ADMIN) {
+      return usuarioRepository.buscarTodos(termoLimpo, pageable).map(this::toResponse);
+    }
+
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+
+    return usuarioRepository
+        .buscarPorOficina(oficinaId, termoLimpo, pageable)
+        .map(this::toResponse);
   }
 
   @Override
@@ -138,7 +161,7 @@ public class UsuarioServiceImpl
   @Transactional
   protected Usuario toEntity(UsuarioRequestDTO request, Oficina oficina) {
     Usuario usuario = new Usuario();
-    usuario.setNome(request.nome().toUpperCase());
+    usuario.setNome(normalizar(request.nome()));
     usuario.setDocumento(request.documento());
     usuario.setTelefone(request.telefone());
     usuario.setOficina(oficina); // nulo quando role == ADMIN
@@ -151,7 +174,7 @@ public class UsuarioServiceImpl
   @Override
   @Transactional
   protected void applyUpdate(Usuario usuario, UsuarioUpdateRequestDTO request) {
-    usuario.setNome(request.nome().toUpperCase());
+    usuario.setNome(normalizar(request.nome()));
     usuario.setDocumento(request.documento());
     usuario.setTelefone(request.telefone());
     usuario.setUsername(request.username());
@@ -233,6 +256,15 @@ public class UsuarioServiceImpl
     usuario = usuarioRepository.save(usuario);
 
     return toResponse(usuario);
+  }
+
+  @Override
+  @Transactional
+  public void desbloquear(Long id) {
+    // buscarPorEntidadeId valida o isolamento: GERENTE só desbloqueia usuário da própria oficina.
+    Usuario usuario = buscarPorEntidadeId(id);
+    usuario.resetarBloqueioLogin();
+    usuarioRepository.save(usuario);
   }
 
   @Transactional

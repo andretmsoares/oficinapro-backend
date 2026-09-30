@@ -47,6 +47,19 @@ public class VeiculoController {
   }
 
   @Operation(
+      summary = "Buscar veículos (paginado)",
+      description =
+          "Busca, na oficina do usuário autenticado, veículos cuja placa, modelo ou marca"
+              + " contenha o termo `q`, com paginação. Sem `q`, equivale à listagem.")
+  @GetMapping("/buscar")
+  @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
+  public ResponseEntity<Page<VeiculoResponseDTO>> buscar(
+      @RequestParam(name = "q", required = false) String termo,
+      @PageableDefault(size = 20, sort = "modelo") Pageable pageable) {
+    return ResponseEntity.ok(veiculoService.buscar(termo, pageable));
+  }
+
+  @Operation(
       summary = "Buscar veículo por ID",
       description =
           "Busca um veículo pelo ID, restrito à oficina do usuário autenticado. Veículo"

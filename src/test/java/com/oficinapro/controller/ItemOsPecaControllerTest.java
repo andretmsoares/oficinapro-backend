@@ -54,23 +54,23 @@ class ItemOsPecaControllerTest {
             1L,
             "Filtro de óleo",
             BigDecimal.valueOf(2),
-            BigDecimal.valueOf(45.00),
-            BigDecimal.valueOf(90.00));
+            BigDecimal.valueOf(4500),
+            BigDecimal.valueOf(9000));
     responseSemOsDTO =
         new ItemOsPecaResponseDTO(
             1L,
             null,
             "Filtro de óleo",
             BigDecimal.valueOf(2),
-            BigDecimal.valueOf(45.00),
-            BigDecimal.valueOf(90.00));
+            BigDecimal.valueOf(4500),
+            BigDecimal.valueOf(9000));
     requestDTO =
         new ItemOsPecaRequestDTO(
-            1L, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
+            1L, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(4500));
     // osId saiu do DTO de atualização: o vínculo agora é feito por /{id}/os/{osId}
     updateRequestDTO =
         new ItemOsPecaUpdateRequestDTO(
-            "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
+            "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(4500));
   }
 
   // ─── GET /api/itens-os-peca/os/{osId} ────────────────────────────────────────
@@ -132,7 +132,7 @@ class ItemOsPecaControllerTest {
   void deveCriarItemSemOs() throws Exception {
     ItemOsPecaRequestDTO semOs =
         new ItemOsPecaRequestDTO(
-            null, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(45.00));
+            null, "Filtro de óleo", BigDecimal.valueOf(2), BigDecimal.valueOf(4500));
     when(itemOsPecaService.criar(any(ItemOsPecaRequestDTO.class))).thenReturn(responseSemOsDTO);
 
     mockMvc

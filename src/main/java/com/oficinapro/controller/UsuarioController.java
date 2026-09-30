@@ -45,6 +45,20 @@ public class UsuarioController {
   }
 
   @Operation(
+      summary = "Buscar usuários (paginado)",
+      description =
+          "Busca usuários cujo nome, username, documento ou telefone contenha o termo `q`, com"
+              + " paginação. O ADMIN busca em toda a plataforma; o GERENTE, só na própria"
+              + " oficina. Sem `q`, equivale à listagem.")
+  @GetMapping("/buscar")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+  public ResponseEntity<Page<UsuarioResponseDTO>> buscar(
+      @RequestParam(name = "q", required = false) String termo,
+      @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+    return ResponseEntity.ok(usuarioService.buscar(termo, pageable));
+  }
+
+  @Operation(
       summary = "Atualizar meus dados",
       description =
           "Atualiza os dados do usuário autenticado. O usuário pode alterar nome, "
@@ -211,6 +225,25 @@ public class UsuarioController {
       @Parameter(description = "ID do usuário") @PathVariable Long id,
       @Valid @RequestBody UsuarioUpdateRequestDTO request) {
     return ResponseEntity.ok(usuarioService.atualizar(id, request));
+  }
+
+  @Operation(
+      summary = "Desbloquear login do usuário",
+      description =
+          "Remove o bloqueio de login por excesso de tentativas (temporário ou permanente)."
+              + " GERENTE só desbloqueia usuários da própria oficina.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Usuário desbloqueado"),
+    @ApiResponse(responseCode = "401", description = "Não autenticado"),
+    @ApiResponse(responseCode = "403", description = "Sem permissão"),
+    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+  })
+  @PatchMapping("/{id}/desbloquear")
+  @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+  public ResponseEntity<Void> desbloquear(
+      @Parameter(description = "ID do usuário") @PathVariable Long id) {
+    usuarioService.desbloquear(id);
+    return ResponseEntity.noContent().build();
   }
 
   @Operation(summary = "Excluir usuário", description = "Remove uma conta de acesso.")

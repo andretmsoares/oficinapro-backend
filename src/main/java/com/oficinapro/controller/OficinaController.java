@@ -135,18 +135,4 @@ public class OficinaController {
 
     return ResponseEntity.noContent().build();
   }
-
-  @Operation(summary = "Excluir oficina", description = "Exclui uma oficina pelo ID")
-  @ApiResponses({
-    @ApiResponse(responseCode = "204", description = "Oficina excluída com sucesso"),
-    @ApiResponse(responseCode = "404", description = "Oficina não encontrada")
-  })
-  @PreAuthorize("hasRole('ADMIN')")
-  @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deletar(@PathVariable Long id) {
-
-    oficinaService.deletar(id);
-
-    return ResponseEntity.noContent().build();
-  }
 }

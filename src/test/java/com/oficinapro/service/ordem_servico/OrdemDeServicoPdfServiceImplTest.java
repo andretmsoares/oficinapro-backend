@@ -20,6 +20,7 @@ import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.repository.MaoObraRepository;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.registro_pagamento.RegistroPagamentoService;
+import com.oficinapro.storage.LogoStorage;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +42,8 @@ class OrdemDeServicoPdfServiceImplTest {
   @Mock private PagamentoService pagamentoService;
 
   @Mock private RegistroPagamentoService registroPagamentoService;
+
+  @Mock private LogoStorage logoStorage;
 
   @InjectMocks private OrdemDeServicoPdfServiceImpl pdfService;
 
@@ -165,7 +168,7 @@ class OrdemDeServicoPdfServiceImplTest {
   }
 
   @Test
-  @DisplayName("gerar() deve produzir um PDF válido com peças, mão de obra e pagamentos")
+  @DisplayName("gerar() deve produzir um PDF válido com peças, mão de obra e pagamento")
   void deveGerarPdfComTodosOsDados() {
     OrdemDeServico os = osCompleta();
 
@@ -175,8 +178,6 @@ class OrdemDeServicoPdfServiceImplTest {
         .thenReturn(List.of(maoObra()));
     when(pagamentoService.buscarPorOsId(OS_ID))
         .thenReturn(pagamento("450.00", StatusPagamento.PAGA));
-    when(registroPagamentoService.listarPorPagamento(PAGAMENTO_ID))
-        .thenReturn(List.of(registroPagamento()));
 
     byte[] pdf = pdfService.gerar(os);
 
@@ -192,7 +193,6 @@ class OrdemDeServicoPdfServiceImplTest {
     when(maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
     when(pagamentoService.buscarPorOsId(os.getId()))
         .thenReturn(pagamento("0.00", StatusPagamento.PAGAMENTO_PENDENTE));
-    when(registroPagamentoService.listarPorPagamento(PAGAMENTO_ID)).thenReturn(List.of());
 
     byte[] pdf = pdfService.gerar(os);
 
@@ -227,5 +227,61 @@ class OrdemDeServicoPdfServiceImplTest {
     byte[] pdf = pdfService.gerarComprovantePagamento(os);
 
     assertEhPdfValido(pdf);
+  }
+
+  private byte[] pngValido() throws Exception {
+    java.awt.image.BufferedImage img =
+        new java.awt.image.BufferedImage(20, 10, java.awt.image.BufferedImage.TYPE_INT_RGB);
+    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+    javax.imageio.ImageIO.write(img, "png", out);
+    return out.toByteArray();
+  }
+
+  private void mockPagamentoBasico(OrdemDeServico os) {
+    when(itemOsPecaRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
+    when(maoObraRepository.findByOrdemDeServicoIdOrderByIdAsc(os.getId())).thenReturn(List.of());
+    when(pagamentoService.buscarPorOsId(os.getId()))
+        .thenReturn(pagamento("0.00", StatusPagamento.PAGAMENTO_PENDENTE));
+  }
+
+  @Test
+  @DisplayName("gerar() usa a logo da oficina quando ela existe no storage")
+  void deveUsarLogoDaOficina() throws Exception {
+    OrdemDeServico os = osCompleta();
+    os.getOficina().setLogoPath("logos/oficina-1.png");
+    mockPagamentoBasico(os);
+    when(logoStorage.ler("logos/oficina-1.png")).thenReturn(java.util.Optional.of(pngValido()));
+
+    assertEhPdfValido(pdfService.gerar(os));
+
+    org.mockito.Mockito.verify(logoStorage).ler("logos/oficina-1.png");
+  }
+
+  @Test
+  @DisplayName("gerar() cai na logo padrao se o storage falhar ou a imagem for invalida")
+  void deveCairNaLogoPadraoQuandoStorageFalha() {
+    OrdemDeServico os = osCompleta();
+    os.getOficina().setLogoPath("logos/quebrada.png");
+    mockPagamentoBasico(os);
+    when(logoStorage.ler("logos/quebrada.png")).thenThrow(new IllegalStateException("bucket fora"));
+
+    assertEhPdfValido(pdfService.gerar(os));
+
+    // doReturn: com when(...) o mock ainda lancaria a excecao configurada acima ao ser chamado.
+    org.mockito.Mockito.doReturn(java.util.Optional.of(new byte[] {1, 2, 3}))
+        .when(logoStorage)
+        .ler("logos/quebrada.png");
+    assertEhPdfValido(pdfService.gerar(os));
+  }
+
+  @Test
+  @DisplayName("gerar() nao consulta o storage quando a oficina nao tem logo")
+  void naoConsultaStorageSemLogo() {
+    OrdemDeServico os = osCompleta();
+    mockPagamentoBasico(os);
+
+    assertEhPdfValido(pdfService.gerar(os));
+
+    org.mockito.Mockito.verifyNoInteractions(logoStorage);
   }
 }

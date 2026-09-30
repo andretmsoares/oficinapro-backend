@@ -1,5 +1,7 @@
 package com.oficinapro.service.mao_obra;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.mao_obra.MaoObraRequestDTO;
 import com.oficinapro.dto.mao_obra.MaoObraResponseDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
@@ -50,7 +52,7 @@ public class MaoObraServiceImpl implements MaoObraService {
     MaoObra maoObra = new MaoObra();
     maoObra.setOrdemDeServico(os);
     maoObra.setValor(request.valor());
-    maoObra.setDescricao(request.descricao().toUpperCase());
+    maoObra.setDescricao(normalizar(request.descricao()));
 
     maoObra = maoObraRepository.save(maoObra);
 
@@ -70,7 +72,7 @@ public class MaoObraServiceImpl implements MaoObraService {
     // osId do request é ignorado propositalmente: não é permitido
     // mover uma mão de obra para outra OS via update.
     maoObra.setValor(request.valor());
-    maoObra.setDescricao(request.descricao().toUpperCase());
+    maoObra.setDescricao(normalizar(request.descricao()));
 
     maoObra = maoObraRepository.save(maoObra);
 

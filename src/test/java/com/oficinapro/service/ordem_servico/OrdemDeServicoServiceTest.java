@@ -10,18 +10,20 @@ import com.oficinapro.dto.ordemDeServico.AtribuirClienteRequestDTO;
 import com.oficinapro.dto.ordemDeServico.AtribuirMecanicoRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoResponseDTO;
-import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
+import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.model.Cliente;
 import com.oficinapro.model.Mecanico;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.OrdemDeServico;
 import com.oficinapro.model.Unidade;
-import com.oficinapro.model.Usuario;
 import com.oficinapro.model.Veiculo;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.service.cliente.ClienteService;
@@ -37,6 +39,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,12 +50,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
-// LENIENT proposital: depois do refactor, buscarPorEntidadeId/criar/atualizar deixaram
-// de chamar oficinaAccessValidator (quem valida o escopo agora é o
-// OficinaAccessValidator). Vários testes daqui ainda preparam aquele stub, e com
-// strict stubs isso derrubaria a classe inteira por UnnecessaryStubbingException em
-// vez de apontar um problema real de comportamento.
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class OrdemDeServicoServiceTest {
 
   @Mock private OrdemDeServicoRepository ordemServicoRepository;
@@ -84,8 +83,6 @@ class OrdemDeServicoServiceTest {
   private Cliente cliente;
   private Mecanico mecanico;
   private OrdemDeServico os;
-  private Usuario adminUser;
-  private Usuario normalUser;
 
   @BeforeEach
   void setUp() {
@@ -124,13 +121,6 @@ class OrdemDeServicoServiceTest {
     os.setDesconto(BigDecimal.ZERO);
     os.setValorComDesconto(BigDecimal.ZERO);
     os.setDataAbertura(LocalDateTime.now());
-
-    adminUser = new Usuario();
-    adminUser.setRole(Role.ADMIN);
-
-    normalUser = new Usuario();
-    normalUser.setRole(Role.GERENTE);
-    normalUser.setOficina(oficina);
   }
 
   // ---------------------------------------------------------------
@@ -140,8 +130,6 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve negar acesso à listagem de OS")
   void deveNegarListagemDeOSComoAdmin() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
-
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
         .thenThrow(new UsuarioAcessDeniedException());
 
@@ -155,7 +143,6 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
   void deveListarOSDaPropriaOficinaComoAdministrativo() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(normalUser);
     // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));
@@ -175,7 +162,6 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("ADMIN: deve buscar OS por ID e retornar o DTO correto")
   void deveBuscarOSPorIdComoAdmin() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     OrdemDeServicoResponseDTO resultado = ordemDeServicoService.buscarPorId(1L);
@@ -196,7 +182,7 @@ class OrdemDeServicoServiceTest {
     OrdemDeServicoRequestDTO request =
         new OrdemDeServicoRequestDTO(1L, 1L, null, null, "Troca de óleo");
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeService.buscarPorEntidadeId(1L)).thenReturn(unidade);
     when(veiculoService.buscarPorEntidadeId(1L)).thenReturn(veiculo);
@@ -218,7 +204,6 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirMecanicoAOSComSucesso() {
     AtribuirMecanicoRequestDTO dto = new AtribuirMecanicoRequestDTO(1L);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(mecanicoService.buscarPorEntidadeId(1L)).thenReturn(mecanico);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -239,7 +224,6 @@ class OrdemDeServicoServiceTest {
   void deveAtribuirClienteAOSComSucesso() {
     AtribuirClienteRequestDTO dto = new AtribuirClienteRequestDTO(1L);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(clienteService.buscarPorEntidadeId(1L)).thenReturn(cliente);
     when(ordemServicoRepository.save(any(OrdemDeServico.class))).thenReturn(os);
@@ -261,13 +245,198 @@ class OrdemDeServicoServiceTest {
     // OS pertence à oficina 1, request tenta mover para oficina 2
     OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(1L, 1L, null, null, null);
 
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(2L);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
 
     assertThatThrownBy(() -> ordemDeServicoService.atualizar(1L, request))
         .isInstanceOf(OSIsNotPossibleSwapWorkshopException.class);
 
     verify(ordemServicoRepository, never()).save(any());
+  }
+
+  // ---------------------------------------------------------------
+  // listarPorStatus()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("listarPorStatus() deve consultar o status já filtrando pela oficina do usuário")
+  void deveListarPorStatusFiltrandoNoBancoPelaOficinaDoUsuario() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.findByOficinaIdAndStatus(1L, StatusOrdemDeServico.ABERTA))
+        .thenReturn(List.of(os));
+
+    List<OrdemDeServicoResponseDTO> resultado =
+        ordemDeServicoService.listarPorStatus(StatusOrdemDeServico.ABERTA);
+
+    assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+    verify(ordemServicoRepository, never()).findByStatus(any());
+  }
+
+  // ---------------------------------------------------------------
+  // aplicarDesconto()
+  // ---------------------------------------------------------------
+
+  private void prepararOsComTotal(String valorTotal, String desconto) {
+    os.setValorTotal(new BigDecimal(valorTotal));
+    os.setDesconto(new BigDecimal(desconto));
+    os.setValorComDesconto(new BigDecimal(valorTotal).subtract(new BigDecimal(desconto)));
+
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+  }
+
+  private void pagamentoSemValorPago() {
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0"));
+  }
+
+  private void salvarDevolvendoOMesmoObjeto() {
+    when(ordemServicoRepository.save(any(OrdemDeServico.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve subtrair o desconto do valor total")
+  void deveAplicarDescontoSobreOValorTotal() {
+    prepararOsComTotal("500.00", "0.00");
+    salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
+
+    OrdemDeServicoResponseDTO resultado =
+        ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("120.00"));
+
+    assertThat(resultado.valorTotal()).isEqualByComparingTo("500.00");
+    assertThat(resultado.desconto()).isEqualByComparingTo("120.00");
+    assertThat(resultado.valorComDesconto()).isEqualByComparingTo("380.00");
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve tratar desconto nulo como zero")
+  void deveTratarDescontoNuloComoZero() {
+    prepararOsComTotal("500.00", "100.00");
+    salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
+
+    OrdemDeServicoResponseDTO resultado = ordemDeServicoService.aplicarDesconto(1L, null);
+
+    assertThat(resultado.desconto()).isEqualByComparingTo("0.00");
+    assertThat(resultado.valorComDesconto()).isEqualByComparingTo("500.00");
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve aceitar desconto igual ao total, zerando o valor a pagar")
+  void deveAceitarDescontoIgualAoValorTotal() {
+    prepararOsComTotal("500.00", "0.00");
+    salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
+
+    OrdemDeServicoResponseDTO resultado =
+        ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("500.00"));
+
+    assertThat(resultado.valorComDesconto()).isEqualByComparingTo("0.00");
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recusar desconto negativo")
+  void deveRecusarDescontoNegativo() {
+    prepararOsComTotal("500.00", "0.00");
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("-0.01")))
+        .isInstanceOf(DescontoInvalidoException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recusar desconto maior que o valor total")
+  void deveRecusarDescontoMaiorQueOValorTotal() {
+    prepararOsComTotal("500.00", "0.00");
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("500.01")))
+        .isInstanceOf(DescontoInvalidoException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recalcular o status do pagamento depois de salvar")
+  void deveRecalcularStatusDoPagamentoAposDesconto() {
+    prepararOsComTotal("500.00", "0.00");
+    salvarDevolvendoOMesmoObjeto();
+    pagamentoSemValorPago();
+
+    ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("100.00"));
+
+    InOrder ordem = inOrder(ordemServicoRepository, pagamentoService);
+    ordem.verify(ordemServicoRepository).save(any(OrdemDeServico.class));
+    ordem.verify(pagamentoService).recalcularStatus(1L);
+  }
+
+  @Test
+  @DisplayName("aplicarDesconto() deve recusar desconto que deixa a OS abaixo do valor já pago")
+  void deveRecusarDescontoAbaixoDoValorJaPago() {
+    prepararOsComTotal("100.00", "0.00");
+    when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("100.00"));
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, new BigDecimal("20.00")))
+        .isInstanceOf(PagamentoValorExcedidoException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+    verify(pagamentoService, never()).recalcularStatus(any());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = StatusOrdemDeServico.class,
+      names = {"CANCELADA", "FECHADA"})
+  @DisplayName("OS cancelada ou fechada não aceita desconto, troca de cliente/mecânico nem PUT")
+  void naoDeveAlterarOsTerminal(StatusOrdemDeServico status) {
+    os.setStatus(status);
+    when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
+
+    OrdemDeServicoRequestDTO request = new OrdemDeServicoRequestDTO(1L, 1L, null, null, null);
+
+    assertThatThrownBy(() -> ordemDeServicoService.aplicarDesconto(1L, BigDecimal.ZERO))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(
+            () -> ordemDeServicoService.atribuirMecanico(1L, new AtribuirMecanicoRequestDTO(1L)))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(
+            () -> ordemDeServicoService.atribuirCliente(1L, new AtribuirClienteRequestDTO(1L)))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+    assertThatThrownBy(() -> ordemDeServicoService.atualizar(1L, request))
+        .isInstanceOfAny(OSCanceledException.class, OSFinishedException.class);
+
+    verify(ordemServicoRepository, never()).save(any());
+  }
+
+  // ---------------------------------------------------------------
+  // recalcularValorTotal()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("recalcularValorTotal() deve manter o desconto quando ele ainda cabe no novo total")
+  void deveManterDescontoQuandoCabeNoNovoTotal() {
+    prepararOsComTotal("300.00", "50.00");
+    salvarDevolvendoOMesmoObjeto();
+
+    OrdemDeServicoResponseDTO resultado =
+        ordemDeServicoService.recalcularValorTotal(1L, new BigDecimal("200.00"));
+
+    assertThat(resultado.valorTotal()).isEqualByComparingTo("200.00");
+    assertThat(resultado.desconto()).isEqualByComparingTo("50.00");
+    assertThat(resultado.valorComDesconto()).isEqualByComparingTo("150.00");
+  }
+
+  @Test
+  @DisplayName("recalcularValorTotal() deve travar o desconto no novo total, sem valor negativo")
+  void deveTravarDescontoNoNovoTotalQuandoOTotalDiminui() {
+    prepararOsComTotal("500.00", "100.00");
+    salvarDevolvendoOMesmoObjeto();
+
+    OrdemDeServicoResponseDTO resultado =
+        ordemDeServicoService.recalcularValorTotal(1L, new BigDecimal("80.00"));
+
+    assertThat(resultado.desconto()).isEqualByComparingTo("80.00");
+    assertThat(resultado.valorComDesconto()).isEqualByComparingTo("0.00");
   }
 
   // ---------------------------------------------------------------
@@ -290,7 +459,6 @@ class OrdemDeServicoServiceTest {
   @Test
   @DisplayName("deve deletar OS que ainda não recebeu nenhum pagamento")
   void deveDeletarOSSemPagamentoRecebido() {
-    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(adminUser);
     when(ordemServicoRepository.findById(1L)).thenReturn(Optional.of(os));
     when(pagamentoService.buscarPorOsId(1L)).thenReturn(pagamentoCom("0.00"));
 

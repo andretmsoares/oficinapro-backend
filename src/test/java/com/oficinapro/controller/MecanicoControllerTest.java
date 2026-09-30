@@ -81,6 +81,26 @@ class MecanicoControllerTest {
   }
 
   @Test
+  @DisplayName("GET /api/mecanicos/buscar - GERENTE deve retornar 200 com a página filtrada")
+  @WithMockUser(roles = "GERENTE")
+  void deveBuscarMecanicosPaginado() throws Exception {
+    when(mecanicoService.buscar(eq("carlos"), any()))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/mecanicos/buscar").param("q", "carlos"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(1));
+  }
+
+  @Test
+  @DisplayName("GET /api/mecanicos/buscar - MECANICO deve retornar 403")
+  @WithMockUser(roles = "MECANICO")
+  void deveNegarBuscaDeMecanicosParaMecanico() throws Exception {
+    mockMvc.perform(get("/api/mecanicos/buscar").param("q", "c")).andExpect(status().isForbidden());
+  }
+
+  @Test
   @DisplayName("GET /api/mecanicos - MECANICO deve retornar 403")
   @WithMockUser(roles = "MECANICO")
   void deveNegarAcessoParaMecanico() throws Exception {

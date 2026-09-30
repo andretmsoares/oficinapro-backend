@@ -1,5 +1,7 @@
 package com.oficinapro.service.unidade;
 
+import static com.oficinapro.util.TextoUtil.normalizar;
+
 import com.oficinapro.dto.unidade.UnidadeRequestDTO;
 import com.oficinapro.dto.unidade.UnidadeResponseDTO;
 import com.oficinapro.enums.Role;
@@ -63,14 +65,16 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
 
-    if (unidadeRepository.existsByOficinaIdAndEndereco(oficinaId, request.endereco())) {
-      throw new EnderecoAlreadyExistsException(request.endereco());
+    String endereco = normalizar(request.endereco());
+
+    if (unidadeRepository.existsByOficinaIdAndEndereco(oficinaId, endereco)) {
+      throw new EnderecoAlreadyExistsException(endereco);
     }
 
     Unidade unidade = new Unidade();
     unidade.setOficina(oficina);
-    unidade.setNome(request.nome().toUpperCase());
-    unidade.setEndereco(request.endereco());
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
     unidade.setTelefone(request.telefone());
 
     Unidade saved = unidadeRepository.save(unidade);
@@ -90,14 +94,15 @@ public class UnidadeServiceImpl implements UnidadeService {
 
     Long oficinaDaUnidade = unidade.getOficina() != null ? unidade.getOficina().getId() : null;
 
+    String endereco = normalizar(request.endereco());
+
     if (oficinaDaUnidade != null
-        && unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(
-            oficinaDaUnidade, request.endereco(), id)) {
-      throw new EnderecoAlreadyExistsException(request.endereco());
+        && unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(oficinaDaUnidade, endereco, id)) {
+      throw new EnderecoAlreadyExistsException(endereco);
     }
 
-    unidade.setNome(request.nome().toUpperCase());
-    unidade.setEndereco(request.endereco());
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
     unidade.setTelefone(request.telefone());
 
     Unidade updated = unidadeRepository.save(unidade);

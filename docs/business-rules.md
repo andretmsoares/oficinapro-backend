@@ -8,20 +8,22 @@ A convenção mais importante do sistema, e a que mais causou bug.
 
 | Camada | Representação | Exemplo para R$ 1.234,56 |
 |---|---|---|
-| Banco | `NUMERIC(12,2)` | `1234.56` |
-| Backend (Java) | `BigDecimal` | `new BigDecimal("1234.56")` |
-| JSON da API | número decimal | `1234.56` |
+| Banco | `NUMERIC(12,0)` (centavos) | `123456` |
+| Backend (Java) | `BigDecimal` em centavos, escala 0 | `new BigDecimal("123456")` |
+| JSON da API | número inteiro, em centavos | `123456` |
 | Frontend — valor canônico | **inteiro, em centavos** | `123456` |
 | Frontend — exibição | string formatada pt-BR | `"R$ 1.234,56"` |
+| PDF (backend) | reais formatados | `"R$ 1.234,56"` (divide por 100 só na exibição) |
 
 O frontend guarda **centavos como inteiro** no `rawValues` do `EntityForm` e a string
 mascarada no `displayValues`. A conversão acontece em `src/services/formatters.ts`
 (`parseCurrencyToCents` e `formatCurrencyDisplay`).
 
-> **Atenção na integração.** O backend espera decimal (`1234.56`); o frontend mantém
-> centavos (`123456`). A conversão na borda HTTP **ainda não existe**, porque a camada
-> HTTP ainda não existe. Quando ela for escrita, esta divisão por 100 é obrigatória —
-> ignorá-la multiplica todo valor por 100.
+> **Dinheiro é sempre em centavos, de ponta a ponta.** Backend, banco e JSON usam o mesmo
+> inteiro que o frontend; a divisão por 100 acontece apenas ao exibir (telas e PDF). Não há
+> conversão na borda HTTP. Valores monetários de peça, mão de obra, desconto, pagamento e
+> salário seguem essa regra; quantidade de peça continua em unidades. Os DTOs exigem valor
+> mínimo de 1 (centavo).
 
 Nunca use `double` ou `float` para dinheiro. Nunca compare `BigDecimal` com `equals`:
 use `compareTo`, porque `equals` também compara escala e `2.0` não é `equals` a `2.00`.
@@ -61,7 +63,7 @@ especificamente para impedir que uma das duas origens volte a ser ignorada.
 ### Valor de um item de peça
 
 ```
-ItemOsPeca.valorTotal = quantidade × valorUnitario, arredondado a 2 casas (HALF_UP)
+ItemOsPeca.valorTotal = quantidade × valorUnitario (centavos), arredondado a 0 casas (HALF_UP)
 ```
 
 `quantidade` é sempre **inteira** — peça é contada em unidades (2 pastilhas, 1 correia),
@@ -90,6 +92,10 @@ ordem: persiste primeiro, recalcula depois (verificado com `InOrder` nos testes)
 - Não pode ser negativo → `400` (`DescontoInvalidoException`).
 - Não pode ser maior que o `valorTotal` → `400`.
 - Aplicado por `PATCH /api/ordens-servico/{id}/desconto`, exclusivo do `GERENTE`.
+- Não pode deixar o `valorComDesconto` abaixo do que já foi pago → `409`
+  (`PagamentoValorExcedidoException`). Depois de aplicado, o status do pagamento é recalculado.
+- Bloqueado em OS `CANCELADA` (`OSCanceledException`) e `FECHADA` (`OSFinishedException`), assim
+  como `PUT` da OS e as atribuições de cliente/mecânico: são histórico.
 
 ### Desconto quando o total diminui
 
@@ -203,7 +209,7 @@ pagamento integral. Essa regra já foi mais restritiva, e havia teste afirmando 
 Cada OS tem exatamente um pagamento. Garantido em dois níveis:
 
 - aplicação: `PagamentoAlreadyExistsException` → `409`;
-- banco: constraint `uk_pagamento_os` (`V13`).
+- banco: constraint `uk_pagamento_os` (`V11`).
 
 O pagamento é **criado automaticamente junto com a OS** — `OrdemDeServicoServiceImpl.criar`
 chama `pagamentoService.criar`. Não é preciso criá-lo à mão no fluxo normal.
@@ -295,6 +301,13 @@ sobrescrever o valor livremente.
 somente pagamentos `PAGAMENTO_PENDENTE` e `PAGO_PARCIALMENTE`. Exige `GERENTE` e valida
 acesso à oficina — esse endpoint já expôs o faturamento de qualquer oficina.
 
+### Valor pendente
+
+`valorPendente = valorComDesconto − valorPago`, calculado no backend em
+`PagamentoServiceImpl.toResponseDTO` e exposto em `PagamentoResponseDTO`. O backend nunca
+permite `valorPago > valorComDesconto`, então o valor pendente não é negativo; uma OS quitada
+tem `valorPendente = 0`. A tela de OS exibe esse campo (não recalcula).
+
 ### Registro de pagamento
 
 `RegistroPagamento` é o histórico: cada recebimento gera um registro com meio de
@@ -304,6 +317,15 @@ pagamento (`MeioPagamento`: `PIX`, `DINHEIRO`, `CARTAO_CREDITO`, `CARTAO_DEBITO`
 ---
 
 ## 6. Cadastros
+
+### Textos são gravados normalizados
+
+Nomes (oficina, unidade, pessoa, usuário, mecânico, cliente), endereço da unidade, marca, modelo e
+cor do veículo, nome da peça e descrição da mão de obra são gravados **sem acentos e em caixa alta**
+(`TextoUtil.normalizar`, aplicado nos services). Assim "José" e "JOSE" são o mesmo texto para
+busca e para as verificações de unicidade (ex.: endereço da unidade). Os termos de busca passam
+pela mesma normalização. Não são alterados: `username`, senha, documento, telefone, placa
+(regra própria) e textos livres como `obs`.
 
 ### Documento único por oficina
 
@@ -317,7 +339,7 @@ quando há `oficinaId`.
 
 ### Endereço da unidade
 
-Único **por oficina**: constraint `uq_unidade_oficina_endereco` (`V18`). Duas oficinas
+Único **por oficina**: constraint `uq_unidade_oficina_endereco` (`V2`). Duas oficinas
 podem operar no mesmo endereço (prédio compartilhado, troca de ponto comercial).
 
 Já foi único globalmente, e a oficina B recebia `409` por um endereço usado pela oficina
@@ -375,7 +397,8 @@ Contrato completo de erro em [api.md](./api.md).
 | `PagamentoServiceImplTest` | status, acúmulo, estorno, pagamento a maior, recálculo ao mudar o valor da OS, 1:1 |
 | `ItemOsPecaServiceTest` | cálculo do valor do item, exclusão vs. valor pago |
 | `MaoObraServiceTest` | CRUD, exclusão vs. valor pago, `osId` ignorado no update |
-| `OrdemDeServicoServiceTest` | desconto, troca de oficina, atribuições |
+| `OrdemDeServicoServiceTest` | desconto (válido, nulo, igual ao total, negativo, maior que o total), recálculo do total com trava do desconto, listagem por status escopada por oficina, troca de oficina, atribuições |
+| `FlywayMigrationsTest` | migrations reais do zero: tabelas esperadas, `chk_usuario_role`, unicidade por oficina |
 
 O grafo de estados no teste é declarado **independentemente da implementação**: ele
 descreve a regra pretendida. Alterar `transicaoPermitida` sem alterar a regra quebra o

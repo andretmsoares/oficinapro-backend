@@ -8,9 +8,11 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.enums.StatusPagamento;
 import com.oficinapro.exception.ordem_servico.DescontoInvalidoException;
 import com.oficinapro.exception.ordem_servico.OSCanceledException;
+import com.oficinapro.exception.ordem_servico.OSFinishedException;
 import com.oficinapro.exception.ordem_servico.OSIsNotPossibleSwapWorkshopException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoImpossibleDeleteException;
 import com.oficinapro.exception.ordem_servico.OrdemDeServicoNotFoundException;
+import com.oficinapro.exception.pagamento.PagamentoValorExcedidoException;
 import com.oficinapro.model.*;
 import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
@@ -101,9 +103,11 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Override
   @Transactional(readOnly = true)
   public List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status) {
-    List<OrdemDeServico> lista = ordemServicoRepository.findByStatus(status);
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return filtrarPorEscopo(lista).stream().map(this::toResponseDTO).toList();
+    return ordemServicoRepository.findByOficinaIdAndStatus(oficinaId, status).stream()
+        .map(this::toResponseDTO)
+        .toList();
   }
 
   @Override
@@ -128,6 +132,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    validarOsMutavel(os);
 
     BigDecimal descontoValido = desconto == null ? BigDecimal.ZERO : desconto;
 
@@ -139,10 +144,20 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
       throw new DescontoInvalidoException("Desconto não pode ser maior que o valor total da OS");
     }
 
-    os.setDesconto(descontoValido);
-    os.setValorComDesconto(os.getValorTotal().subtract(descontoValido));
+    BigDecimal novoValorComDesconto = os.getValorTotal().subtract(descontoValido);
+    BigDecimal valorPago = pagamentoService.buscarPorOsId(id).valorPago();
 
-    return toResponseDTO(ordemServicoRepository.save(os));
+    if (valorPago.compareTo(novoValorComDesconto) > 0) {
+      throw new PagamentoValorExcedidoException(valorPago, novoValorComDesconto);
+    }
+
+    os.setDesconto(descontoValido);
+    os.setValorComDesconto(novoValorComDesconto);
+
+    OrdemDeServico saved = ordemServicoRepository.save(os);
+    pagamentoService.recalcularStatus(id);
+
+    return toResponseDTO(saved);
   }
 
   @Override
@@ -200,6 +215,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    validarOsMutavel(os);
     Mecanico mecanico = mecanicoService.buscarPorEntidadeId(dto.mecanicoId());
     os.setMecanico(mecanico);
     return toResponseDTO(ordemServicoRepository.save(os));
@@ -209,6 +225,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public OrdemDeServicoResponseDTO atribuirCliente(Long id, AtribuirClienteRequestDTO dto) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    validarOsMutavel(os);
     Cliente cliente = clienteService.buscarPorEntidadeId(dto.clienteId());
     os.setCliente(cliente);
     return toResponseDTO(ordemServicoRepository.save(os));
@@ -256,6 +273,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   @Transactional
   public OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request) {
     OrdemDeServico os = this.buscarPorEntidadeId(id);
+    validarOsMutavel(os);
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     if (!Objects.equals(os.getOficina().getId(), oficinaId)) {
@@ -365,6 +383,16 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
         os.getValorTotal(),
         os.getDesconto(),
         os.getValorComDesconto());
+  }
+
+  /** OS cancelada ou fechada é histórico: não aceita mudança de relações nem de desconto. */
+  private void validarOsMutavel(OrdemDeServico os) {
+    if (os.getStatus() == StatusOrdemDeServico.CANCELADA) {
+      throw new OSCanceledException();
+    }
+    if (os.getStatus() == StatusOrdemDeServico.FECHADA) {
+      throw new OSFinishedException();
+    }
   }
 
   /** Status em que a OS está concluída e a data de fechamento deve ser preservada. */

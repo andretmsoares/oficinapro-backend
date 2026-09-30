@@ -7,7 +7,9 @@ import com.oficinapro.dto.itemOsPeca.ItemOsPecaUpdateRequestDTO;
 import com.oficinapro.dto.mao_obra.MaoObraRequestDTO;
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.ordemDeServico.OrdemDeServicoRequestDTO;
+import com.oficinapro.dto.registro_pagamento.RegistroPagamentoRequestDTO;
 import com.oficinapro.dto.veiculo.VeiculoRequestDTO;
+import com.oficinapro.enums.MeioPagamento;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -75,7 +77,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita um lançamento válido")
     void aceitaLancamentoValido() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("250.00")))).isEmpty();
+      assertThat(camposInvalidos(comValor(new BigDecimal("25000")))).isEmpty();
     }
 
     @Test
@@ -97,13 +99,13 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa valor abaixo de um centavo")
     void recusaValorAbaixoDeUmCentavo() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("0.001")))).contains("valor");
+      assertThat(camposInvalidos(comValor(new BigDecimal("0.5")))).contains("valor");
     }
 
     @Test
     @DisplayName("aceita exatamente um centavo, o menor valor permitido")
     void aceitaUmCentavo() {
-      assertThat(camposInvalidos(comValor(new BigDecimal("0.01")))).isEmpty();
+      assertThat(camposInvalidos(comValor(new BigDecimal("1")))).isEmpty();
     }
 
     @Test
@@ -156,7 +158,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita uma peça válida")
     void aceitaPecaValida() {
-      assertThat(camposInvalidos(com(new BigDecimal("2"), new BigDecimal("120.00")))).isEmpty();
+      assertThat(camposInvalidos(com(new BigDecimal("2"), new BigDecimal("12000")))).isEmpty();
     }
 
     @Test
@@ -183,7 +185,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("recusa valor unitário abaixo de um centavo")
     void recusaValorUnitarioAbaixoDeUmCentavo() {
-      assertThat(camposInvalidos(com(new BigDecimal("1"), new BigDecimal("0.009"))))
+      assertThat(camposInvalidos(com(new BigDecimal("1"), new BigDecimal("0.5"))))
           .contains("valorUnitario");
     }
 
@@ -240,7 +242,7 @@ class DtoValidationTest {
     @Test
     @DisplayName("aceita uma atualização válida")
     void aceitaAtualizacaoValida() {
-      assertThat(camposInvalidos(com(new BigDecimal("3"), new BigDecimal("120.00")))).isEmpty();
+      assertThat(camposInvalidos(com(new BigDecimal("3"), new BigDecimal("12000")))).isEmpty();
     }
 
     @ParameterizedTest
@@ -415,6 +417,56 @@ class DtoValidationTest {
       OrdemDeServicoRequestDTO dto = new OrdemDeServicoRequestDTO(1L, null, 1L, 1L, "obs");
 
       assertThat(camposInvalidos(dto)).contains("veiculoId");
+    }
+  }
+
+  // ==================================================================
+  // Dinheiro em centavos: sem casas decimais, e update sem campos nulos
+  // ==================================================================
+
+  @Nested
+  @DisplayName("valores monetarios em centavos")
+  class ValoresEmCentavos {
+
+    @Test
+    @DisplayName("recusa fracao de centavo em mao de obra, peca e registro de pagamento")
+    void recusaFracaoDeCentavo() {
+      BigDecimal fracionado = new BigDecimal("10.5");
+
+      assertThat(camposInvalidos(new MaoObraRequestDTO(1L, fracionado, "Servico")))
+          .contains("valor");
+      assertThat(
+              camposInvalidos(
+                  new ItemOsPecaRequestDTO(1L, "Peca", new BigDecimal("1"), fracionado)))
+          .contains("valorUnitario");
+      assertThat(
+              camposInvalidos(new RegistroPagamentoRequestDTO(1L, fracionado, MeioPagamento.PIX)))
+          .contains("valor");
+    }
+
+    @Test
+    @DisplayName("aceita valor inteiro em centavos")
+    void aceitaValorInteiro() {
+      assertThat(
+              camposInvalidos(
+                  new RegistroPagamentoRequestDTO(1L, new BigDecimal("15000"), MeioPagamento.PIX)))
+          .isEmpty();
+    }
+
+    @Test
+    @DisplayName("recusa registro de pagamento abaixo de um centavo")
+    void recusaRegistroAbaixoDeUmCentavo() {
+      assertThat(
+              camposInvalidos(
+                  new RegistroPagamentoRequestDTO(1L, BigDecimal.ZERO, MeioPagamento.PIX)))
+          .contains("valor");
+    }
+
+    @Test
+    @DisplayName("atualizacao de peca recusa nome, quantidade e valor nulos")
+    void atualizacaoDePecaRecusaNulos() {
+      assertThat(camposInvalidos(new ItemOsPecaUpdateRequestDTO(null, null, null)))
+          .contains("nome", "quantidade", "valorUnitario");
     }
   }
 }

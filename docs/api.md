@@ -117,8 +117,51 @@ expirar.
 | Credenciais erradas no login | 401 | `Credenciais inválidas` |
 | Autenticado, sem permissão | 403 | `Acesso negado: Você não tem permissão para acessar este recurso.` |
 
+| Login bloqueado temporariamente (excesso de tentativas) | 429 | `Muitas tentativas de login. Tente novamente em N minuto(s).` (+ header `Retry-After` e `retryAfterSeconds` no corpo) |
+| Login bloqueado até intervenção do administrador | 423 | `Conta bloqueada por excesso de tentativas de login. Fale com o administrador do sistema.` |
+
 `Credenciais inválidas` é intencionalmente genérica: não diz se o problema foi o usuário
 inexistente ou a senha errada. Diferenciar permitiria enumerar usuários válidos.
+
+### Logo da oficina (PDFs)
+
+A logo impressa no cabeçalho da OS e do comprovante fica num bucket do Google Cloud Storage;
+`oficina.logo_path` guarda só o caminho do objeto (gerado pelo servidor). Sem logo, ou se o
+bucket falhar, o PDF usa a logo padrão do sistema (`resources/images/logo.png`) — a geração
+do PDF nunca falha por causa da logo.
+
+| Método | Rota | Papéis | Observação |
+|---|---|---|---|
+| PUT | `/api/oficinas/{id}/logo` | ADMIN, GERENTE | multipart, campo `arquivo`; PNG/JPEG até 2 MB |
+| DELETE | `/api/oficinas/{id}/logo` | ADMIN, GERENTE | volta à logo padrão; idempotente |
+| GET | `/api/oficinas/{id}/logo` | ADMIN, GERENTE, MECANICO | imagem; `404` se não houver |
+
+GERENTE/MECANICO só acessam a própria oficina (`403` para outra). O tipo é verificado pelos
+bytes do arquivo (não pelo content-type); SVG é recusado. Erros: `400` arquivo inválido,
+`413` grande demais, `503` storage não configurado.
+
+Configuração: `GCS_BUCKET` (sem ele o upload fica desabilitado) e credenciais por Application
+Default Credentials — service account anexada ao serviço no GCP, ou
+`GOOGLE_APPLICATION_CREDENTIALS` com o caminho do JSON da chave (nunca commitar). A service
+account precisa de `roles/storage.objectAdmin` no bucket, que deve ser **privado**.
+
+### Proteção contra força bruta no login
+
+O estado fica no banco (`usuario.falhas_login`, `bloqueado_ate`, `bloqueio_permanente`), por
+isso sobrevive a reinício e vale com várias instâncias.
+
+- A cada **5 falhas seguidas** o usuário fica bloqueado por `5 min × n` (n = número do
+  bloqueio: 5 min, depois 10 min).
+- No **3º bloqueio** (15 falhas) o bloqueio passa a ser permanente: só volta com
+  `PATCH /api/usuarios/{id}/desbloquear` (ADMIN, ou GERENTE da mesma oficina).
+- Durante o bloqueio **até a senha correta é recusada**. Login bem-sucedido zera o contador.
+- Username inexistente não tem estado: recebe sempre `401 Credenciais inválidas`. Já um
+  usuário real bloqueado recebe 429/423, o que revela que a conta existe — trade-off aceito
+  em troca de o usuário saber por que não consegue entrar.
+- Configurável em `application.yml`: `oficinapro.login.tentativas-por-bloqueio` (5),
+  `oficinapro.login.duracao-bloqueio` (`5m`) e `oficinapro.login.bloqueios-ate-permanente` (3).
+- Um token já emitido continua válido até expirar mesmo se a conta for bloqueada depois.
+- O `UsuarioResponseDTO` traz `bloqueado` (`true` se o bloqueio é permanente ou temporário ainda vigente); a tela de Usuários usa isso para exibir "Bloqueado" e o botão de desbloqueio.
 
 Os dois primeiros grupos (401 de filtro e 403) são respondidos pelo
 `SecurityErrorResponder`, não pelo `GlobalExceptionHandler` — erro de filtro acontece
@@ -185,7 +228,7 @@ errado. Note que `error` aqui é `"Validation Error"`, não a reason phrase.
 | `InvalidDataAccessApiUsageException` | uso incorreto da API de dados |
 | `DateTimeException` | data inválida (mês 13 no fluxo mensal) |
 
-**401 — não autenticado** · **403 — sem permissão**
+**401 — não autenticado** · **403 — sem permissão** · **423 / 429 — login bloqueado**
 
 Ver §2.
 
@@ -281,13 +324,10 @@ pagamentos, unidades, oficinas. Numa oficina com histórico grande, `GET
 
 ### Dinheiro
 
-Número decimal com 2 casas no JSON: `1234.56`. No banco, `NUMERIC(12,2)`; em Java,
-`BigDecimal`.
-
-> **O frontend usa outra representação.** Internamente ele guarda **centavos como
-> inteiro** (`123456`). A conversão na borda HTTP é obrigatória e **ainda não existe**,
-> porque a camada HTTP ainda não existe. Ver
-> [business-rules.md §1](./business-rules.md).
+Número inteiro **em centavos** no JSON (123456 = R$ 1.234,56). No banco, `NUMERIC(12,0)`; em Java,
+`BigDecimal` com escala 0. É a mesma representação do frontend, sem conversão na borda HTTP;
+quem exibe (telas, PDF) divide por 100. Ver [business-rules.md §1](./business-rules.md). Os DTOs de dinheiro (peça, mão de obra e registro
+de pagamento) recusam casas decimais: `25000` é aceito, `250.00` responde `400`.
 
 ### Data e hora
 

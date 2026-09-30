@@ -19,5 +19,6 @@ public record ItemOsPecaRequestDTO(
         BigDecimal quantidade,
     @NotNull(message = "Valor unitário é obrigatório")
         @Positive(message = "Valor deve ser maior que zero")
-        @DecimalMin(value = "0.01")
+        @DecimalMin(value = "1")
+        @Digits(integer = 10, fraction = 0, message = "Valor deve ser informado em centavos")
         BigDecimal valorUnitario) {}

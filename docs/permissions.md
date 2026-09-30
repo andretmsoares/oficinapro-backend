@@ -60,6 +60,17 @@ Há também **código morto** decorrente da mudança: `OrdemDeServicoServiceImpl
 `UnidadeServiceImpl.listar()` têm um branch `if (role == ADMIN) findAll()` que nenhum
 ADMIN alcança, porque os controllers correspondentes não permitem `ADMIN`.
 
+### ADMIN em rota operacional: `403` por design
+
+O ADMIN não pertence a nenhuma oficina. Toda rota operacional que depende "da oficina do
+usuário logado" (`getOficinaIdUsuarioLogado()`) responde **`403`** ao ADMIN, mesmo nas
+rotas cujo `@PreAuthorize` aceitaria o papel — por exemplo `GET /api/itens-os-peca`,
+`GET /api/ordens-servico` ou o dashboard. Isso é intencional e não deve ser corrigido para
+"listar tudo": o ADMIN vê apenas contagens agregadas em `/api/admin/estatisticas`.
+
+O comportamento é `403` (e não lista vazia) porque devolver `[]` esconderia o erro de uso
+atrás de uma resposta de sucesso — bug que já ocorreu neste projeto (ver §6).
+
 ---
 
 ## 3. Matriz completa papel × endpoint
@@ -98,8 +109,13 @@ Exclusivo do ADMIN, e o service reforça com `validarRole(ADMIN)` nos cinco mét
 | POST | `/` | ✅ | ✅ | ❌ |
 | PUT | `/{id}` | ✅ | ✅ | ❌ |
 | DELETE | `/{id}` | ✅ | ✅ | ❌ |
+| PATCH | `/{id}/desbloquear` | ✅ | ✅ | ❌ |
 
 Único módulo compartilhado entre ADMIN e GERENTE. As regras de hierarquia estão na §4.
+
+`PATCH /{id}/desbloquear` remove o bloqueio de login por excesso de tentativas (temporário ou
+permanente). O GERENTE só desbloqueia usuário da própria oficina; de outra oficina, ou de um
+ADMIN, recebe `404`.
 
 ### Unidades — `/api/unidades`
 
@@ -210,6 +226,21 @@ MECANICO — ela informa se a OS está paga, sem expor valores agregados da ofic
 ### Registros de pagamento — `/api/registros-pagamento`
 
 Todos os quatro endpoints: apenas `GERENTE`.
+
+### Ajustes de fechamento do MVP (valem sobre as tabelas acima)
+
+As tabelas acima foram escritas antes de várias mudanças e nem todas as células refletem o
+código. Decisões confirmadas na revisão final, que **prevalecem**:
+
+| Assunto | Regra atual |
+|---|---|
+| `PUT /api/ordens-servico/{id}`, `PATCH .../mecanico`, `PATCH .../cliente` | `GERENTE` e `MECANICO` (decisão de produto: o mecânico pode reatribuir). Em OS `CANCELADA` ou `FECHADA` ninguém altera — `422` |
+| `PATCH .../desconto` | só `GERENTE`; bloqueado em OS `CANCELADA`/`FECHADA`; recusado (`409`) se a OS ficar abaixo do valor já pago |
+| `GET /api/dashboard/data` | só `GERENTE`. O `MECANICO` vê o dashboard sem os cartões numéricos |
+| `DELETE /api/oficinas/{id}` | **removido**. Oficina só é desativada/ativada (`PATCH .../desativar`, `.../ativar`) |
+| `GET /api/pagamentos/os/{osId}` | valida a oficina da OS; OS de outra oficina responde `404` |
+| `PUT/DELETE /api/itens-os-peca/{id}/os...` (vincular/desvincular) | `GERENTE` e `MECANICO`, explícito no controller |
+| Token de usuário cuja oficina foi desativada | deixa de valer na próxima requisição (`401`), não só no login |
 
 ---
 

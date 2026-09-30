@@ -1,9 +1,14 @@
 package com.oficinapro.exception;
 
+import com.oficinapro.exception.auth.ContaBloqueadaException;
+import com.oficinapro.exception.auth.LoginTemporariamenteBloqueadoException;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaJaVinculadoException;
 import com.oficinapro.exception.item_os_peca.ItemOsPecaNotFoundException;
+import com.oficinapro.exception.logo.LogoInvalidaException;
+import com.oficinapro.exception.logo.LogoNotFoundException;
+import com.oficinapro.exception.logo.LogoStorageIndisponivelException;
 import com.oficinapro.exception.mao_obra.MaoObraNotFoundException;
 import com.oficinapro.exception.mecanico.MecanicoAlreadyExistsException;
 import com.oficinapro.exception.mecanico.MecanicoNotFoundException;
@@ -47,6 +52,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -65,6 +71,47 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleAuthenticationFailure(
       AuthenticationException exception) {
     return buildResponse(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
+  }
+
+  @ExceptionHandler(LoginTemporariamenteBloqueadoException.class)
+  public ResponseEntity<Map<String, Object>> handleLoginTemporariamenteBloqueado(
+      LoginTemporariamenteBloqueadoException exception) {
+    Map<String, Object> body =
+        buildResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage()).getBody();
+    body.put("retryAfterSeconds", exception.getSegundosRestantes());
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .header("Retry-After", String.valueOf(exception.getSegundosRestantes()))
+        .body(body);
+  }
+
+  @ExceptionHandler(LogoInvalidaException.class)
+  public ResponseEntity<Map<String, Object>> handleLogoInvalida(LogoInvalidaException exception) {
+    return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+  }
+
+  @ExceptionHandler(LogoNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleLogoNotFound(LogoNotFoundException exception) {
+    return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+  }
+
+  @ExceptionHandler(LogoStorageIndisponivelException.class)
+  public ResponseEntity<Map<String, Object>> handleLogoStorageIndisponivel(
+      LogoStorageIndisponivelException exception) {
+    return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+  }
+
+  @SuppressWarnings("deprecation")
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<Map<String, Object>> handleUploadGrande(
+      MaxUploadSizeExceededException exception) {
+    return buildResponse(
+        HttpStatus.PAYLOAD_TOO_LARGE, "O arquivo enviado excede o tamanho máximo.");
+  }
+
+  @ExceptionHandler(ContaBloqueadaException.class)
+  public ResponseEntity<Map<String, Object>> handleContaBloqueada(
+      ContaBloqueadaException exception) {
+    return buildResponse(HttpStatus.LOCKED, exception.getMessage());
   }
 
   @ExceptionHandler(OficinaNotFoundException.class)

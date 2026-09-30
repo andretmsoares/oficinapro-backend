@@ -1,1 +1,0 @@
-ALTER TABLE pagamento DROP COLUMN desconto;

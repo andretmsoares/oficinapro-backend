@@ -54,7 +54,7 @@ class UsuarioControllerTest {
   void setUp() {
     responseDTO =
         new UsuarioResponseDTO(
-            1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN);
+            1L, "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", Role.ADMIN, false);
     requestDTO =
         new UsuarioRequestDTO(
             "Ana Admin", "83944445555", "11122233344", 1L, "ana.admin", "senha1234", Role.ADMIN);
@@ -81,6 +81,26 @@ class UsuarioControllerTest {
         .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
 
     verify(usuarioService).listar(any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("GET /api/usuarios/buscar - ADMIN deve retornar 200 com a página filtrada")
+  @WithMockUser(roles = "ADMIN")
+  void deveBuscarUsuariosPaginadoComoAdmin() throws Exception {
+    when(usuarioService.buscar(eq("ana"), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
+
+    mockMvc
+        .perform(get("/api/usuarios/buscar").param("q", "ana"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].username").value("ana.admin"));
+  }
+
+  @Test
+  @DisplayName("GET /api/usuarios/buscar - MECANICO deve retornar 403")
+  @WithMockUser(roles = "MECANICO")
+  void deveNegarBuscaDeUsuariosParaMecanico() throws Exception {
+    mockMvc.perform(get("/api/usuarios/buscar").param("q", "a")).andExpect(status().isForbidden());
   }
 
   @Test

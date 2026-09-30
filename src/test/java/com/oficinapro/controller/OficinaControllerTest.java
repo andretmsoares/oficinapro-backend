@@ -125,15 +125,6 @@ class OficinaControllerTest {
   }
 
   @Test
-  @DisplayName("DELETE /api/oficinas/{id} - Deve retornar status 204 ao excluir com sucesso")
-  @WithMockUser(roles = "ADMIN")
-  void deveDeletarOficina() throws Exception {
-    doNothing().when(oficinaService).deletar(1L);
-
-    mockMvc.perform(delete("/api/oficinas/1").with(csrf())).andExpect(status().isNoContent());
-  }
-
-  @Test
   @DisplayName("GET /api/oficinas - Deve retornar status 403 quando usuário não é ADMIN")
   @WithMockUser(roles = "USER")
   void deveNegarAcessoParaUsuarioNaoAdmin() throws Exception {
