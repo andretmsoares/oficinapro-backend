@@ -18,6 +18,8 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
+ENV TZ=America/Sao_Paulo
+
 COPY --from=build /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
