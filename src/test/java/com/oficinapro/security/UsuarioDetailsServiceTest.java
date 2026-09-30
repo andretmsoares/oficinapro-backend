@@ -30,7 +30,8 @@ class UsuarioDetailsServiceTest {
     Usuario usuario = new Usuario();
     usuario.setUsername("ana.gerente");
     usuario.setRole(Role.GERENTE);
-    when(usuarioRepository.findByUsernameComOficina("ana.gerente")).thenReturn(Optional.of(usuario));
+    when(usuarioRepository.findByUsernameComOficina("ana.gerente"))
+        .thenReturn(Optional.of(usuario));
 
     UserDetails resultado = service.loadUserByUsername("ana.gerente");
 

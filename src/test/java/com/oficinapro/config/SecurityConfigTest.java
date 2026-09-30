@@ -99,8 +99,7 @@ class SecurityConfigTest {
     AuthenticationManager manager = config.authenticationManager(detailsService, encoder);
 
     assertThatThrownBy(
-            () ->
-                manager.authenticate(new UsernamePasswordAuthenticationToken("ana", "errada")))
+            () -> manager.authenticate(new UsernamePasswordAuthenticationToken("ana", "errada")))
         .isInstanceOf(BadCredentialsException.class);
     assertThatThrownBy(
             () ->

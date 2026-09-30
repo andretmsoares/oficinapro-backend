@@ -337,7 +337,8 @@ class ClienteServiceTest {
   // ─────────────────────────── buscarPorEntidadeId ───────────────────────────
 
   @Test
-  @DisplayName("buscarPorEntidadeId() com cliente sem oficina deve validar o acesso com oficina nula")
+  @DisplayName(
+      "buscarPorEntidadeId() com cliente sem oficina deve validar o acesso com oficina nula")
   void buscarPorEntidadeId_clienteSemOficina_validaComOficinaNula() {
     Cliente semOficina = new Cliente();
     semOficina.setId(8L);
@@ -392,8 +393,7 @@ class ClienteServiceTest {
   @DisplayName("buscarPorDocumento() inexistente deve lançar ClienteNotFoundException")
   void buscarPorDocumento_naoEncontrado_lancaClienteNotFoundException() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(clienteRepository.findByOficinaIdAndDocumento(1L, "000"))
-        .thenReturn(Optional.empty());
+    when(clienteRepository.findByOficinaIdAndDocumento(1L, "000")).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.buscarPorDocumento("000"))
         .isInstanceOf(ClienteNotFoundException.class);
@@ -416,7 +416,9 @@ class ClienteServiceTest {
   @Test
   @DisplayName("listarTodos() sem ser ADMIN deve ser negado sem consultar o repositório")
   void listarTodos_semSerAdmin_negado() {
-    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+    doThrow(new AccessDeniedException("negado"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
 
     assertThatThrownBy(() -> service.listarTodos(PageRequest.of(0, 10)))
         .isInstanceOf(AccessDeniedException.class);
@@ -438,7 +440,9 @@ class ClienteServiceTest {
   @Test
   @DisplayName("buscarPorNomeAdmin() sem ser ADMIN deve ser negado")
   void buscarPorNomeAdmin_semSerAdmin_negado() {
-    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+    doThrow(new AccessDeniedException("negado"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
 
     assertThatThrownBy(() -> service.buscarPorNomeAdmin("JOÃO SILVA"))
         .isInstanceOf(AccessDeniedException.class);
@@ -460,7 +464,9 @@ class ClienteServiceTest {
   @Test
   @DisplayName("buscarPorDocumentoAdmin() sem ser ADMIN deve ser negado")
   void buscarPorDocumentoAdmin_semSerAdmin_negado() {
-    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+    doThrow(new AccessDeniedException("negado"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
 
     assertThatThrownBy(() -> service.buscarPorDocumentoAdmin("12345678901"))
         .isInstanceOf(AccessDeniedException.class);

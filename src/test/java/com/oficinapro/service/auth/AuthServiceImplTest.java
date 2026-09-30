@@ -193,7 +193,8 @@ class AuthServiceImplTest {
   }
 
   @Test
-  @DisplayName("a falha que aciona o bloqueio deve avisar o bloqueio em vez de 'credenciais inválidas'")
+  @DisplayName(
+      "a falha que aciona o bloqueio deve avisar o bloqueio em vez de 'credenciais inválidas'")
   void falhaQueAcionaBloqueioAvisaBloqueio() {
     // 1ª checagem (antes da senha) passa; a 2ª (depois de registrar a falha) já encontra bloqueio
     doNothing()

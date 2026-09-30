@@ -65,35 +65,35 @@ class GlobalExceptionHandlerMapeamentoTest {
   }
 
   static {
-              reg("cliente-nf", ClienteNotFoundException::new);
-              reg("mecanico-nf", MecanicoNotFoundException::new);
-              reg("usuario-nf", UsuarioNotFoundException::new);
-              reg("unidade-nf", () -> new UnidadeNotFoundException(1L));
-              reg("veiculo-nf", () -> new VeiculoNotFoundException(1L));
-              reg("os-nf", () -> new OrdemDeServicoNotFoundException(1L));
-              reg("item-nf", ItemOsPecaNotFoundException::new);
-              reg("pagamento-nf", () -> new PagamentoNotFoundException(1L));
-              reg("pagamento-os-nf", () -> new PagamentoNotFoundForThisOsException(1L));
-              reg("registro-nf", () -> new RegistroPagamentoNotFoundException(1L));
-              reg("logo-nf", LogoNotFoundException::new);
-              reg("cnpj-dup", () -> new CnpjAlreadyExistsException("123"));
-              reg("endereco-dup", () -> new EnderecoAlreadyExistsException("Rua A"));
-              reg("cliente-dup", ClienteAlreadyExistsException::new);
-              reg("mecanico-dup", MecanicoAlreadyExistsException::new);
-              reg("username-dup", UsernameAlreadyExistsException::new);
-              reg("usuario-dup", UsuarioAlreadyExistsException::new);
-              reg("item-vinculado", ItemOsPecaJaVinculadoException::new);
-              reg("os-delete", OrdemDeServicoImpossibleDeleteException::new);
-              reg("oficina-ativa", OficinaAlreadyActivatedException::new);
-              reg("oficina-desativada-ja", OficinaAlreadyDisabledException::new);
-              reg("usuario-sem-oficina", UsuarioAcessDeniedException::new);
-              reg("oficina-disabled", OficinaDisabledException::new);
-              reg("auto-exclusao", UsuarioCannotDeleteSelfException::new);
-              reg("conta-bloqueada", ContaBloqueadaException::new);
-              reg("logo-invalida", () -> new LogoInvalidaException("Formato inválido"));
-              reg("logo-storage", LogoStorageIndisponivelException::new);
-              reg("credenciais", () -> new BadCredentialsException("Bad credentials"));
-              reg("upload-grande", () -> new MaxUploadSizeExceededException(1L));
+    reg("cliente-nf", ClienteNotFoundException::new);
+    reg("mecanico-nf", MecanicoNotFoundException::new);
+    reg("usuario-nf", UsuarioNotFoundException::new);
+    reg("unidade-nf", () -> new UnidadeNotFoundException(1L));
+    reg("veiculo-nf", () -> new VeiculoNotFoundException(1L));
+    reg("os-nf", () -> new OrdemDeServicoNotFoundException(1L));
+    reg("item-nf", ItemOsPecaNotFoundException::new);
+    reg("pagamento-nf", () -> new PagamentoNotFoundException(1L));
+    reg("pagamento-os-nf", () -> new PagamentoNotFoundForThisOsException(1L));
+    reg("registro-nf", () -> new RegistroPagamentoNotFoundException(1L));
+    reg("logo-nf", LogoNotFoundException::new);
+    reg("cnpj-dup", () -> new CnpjAlreadyExistsException("123"));
+    reg("endereco-dup", () -> new EnderecoAlreadyExistsException("Rua A"));
+    reg("cliente-dup", ClienteAlreadyExistsException::new);
+    reg("mecanico-dup", MecanicoAlreadyExistsException::new);
+    reg("username-dup", UsernameAlreadyExistsException::new);
+    reg("usuario-dup", UsuarioAlreadyExistsException::new);
+    reg("item-vinculado", ItemOsPecaJaVinculadoException::new);
+    reg("os-delete", OrdemDeServicoImpossibleDeleteException::new);
+    reg("oficina-ativa", OficinaAlreadyActivatedException::new);
+    reg("oficina-desativada-ja", OficinaAlreadyDisabledException::new);
+    reg("usuario-sem-oficina", UsuarioAcessDeniedException::new);
+    reg("oficina-disabled", OficinaDisabledException::new);
+    reg("auto-exclusao", UsuarioCannotDeleteSelfException::new);
+    reg("conta-bloqueada", ContaBloqueadaException::new);
+    reg("logo-invalida", () -> new LogoInvalidaException("Formato inválido"));
+    reg("logo-storage", LogoStorageIndisponivelException::new);
+    reg("credenciais", () -> new BadCredentialsException("Bad credentials"));
+    reg("upload-grande", () -> new MaxUploadSizeExceededException(1L));
   }
 
   private MockMvc mockMvc;

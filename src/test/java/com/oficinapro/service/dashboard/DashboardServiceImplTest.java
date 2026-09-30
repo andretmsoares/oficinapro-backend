@@ -92,7 +92,6 @@ class DashboardServiceImplTest {
     assertThatThrownBy(() -> dashboardService.getData())
         .isInstanceOf(UsuarioAcessDeniedException.class);
 
-    verifyNoInteractions(
-        ordemDeServicoService, veiculoService, clienteService, pagamentoService);
+    verifyNoInteractions(ordemDeServicoService, veiculoService, clienteService, pagamentoService);
   }
 }

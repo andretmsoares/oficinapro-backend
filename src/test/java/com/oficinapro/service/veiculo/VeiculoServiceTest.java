@@ -344,7 +344,8 @@ class VeiculoServiceTest {
     assertThatThrownBy(() -> veiculoService.buscarPorPlaca("zzz-0000"))
         .isInstanceOf(VeiculoNotFoundException.class);
 
-    verify(oficinaAccessValidator, never()).validarAcessoAoRegistro(any(), any(RuntimeException.class));
+    verify(oficinaAccessValidator, never())
+        .validarAcessoAoRegistro(any(), any(RuntimeException.class));
   }
 
   // ---------------------------------------------------------------
@@ -380,7 +381,8 @@ class VeiculoServiceTest {
   @Test
   @DisplayName("atualizar: manter a mesma placa não deve consultar duplicidade")
   void naoDeveConsultarDuplicidadeQuandoPlacaNaoMuda() {
-    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic EX", 2021, "honda", "azul", "abc-1234");
+    VeiculoRequestDTO request =
+        new VeiculoRequestDTO("Civic EX", 2021, "honda", "azul", "abc-1234");
 
     when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);

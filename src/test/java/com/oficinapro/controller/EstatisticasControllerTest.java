@@ -44,7 +44,8 @@ class EstatisticasControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/admin/estatisticas - ADMIN deve receber 200 com totais e lista por oficina")
+  @DisplayName(
+      "GET /api/admin/estatisticas - ADMIN deve receber 200 com totais e lista por oficina")
   @WithMockUser(roles = "ADMIN")
   void deveRetornarResumoDoSistema() throws Exception {
     when(estatisticasService.resumoDoSistema())

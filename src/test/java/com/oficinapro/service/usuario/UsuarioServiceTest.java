@@ -874,8 +874,7 @@ class UsuarioServiceTest {
   void desbloquear_inexistente_lancaUsuarioNotFoundException() {
     when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.desbloquear(99L))
-        .isInstanceOf(UsuarioNotFoundException.class);
+    assertThatThrownBy(() -> service.desbloquear(99L)).isInstanceOf(UsuarioNotFoundException.class);
 
     verify(usuarioRepository, never()).save(any());
   }

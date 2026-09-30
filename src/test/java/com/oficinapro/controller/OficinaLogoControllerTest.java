@@ -117,9 +117,7 @@ class OficinaLogoControllerTest {
   @DisplayName("PUT logo - oficina de outro tenant vira 403")
   @WithMockUser(roles = "GERENTE")
   void deveRetornar403ParaOficinaDeOutroTenant() throws Exception {
-    doThrow(new AccessDeniedException("outra oficina"))
-        .when(logoService)
-        .atualizar(eq(2L), any());
+    doThrow(new AccessDeniedException("outra oficina")).when(logoService).atualizar(eq(2L), any());
 
     mockMvc.perform(put("/api/oficinas/2/logo").file(arquivo())).andExpect(status().isForbidden());
   }

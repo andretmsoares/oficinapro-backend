@@ -89,7 +89,8 @@ class OrdemDeServicoControllerComplementarTest {
   void deveRetornarFluxoMensal() throws Exception {
     when(service.fluxoMensal(2, 2024))
         .thenReturn(
-            List.of(new FluxoMensalOSResponseDTO(1, 2L, 0L), new FluxoMensalOSResponseDTO(2, 0L, 1L)));
+            List.of(
+                new FluxoMensalOSResponseDTO(1, 2L, 0L), new FluxoMensalOSResponseDTO(2, 0L, 1L)));
 
     mockMvc
         .perform(get("/api/ordens-servico/fluxo-mensal").param("mes", "2").param("ano", "2024"))
@@ -394,7 +395,9 @@ class OrdemDeServicoControllerComplementarTest {
   @DisplayName("GET /status/{status} - status inexistente deve retornar 400")
   @WithMockUser(roles = "GERENTE")
   void deveRetornar400ParaStatusInvalidoNoPath() throws Exception {
-    mockMvc.perform(get("/api/ordens-servico/status/NAO_EXISTE")).andExpect(status().isBadRequest());
+    mockMvc
+        .perform(get("/api/ordens-servico/status/NAO_EXISTE"))
+        .andExpect(status().isBadRequest());
 
     verifyNoInteractions(service);
   }

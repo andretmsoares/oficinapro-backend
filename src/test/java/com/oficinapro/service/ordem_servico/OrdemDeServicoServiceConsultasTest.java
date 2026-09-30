@@ -152,8 +152,7 @@ class OrdemDeServicoServiceConsultasTest {
     @Test
     @DisplayName("listarPorMecanico: valida o mecânico e devolve só as OS da oficina do usuário")
     void listarPorMecanicoFiltraPorOficina() {
-      when(ordemServicoRepository.findByMecanicoId(1L))
-          .thenReturn(List.of(osDeOutraOficina, os));
+      when(ordemServicoRepository.findByMecanicoId(1L)).thenReturn(List.of(osDeOutraOficina, os));
 
       List<OrdemDeServicoResponseDTO> resultado = service.listarPorMecanico(1L);
 
@@ -326,8 +325,7 @@ class OrdemDeServicoServiceConsultasTest {
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
     when(unidadeService.buscarPorEntidadeId(9L)).thenThrow(new UnidadeNotFoundException(9L));
 
-    assertThatThrownBy(
-            () -> service.criar(new OrdemDeServicoRequestDTO(9L, 1L, null, null, null)))
+    assertThatThrownBy(() -> service.criar(new OrdemDeServicoRequestDTO(9L, 1L, null, null, null)))
         .isInstanceOf(UnidadeNotFoundException.class);
 
     verify(ordemServicoRepository, never()).save(any());
@@ -531,8 +529,7 @@ class OrdemDeServicoServiceConsultasTest {
     void mesInvalido() {
       when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
 
-      assertThatThrownBy(() -> service.fluxoMensal(13, 2024))
-          .isInstanceOf(DateTimeException.class);
+      assertThatThrownBy(() -> service.fluxoMensal(13, 2024)).isInstanceOf(DateTimeException.class);
 
       verify(ordemServicoRepository, never()).findFluxoMensal(any(), any(), any());
     }
