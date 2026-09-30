@@ -1,91 +1,117 @@
 package com.oficinapro.config;
 
+import com.oficinapro.security.SecurityErrorResponder;
+import com.oficinapro.security.UsuarioDetailsService;
+import com.oficinapro.security.jwt.JwtAuthenticationFilter;
+import com.oficinapro.security.jwt.JwtService;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+  @Value("${oficinapro.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+  private List<String> allowedOrigins;
 
-                .csrf(AbstractHttpConfigurer::disable)
+  /**
+   * O filtro JWT e o responder de erros são instanciados aqui, e não expostos como beans, para que
+   * o Boot não os registre também na cadeia de filtros do servlet e para que os @WebMvcTest não
+   * precisem conhecê-los.
+   */
+  @Bean
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity http, JwtService jwtService, UsuarioDetailsService usuarioDetailsService)
+      throws Exception {
 
-                .cors(cors -> {})
+    SecurityErrorResponder securityErrorResponder = new SecurityErrorResponder();
 
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+    JwtAuthenticationFilter jwtAuthenticationFilter =
+        new JwtAuthenticationFilter(jwtService, usuarioDetailsService);
 
-                .authorizeHttpRequests(auth -> auth
-                        // Documentação
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+    http
+        // Seguro desabilitar: a API é stateless e autentica por header Bearer,
+        // não por cookie de sessão, então não há vetor de CSRF.
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> {})
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            exceptions ->
+                exceptions
+                    .authenticationEntryPoint(securityErrorResponder)
+                    .accessDeniedHandler(securityErrorResponder))
+        .authorizeHttpRequests(
+            auth ->
+                auth
+                    // Documentação
+                    .requestMatchers(
+                        "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs", "/v3/api-docs/**")
+                    .permitAll()
 
-                        // Healthcheck
-                        .requestMatchers("/actuator/health").permitAll()
+                    // Healthcheck
+                    .requestMatchers("/actuator/health")
+                    .permitAll()
 
-                        //Endpoints protegidas apenas para o ADMIN so SAAS
-                        .requestMatchers("/api/oficinas/**").permitAll()
+                    // Único endpoint realmente público: obter o token.
+                    .requestMatchers("/api/auth/login")
+                    .permitAll()
 
-                        // Endpoints públicos futuros
-                        .requestMatchers("/api/auth/**").permitAll()
+                    // Todo o resto exige token. As regras por cargo ficam nos
+                    // @PreAuthorize dos controllers, para não haver duas fontes
+                    // de verdade sobre quem pode o quê.
+                    .anyRequest()
+                    .authenticated())
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                        // API protegida
-                        .requestMatchers("/api/**").authenticated()
+    return http.build();
+  }
 
-                        // Qualquer outro endpoint
-                        .anyRequest().authenticated()
-                );
+  @Bean
+  public AuthenticationManager authenticationManager(
+      UsuarioDetailsService usuarioDetailsService, PasswordEncoder passwordEncoder) {
 
-        return http.build();
-    }
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(usuarioDetailsService);
+    provider.setPasswordEncoder(passwordEncoder);
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+    // hideUserNotFoundExceptions já é true por padrão: username inexistente e senha
+    // errada resultam na mesma BadCredentialsException, evitando enumeração de usuários.
+    return new ProviderManager(provider);
+  }
 
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-        ));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+    configuration.setAllowedOrigins(allowedOrigins);
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("*"));
 
-        source.registerCorsConfiguration("/**", configuration);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        return source;
-    }
+    source.registerCorsConfiguration("/**", configuration);
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    return source;
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 }

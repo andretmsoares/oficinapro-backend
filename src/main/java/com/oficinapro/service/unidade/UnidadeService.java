@@ -1,21 +1,21 @@
 package com.oficinapro.service.unidade;
 
-import com.oficinapro.dto.unidade.UnidadeRequest;
-import com.oficinapro.dto.unidade.UnidadeResponse;
-
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
+import com.oficinapro.model.Unidade;
 import java.util.List;
 
 public interface UnidadeService {
 
-    List<UnidadeResponse> listar();
+  List<UnidadeResponseDTO> listar();
 
-    UnidadeResponse buscarPorId(Long id);
+  UnidadeResponseDTO buscarPorId(Long id);
 
-    List<UnidadeResponse> listarPorOficina(Long oficinaId);
+  Unidade buscarPorEntidadeId(Long id);
 
-    UnidadeResponse criar(Long oficinaId, UnidadeRequest request);
+  UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request);
 
-    UnidadeResponse atualizar(Long id, UnidadeRequest request);
+  UnidadeResponseDTO atualizar(Long id, UnidadeRequestDTO request);
 
-    void deletar(Long id);
+  void deletar(Long id);
 }

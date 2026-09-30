@@ -1,135 +1,134 @@
 package com.oficinapro.service.unidade;
 
-import com.oficinapro.dto.unidade.UnidadeRequest;
-import com.oficinapro.dto.unidade.UnidadeResponse;
-import com.oficinapro.exception.EnderecoAlreadyExistsException;
-import com.oficinapro.exception.OficinaNotFoundException;
-import com.oficinapro.exception.UnidadeNotFoundException;
+import static com.oficinapro.util.TextoUtil.normalizar;
+
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
+import com.oficinapro.enums.Role;
+import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Unidade;
-import com.oficinapro.repository.OficinaRepository;
+import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UnidadeRepository;
-import com.oficinapro.service.unidade.UnidadeService;
-import org.springframework.stereotype.Service;
-
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.service.oficina.OficinaService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class UnidadeServiceImpl implements UnidadeService {
 
-    private final UnidadeRepository unidadeRepository;
-    private final OficinaRepository oficinaRepository;
+  private final UnidadeRepository unidadeRepository;
+  private final OficinaService oficinaService;
+  private final OficinaAccessValidator oficinaAccessValidator;
 
-    public UnidadeServiceImpl(
-            UnidadeRepository unidadeRepository,
-            OficinaRepository oficinaRepository) {
+  @Override
+  @Transactional(readOnly = true)
+  public List<UnidadeResponseDTO> listar() {
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
 
-        this.unidadeRepository = unidadeRepository;
-        this.oficinaRepository = oficinaRepository;
+    List<Unidade> unidades =
+        logado.getRole() == Role.ADMIN
+            ? unidadeRepository.findAll()
+            : unidadeRepository.findByOficinaId(oficinaAccessValidator.getOficinaIdUsuarioLogado());
+
+    return unidades.stream().map(this::toResponse).toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public UnidadeResponseDTO buscarPorId(Long id) {
+    return toResponse(this.buscarPorEntidadeId(id));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Unidade buscarPorEntidadeId(Long id) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
+
+    return unidade;
+  }
+
+  @Override
+  @Transactional
+  public UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request) {
+    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
+    Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
+
+    String endereco = normalizar(request.endereco());
+
+    if (unidadeRepository.existsByOficinaIdAndEndereco(oficinaId, endereco)) {
+      throw new EnderecoAlreadyExistsException(endereco);
     }
 
-    @Override
-    public List<UnidadeResponse> listar() {
-        return unidadeRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    Unidade unidade = new Unidade();
+    unidade.setOficina(oficina);
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
+    unidade.setTelefone(request.telefone());
+
+    Unidade saved = unidadeRepository.save(unidade);
+
+    return toResponse(saved);
+  }
+
+  @Override
+  @Transactional
+  public UnidadeResponseDTO atualizar(Long id, UnidadeRequestDTO request) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
+
+    Long oficinaDaUnidade = unidade.getOficina() != null ? unidade.getOficina().getId() : null;
+
+    String endereco = normalizar(request.endereco());
+
+    if (oficinaDaUnidade != null
+        && unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(oficinaDaUnidade, endereco, id)) {
+      throw new EnderecoAlreadyExistsException(endereco);
     }
 
-    @Override
-    public UnidadeResponse buscarPorId(Long id) {
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
+    unidade.setTelefone(request.telefone());
 
-        Unidade unidade = unidadeRepository.findById(id)
-                .orElseThrow(() ->
-                        new UnidadeNotFoundException(id));
+    Unidade updated = unidadeRepository.save(unidade);
 
-        return toResponse(unidade);
-    }
+    return toResponse(updated);
+  }
 
-    @Override
-    public List<UnidadeResponse> listarPorOficina(Long oficinaId) {
+  @Override
+  @Transactional
+  public void deletar(Long id) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
 
-        if (!oficinaRepository.existsById(oficinaId)) {
-            throw new OficinaNotFoundException(oficinaId);
-        }
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
 
-        return unidadeRepository.findByOficinaId(oficinaId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
+    unidadeRepository.delete(unidade);
+  }
 
-    @Override
-    public UnidadeResponse criar(
-            Long oficinaId,
-            UnidadeRequest request) {
-
-        Oficina oficina = oficinaRepository.findById(oficinaId)
-                .orElseThrow(() ->
-                        new OficinaNotFoundException(oficinaId));
-
-        if (unidadeRepository.existsByEndereco(request.endereco())) {
-            throw new EnderecoAlreadyExistsException(
-                    request.endereco()
-            );
-        }
-
-        Unidade unidade = new Unidade();
-
-        unidade.setOficina(oficina);
-        unidade.setNome(request.nome());
-        unidade.setEndereco(request.endereco());
-        unidade.setTelefone(request.telefone());
-
-        Unidade saved = unidadeRepository.save(unidade);
-
-        return toResponse(saved);
-    }
-
-    @Override
-    public UnidadeResponse atualizar(
-            Long id,
-            UnidadeRequest request) {
-
-        Unidade unidade = unidadeRepository.findById(id)
-                .orElseThrow(() ->
-                        new UnidadeNotFoundException(id));
-
-        if (!unidade.getEndereco().equals(request.endereco())
-                && unidadeRepository.existsByEndereco(request.endereco())) {
-
-            throw new EnderecoAlreadyExistsException(
-                    request.endereco()
-            );
-        }
-
-        unidade.setNome(request.nome());
-        unidade.setEndereco(request.endereco());
-        unidade.setTelefone(request.telefone());
-
-        Unidade updated = unidadeRepository.save(unidade);
-
-        return toResponse(updated);
-    }
-
-    @Override
-    public void deletar(Long id) {
-
-        if (!unidadeRepository.existsById(id)) {
-            throw new UnidadeNotFoundException(id);
-        }
-
-        unidadeRepository.deleteById(id);
-    }
-
-    private UnidadeResponse toResponse(Unidade unidade) {
-
-        return new UnidadeResponse(
-                unidade.getId(),
-                unidade.getOficina().getId(),
-                unidade.getNome(),
-                unidade.getEndereco(),
-                unidade.getTelefone()
-        );
-    }
+  private UnidadeResponseDTO toResponse(Unidade unidade) {
+    return new UnidadeResponseDTO(
+        unidade.getId(),
+        unidade.getOficina().getId(),
+        unidade.getNome(),
+        unidade.getEndereco(),
+        unidade.getTelefone());
+  }
 }

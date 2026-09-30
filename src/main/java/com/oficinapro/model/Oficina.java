@@ -1,70 +1,42 @@
 package com.oficinapro.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
-        name = "oficina",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uq_oficina_cnpj",
-                        columnNames = "cnpj"
-                )
-        }
-)
+    name = "oficina",
+    uniqueConstraints = {@UniqueConstraint(name = "uq_oficina_cnpj", columnNames = "cnpj")})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Oficina {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false, length = 255)
-    private String nome;
+  @Column(nullable = false, length = 255)
+  private String nome;
 
-    @Column(nullable = false, length = 14)
-    private String cnpj;
+  @Column(nullable = false, length = 14)
+  private String cnpj;
 
-    @Column(length = 20)
-    private String telefone;
+  @Column(length = 20)
+  private String telefone;
 
-    public Oficina() {
-    }
+  @Column(nullable = false)
+  private Boolean ativo = true;
 
-    public Oficina(String nome, String cnpj, String telefone) {
-        this.nome = nome;
-        this.cnpj = cnpj;
-        this.telefone = telefone;
-    }
+  /** Caminho do objeto da logo no bucket; nulo = usa a logo padrão do sistema. */
+  @Column(name = "logo_path", length = 255)
+  private String logoPath;
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getCnpj() {
-        return cnpj;
-    }
-
-    public void setCnpj(String cnpj) {
-        this.cnpj = cnpj;
-    }
-
-    public String getTelefone() {
-        return telefone;
-    }
-
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
-
-    public void setId(long l) {
-        this.id = l;
-    }
+  public Oficina(Long id, String nome, String cnpj, String telefone, Boolean ativo) {
+    this(id, nome, cnpj, telefone, ativo, null);
+  }
 }

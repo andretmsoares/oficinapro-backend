@@ -1,0 +1,120 @@
+package com.oficinapro.service.cliente;
+
+import static com.oficinapro.util.TextoUtil.normalizar;
+
+import com.oficinapro.dto.cliente.ClienteRequestDTO;
+import com.oficinapro.dto.cliente.ClienteResponseDTO;
+import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
+import com.oficinapro.exception.cliente.ClienteNotFoundException;
+import com.oficinapro.model.Cliente;
+import com.oficinapro.model.Oficina;
+import com.oficinapro.repository.ClienteRepository;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.service.oficina.OficinaServiceImpl;
+import com.oficinapro.service.pessoa.PessoaService;
+import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ClienteServiceImpl
+    extends AbstractPessoaServiceImpl<
+        Cliente, ClienteRequestDTO, ClienteRequestDTO, ClienteResponseDTO>
+    implements ClienteService {
+
+  public ClienteServiceImpl(
+      ClienteRepository repository,
+      OficinaServiceImpl oficinaService,
+      PessoaService pessoaService,
+      OficinaAccessValidator oficinaAccessValidator) {
+    super(repository, oficinaService, pessoaService, oficinaAccessValidator);
+  }
+
+  @Override
+  protected ClienteResponseDTO toResponse(Cliente cliente) {
+    return new ClienteResponseDTO(
+        cliente.getId(),
+        cliente.getNome(),
+        cliente.getTelefone(),
+        cliente.getDocumento(),
+        cliente.getOficina().getId());
+  }
+
+  @Override
+  @Transactional
+  protected Cliente toEntity(ClienteRequestDTO request, Oficina oficina) {
+    Cliente cliente = new Cliente();
+    cliente.setNome(normalizar(request.nome()));
+    cliente.setDocumento(request.documento());
+    cliente.setTelefone(request.telefone());
+    cliente.setOficina(oficina);
+    return cliente;
+  }
+
+  @Override
+  @Transactional
+  protected void applyUpdate(Cliente cliente, ClienteRequestDTO request) {
+    cliente.setNome(normalizar(request.nome()));
+    cliente.setDocumento(request.documento());
+    cliente.setTelefone(request.telefone());
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected String extractDocumentoCreate(ClienteRequestDTO r) {
+    return r.documento();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected Long extractOficinaIdCreate(ClienteRequestDTO r) {
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected String extractDocumentoUpdate(ClienteRequestDTO r) {
+    return r.documento();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected Long extractOficinaIdUpdate(ClienteRequestDTO r) {
+    return oficinaAccessValidator.getOficinaIdUsuarioLogado();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected RuntimeException notFoundException() {
+    return new ClienteNotFoundException();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  protected RuntimeException alreadyExistsException() {
+    return new ClienteAlreadyExistsException();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<ClienteResponseDTO> buscar(String termo, Pageable pageable) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    String termoLimpo = termo == null ? "" : normalizar(termo);
+
+    if (termoLimpo.isEmpty()) {
+      return repository.findByOficinaId(oficinaId, pageable).map(this::toResponse);
+    }
+
+    return ((ClienteRepository) repository)
+        .buscar(oficinaId, termoLimpo, pageable)
+        .map(this::toResponse);
+  }
+
+  @Override
+  public Integer count() {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ((ClienteRepository) repository).countByOficinaId(oficinaId);
+  }
+}

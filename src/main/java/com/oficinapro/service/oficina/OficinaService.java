@@ -1,19 +1,29 @@
 package com.oficinapro.service.oficina;
 
-import com.oficinapro.dto.oficina.OficinaRequest;
-import com.oficinapro.dto.oficina.OficinaResponse;
-
+import com.oficinapro.dto.oficina.OficinaRequestDTO;
+import com.oficinapro.dto.oficina.OficinaResponseDTO;
+import com.oficinapro.model.Oficina;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OficinaService {
 
-    List<OficinaResponse> listar();
+  List<OficinaResponseDTO> listar();
 
-    OficinaResponse buscarPorId(Long id);
+  OficinaResponseDTO buscarPorId(Long id);
 
-    OficinaResponse criar(OficinaRequest request);
+  Oficina buscarPorEntidadeId(Long id);
 
-    OficinaResponse atualizar(Long id, OficinaRequest request);
+  Page<OficinaResponseDTO> buscar(String search, Pageable pageable);
 
-    void deletar(Long id);
+  boolean existsById(Long id);
+
+  OficinaResponseDTO criar(OficinaRequestDTO request);
+
+  OficinaResponseDTO atualizar(Long id, OficinaRequestDTO request);
+
+  void desativar(Long id);
+
+  void ativar(Long id);
 }
