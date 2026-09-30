@@ -8,8 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class OficinaProApplication {
 
   /**
-   * Fuso de negócio. As datas do sistema são {@code LocalDateTime} (sem fuso), então o relógio
-   * "de parede" do servidor é o que o usuário vê. Em container o fuso padrão da JVM é UTC, o que
+   * Fuso de negócio. As datas do sistema são {@code LocalDateTime} (sem fuso), então o relógio "de
+   * parede" do servidor é o que o usuário vê. Em container o fuso padrão da JVM é UTC, o que
    * deixava abertura/fechamento de OS e registros de pagamento 3h adiantados.
    */
   public static final String FUSO_NEGOCIO = "America/Sao_Paulo";
