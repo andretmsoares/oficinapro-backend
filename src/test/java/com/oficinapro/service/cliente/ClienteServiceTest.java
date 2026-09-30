@@ -9,6 +9,7 @@ import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
+import com.oficinapro.enums.Role;
 import com.oficinapro.exception.cliente.ClienteAlreadyExistsException;
 import com.oficinapro.exception.cliente.ClienteNotFoundException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
@@ -30,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
@@ -313,5 +315,202 @@ class ClienteServiceTest {
     assertThatThrownBy(() -> service.deletar(99L)).isInstanceOf(ClienteNotFoundException.class);
 
     verify(clienteRepository, never()).delete(any());
+  }
+
+  // ─────────────────────────── buscar (termo nulo) ───────────────────────────
+
+  @Test
+  @DisplayName("buscar() com termo nulo deve listar a oficina do usuário sem filtrar")
+  void buscar_termoNulo_listaDaOficina() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(cliente)));
+
+    Page<ClienteResponseDTO> resultado = service.buscar(null, pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(clienteRepository, never()).buscar(any(), any(), any());
+  }
+
+  // ─────────────────────────── buscarPorEntidadeId ───────────────────────────
+
+  @Test
+  @DisplayName("buscarPorEntidadeId() com cliente sem oficina deve validar o acesso com oficina nula")
+  void buscarPorEntidadeId_clienteSemOficina_validaComOficinaNula() {
+    Cliente semOficina = new Cliente();
+    semOficina.setId(8L);
+    when(clienteRepository.findById(8L)).thenReturn(Optional.of(semOficina));
+
+    Cliente resultado = service.buscarPorEntidadeId(8L);
+
+    assertThat(resultado).isSameAs(semOficina);
+    verify(oficinaAccessValidator).validarAcessoAoRegistro(eq(null), any(RuntimeException.class));
+  }
+
+  // ─────────────────────────── buscarPorNome ───────────────────────────
+
+  @Test
+  @DisplayName("buscarPorNome() deve normalizar o nome e filtrar pela oficina do usuário")
+  void buscarPorNome_normalizaEFiltraPelaOficina() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(1L, "JOAO"))
+        .thenReturn(List.of(cliente));
+
+    List<ClienteResponseDTO> resultado = service.buscarPorNome("  joão ");
+
+    assertThat(resultado).extracting(ClienteResponseDTO::id).containsExactly(1L);
+  }
+
+  @Test
+  @DisplayName("buscarPorNome() sem resultados deve devolver lista vazia")
+  void buscarPorNome_semResultados_listaVazia() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(1L, "ZZZ"))
+        .thenReturn(List.of());
+
+    assertThat(service.buscarPorNome("zzz")).isEmpty();
+  }
+
+  // ─────────────────────────── buscarPorDocumento ───────────────────────────
+
+  @Test
+  @DisplayName("buscarPorDocumento() deve devolver o cliente da oficina do usuário")
+  void buscarPorDocumento_encontrado_retornaDTO() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaIdAndDocumento(1L, "12345678901"))
+        .thenReturn(Optional.of(cliente));
+
+    ClienteResponseDTO resultado = service.buscarPorDocumento("12345678901");
+
+    assertThat(resultado.id()).isEqualTo(1L);
+    assertThat(resultado.documento()).isEqualTo("12345678901");
+  }
+
+  @Test
+  @DisplayName("buscarPorDocumento() inexistente deve lançar ClienteNotFoundException")
+  void buscarPorDocumento_naoEncontrado_lancaClienteNotFoundException() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaIdAndDocumento(1L, "000"))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.buscarPorDocumento("000"))
+        .isInstanceOf(ClienteNotFoundException.class);
+  }
+
+  // ─────────────────────────── consultas de ADMIN ───────────────────────────
+
+  @Test
+  @DisplayName("listarTodos() como ADMIN deve paginar clientes de todas as oficinas")
+  void listarTodos_comoAdmin_retornaTodos() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(clienteRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(cliente)));
+
+    Page<ClienteResponseDTO> resultado = service.listarTodos(pageable);
+
+    assertThat(resultado.getContent()).extracting(ClienteResponseDTO::id).containsExactly(1L);
+    verify(oficinaAccessValidator).validarRole(Role.ADMIN);
+  }
+
+  @Test
+  @DisplayName("listarTodos() sem ser ADMIN deve ser negado sem consultar o repositório")
+  void listarTodos_semSerAdmin_negado() {
+    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.listarTodos(PageRequest.of(0, 10)))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(clienteRepository, never()).findAll(any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("buscarPorNomeAdmin() como ADMIN deve buscar pelo nome exato em todas as oficinas")
+  void buscarPorNomeAdmin_comoAdmin_retornaResultados() {
+    when(clienteRepository.findByNome("JOÃO SILVA")).thenReturn(List.of(cliente));
+
+    List<ClienteResponseDTO> resultado = service.buscarPorNomeAdmin("JOÃO SILVA");
+
+    assertThat(resultado).extracting(ClienteResponseDTO::id).containsExactly(1L);
+    verify(oficinaAccessValidator).validarRole(Role.ADMIN);
+  }
+
+  @Test
+  @DisplayName("buscarPorNomeAdmin() sem ser ADMIN deve ser negado")
+  void buscarPorNomeAdmin_semSerAdmin_negado() {
+    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.buscarPorNomeAdmin("JOÃO SILVA"))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(clienteRepository, never()).findByNome(any());
+  }
+
+  @Test
+  @DisplayName("buscarPorDocumentoAdmin() como ADMIN deve buscar o documento em todas as oficinas")
+  void buscarPorDocumentoAdmin_comoAdmin_retornaResultados() {
+    when(clienteRepository.findByDocumento("12345678901")).thenReturn(List.of(cliente));
+
+    List<ClienteResponseDTO> resultado = service.buscarPorDocumentoAdmin("12345678901");
+
+    assertThat(resultado).extracting(ClienteResponseDTO::documento).containsExactly("12345678901");
+    verify(oficinaAccessValidator).validarRole(Role.ADMIN);
+  }
+
+  @Test
+  @DisplayName("buscarPorDocumentoAdmin() sem ser ADMIN deve ser negado")
+  void buscarPorDocumentoAdmin_semSerAdmin_negado() {
+    doThrow(new AccessDeniedException("negado")).when(oficinaAccessValidator).validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.buscarPorDocumentoAdmin("12345678901"))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(clienteRepository, never()).findByDocumento(any());
+  }
+
+  // ─────────────────────────── count ───────────────────────────
+
+  @Test
+  @DisplayName("count() deve contar apenas os clientes da oficina do usuário")
+  void count_contaClientesDaOficinaDoUsuario() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.countByOficinaId(1L)).thenReturn(6);
+
+    assertThat(service.count()).isEqualTo(6);
+  }
+
+  // ─────────────────────────── criar/atualizar (oficina) ───────────────────────────
+
+  @Test
+  @DisplayName("criar() deve normalizar o nome e persistir o cliente na oficina do usuário")
+  void criar_normalizaNomeEPersisteNaOficina() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+    when(pessoaService.existsByOficinaIdAndDocumento(1L, "12345678901")).thenReturn(false);
+    when(clienteRepository.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ClienteResponseDTO resultado =
+        service.criar(new ClienteRequestDTO("  joão da silva ", "83988887777", "12345678901"));
+
+    assertThat(resultado.nome()).isEqualTo("JOAO DA SILVA");
+    assertThat(resultado.oficinaId()).isEqualTo(1L);
+    verify(oficinaAccessValidator).validarAcessoOficina(1L);
+  }
+
+  @Test
+  @DisplayName("atualizar() deve normalizar o nome e persistir as alterações")
+  void atualizar_normalizaNomeEPersiste() {
+    when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
+    when(pessoaService.existsByOficinaIdAndDocumentoExcluindoId(1L, "12345678901", 1L))
+        .thenReturn(false);
+
+    ClienteResponseDTO resultado =
+        service.atualizar(1L, new ClienteRequestDTO("maria á", "83911112222", "12345678901"));
+
+    assertThat(resultado.nome()).isEqualTo("MARIA A");
+    assertThat(resultado.telefone()).isEqualTo("83911112222");
+    verify(clienteRepository).save(cliente);
   }
 }

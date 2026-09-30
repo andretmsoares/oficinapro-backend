@@ -24,6 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -341,5 +345,78 @@ class OficinaServiceTest {
     OficinaResponseDTO resposta = service.buscarPorId(1L);
 
     assertThat(resposta.ativo()).isFalse();
+  }
+
+  // ─────────────────────────── buscar (paginado) ───────────────────────────
+
+  @Test
+  @DisplayName("buscar() deve normalizar o termo e pesquisar por nome ou CNPJ")
+  void buscar_comTermo_normalizaEPesquisaPorNomeOuCnpj() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(oficinaRepository.findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(
+            "OFICINA", "OFICINA", pageable))
+        .thenReturn(new PageImpl<>(List.of(oficina)));
+
+    Page<OficinaResponseDTO> resultado = service.buscar("  oficína ", pageable);
+
+    assertThat(resultado.getContent()).extracting(OficinaResponseDTO::id).containsExactly(1L);
+    verify(oficinaAccessValidator).validarRole(Role.ADMIN);
+  }
+
+  @Test
+  @DisplayName("buscar() com termo nulo deve pesquisar com termo vazio (lista tudo)")
+  void buscar_termoNulo_pesquisaComTermoVazio() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(oficinaRepository.findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(
+            "", "", pageable))
+        .thenReturn(new PageImpl<>(List.of(oficina)));
+
+    Page<OficinaResponseDTO> resultado = service.buscar(null, pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("buscar() deve exigir papel ADMIN antes de consultar")
+  void buscar_exigeAdmin() {
+    doThrow(new AccessDeniedException("sem permissão"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.buscar("x", PageRequest.of(0, 10)))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verifyNoInteractions(oficinaRepository);
+  }
+
+  // ─────────────────────────── exigência de ADMIN ───────────────────────────
+
+  @Test
+  @DisplayName("listar, buscarPorId, criar e atualizar devem exigir papel ADMIN")
+  void operacoesAdministrativasExigemAdmin() {
+    doThrow(new AccessDeniedException("sem permissão"))
+        .when(oficinaAccessValidator)
+        .validarRole(Role.ADMIN);
+
+    assertThatThrownBy(() -> service.listar()).isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> service.buscarPorId(1L)).isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> service.criar(request)).isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> service.atualizar(1L, request))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verifyNoInteractions(oficinaRepository);
+  }
+
+  @Test
+  @DisplayName("criar() deve normalizar o nome e nascer ativa")
+  void criar_normalizaNomeENasceAtiva() {
+    when(oficinaRepository.existsByCnpj("12345678000195")).thenReturn(false);
+    when(oficinaRepository.save(any(Oficina.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    OficinaResponseDTO resultado =
+        service.criar(new OficinaRequestDTO(" oficína sul ", "12345678000195", "83999998888"));
+
+    assertThat(resultado.nome()).isEqualTo("OFICINA SUL");
+    assertThat(resultado.ativo()).isTrue();
   }
 }

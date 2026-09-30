@@ -896,5 +896,28 @@ class ItemOsPecaServiceTest {
 
       verify(itemOsPecaRepository).findByIdAndOficinaId(404L, OFICINA_ID);
     }
+
+    @Test
+    @DisplayName("listar() deve devolver as peças da oficina, vinculadas ou avulsas")
+    void deveListarPecasDaOficina() {
+      OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
+      when(itemOsPecaRepository.findByOficinaId(OFICINA_ID))
+          .thenReturn(List.of(item(os, "2", "120.00"), itemSemOs("1", "50.00")));
+
+      List<ItemOsPecaResponseDTO> resultado = service.listar();
+
+      assertThat(resultado).hasSize(2);
+      assertThat(resultado.get(0).osId()).isEqualTo(OS_ID);
+      assertThat(resultado.get(1).osId()).isNull();
+      verifyNoInteractions(ordemDeServicoService);
+    }
+
+    @Test
+    @DisplayName("listar() sem peças na oficina devolve lista vazia")
+    void deveListarVazioQuandoOficinaNaoTemPecas() {
+      when(itemOsPecaRepository.findByOficinaId(OFICINA_ID)).thenReturn(List.of());
+
+      assertThat(service.listar()).isEmpty();
+    }
   }
 }

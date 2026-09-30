@@ -146,6 +146,26 @@ class JwtServiceTest {
   }
 
   @Test
+  @DisplayName("Sem expiração configurada, o token deve valer 8 horas")
+  void expiracaoNaoConfigurada_usaOitoHorasComoPadrao() {
+    JwtService emissor = construir(SECRET, ISSUER, null);
+
+    Jwt jwt = emissor.decodificar(emissor.gerarToken(gerente));
+
+    assertThat(emissor.expiracao()).isEqualTo(Duration.ofHours(8));
+    assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt()))
+        .isEqualTo(Duration.ofHours(8));
+  }
+
+  @Test
+  @DisplayName("Segredo em branco deve impedir a subida da aplicação")
+  void segredoEmBranco_falhaNaConstrucao() {
+    assertThatThrownBy(() -> construir("   ", ISSUER, Duration.ofHours(8)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("JWT_SECRET");
+  }
+
+  @Test
   @DisplayName("Segredo ausente deve impedir a subida da aplicação")
   void segredoAusente_falhaNaConstrucao() {
     assertThatThrownBy(() -> construir(null, ISSUER, Duration.ofHours(8)))

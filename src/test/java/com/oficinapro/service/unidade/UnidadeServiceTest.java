@@ -254,4 +254,115 @@ class UnidadeServiceTest {
 
     verify(unidadeRepository).delete(unidade);
   }
+
+  @Test
+  @DisplayName("deletar: unidade inexistente deve lançar UnidadeNotFoundException")
+  void deveLancarExcecaoAoDeletarUnidadeInexistente() {
+    when(unidadeRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> unidadeService.deletar(99L))
+        .isInstanceOf(UnidadeNotFoundException.class);
+
+    verify(unidadeRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("deletar: unidade de outra oficina deve ser tratada como não encontrada")
+  void deveRecusarDeletarUnidadeDeOutraOficina() {
+    when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
+    doThrow(new UnidadeNotFoundException(1L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(1L), any(RuntimeException.class));
+
+    assertThatThrownBy(() -> unidadeService.deletar(1L))
+        .isInstanceOf(UnidadeNotFoundException.class);
+
+    verify(unidadeRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("buscarPorId: unidade inexistente deve lançar UnidadeNotFoundException")
+  void deveLancarExcecaoAoBuscarUnidadeInexistente() {
+    when(unidadeRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> unidadeService.buscarPorId(99L))
+        .isInstanceOf(UnidadeNotFoundException.class);
+
+    verifyNoInteractions(oficinaAccessValidator);
+  }
+
+  @Test
+  @DisplayName("buscarPorEntidadeId: unidade sem oficina valida o acesso com oficina nula")
+  void deveValidarAcessoComOficinaNulaQuandoUnidadeNaoTemOficina() {
+    unidade.setOficina(null);
+    when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
+
+    Unidade resultado = unidadeService.buscarPorEntidadeId(1L);
+
+    assertThat(resultado).isSameAs(unidade);
+    verify(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(null), any(UnidadeNotFoundException.class));
+  }
+
+  @Test
+  @DisplayName("atualizar: unidade inexistente deve lançar UnidadeNotFoundException")
+  void deveLancarExcecaoAoAtualizarUnidadeInexistente() {
+    when(unidadeRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                unidadeService.atualizar(
+                    99L, new UnidadeRequestDTO("Nome", "Rua X, 1", "83900000000")))
+        .isInstanceOf(UnidadeNotFoundException.class);
+
+    verify(unidadeRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizar: unidade de outra oficina deve ser tratada como não encontrada")
+  void deveRecusarAtualizarUnidadeDeOutraOficina() {
+    when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
+    doThrow(new UnidadeNotFoundException(1L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(1L), any(RuntimeException.class));
+
+    assertThatThrownBy(
+            () ->
+                unidadeService.atualizar(
+                    1L, new UnidadeRequestDTO("Nome", "Rua X, 1", "83900000000")))
+        .isInstanceOf(UnidadeNotFoundException.class);
+
+    verify(unidadeRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizar: deve normalizar nome e endereço ao persistir")
+  void deveNormalizarNomeEEnderecoAoAtualizar() {
+    when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
+    when(unidadeRepository.save(any(Unidade.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    UnidadeResponseDTO resultado =
+        unidadeService.atualizar(
+            1L, new UnidadeRequestDTO(" filial são joão ", " rua ácida, 10 ", "83900000000"));
+
+    assertThat(resultado.nome()).isEqualTo("FILIAL SAO JOAO");
+    assertThat(resultado.endereco()).isEqualTo("RUA ACIDA, 10");
+    assertThat(resultado.telefone()).isEqualTo("83900000000");
+  }
+
+  @Test
+  @DisplayName("criar: sem acesso à oficina informada deve negar antes de qualquer consulta")
+  void deveNegarCriarEmOficinaSemAcesso() {
+    doThrow(new org.springframework.security.access.AccessDeniedException("outra oficina"))
+        .when(oficinaAccessValidator)
+        .validarAcessoOficina(2L);
+
+    assertThatThrownBy(
+            () ->
+                unidadeService.criar(2L, new UnidadeRequestDTO("Nome", "Rua X, 1", "83900000000")))
+        .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+    verifyNoInteractions(oficinaService);
+    verify(unidadeRepository, never()).save(any());
+  }
 }

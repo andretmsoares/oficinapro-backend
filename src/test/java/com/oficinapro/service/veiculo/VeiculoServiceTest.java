@@ -277,4 +277,135 @@ class VeiculoServiceTest {
 
     verify(veiculoRepository).delete(veiculo);
   }
+
+  @Test
+  @DisplayName("deletar: veículo inexistente deve lançar VeiculoNotFoundException")
+  void deveLancarExcecaoAoDeletarVeiculoInexistente() {
+    when(veiculoRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> veiculoService.deletar(99L))
+        .isInstanceOf(VeiculoNotFoundException.class);
+
+    verify(veiculoRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("deletar: veículo de outra oficina deve ser tratado como não encontrado")
+  void deveRecusarDeletarVeiculoDeOutraOficina() {
+    when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
+    doThrow(new VeiculoNotFoundException(1L))
+        .when(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(1L), any(RuntimeException.class));
+
+    assertThatThrownBy(() -> veiculoService.deletar(1L))
+        .isInstanceOf(VeiculoNotFoundException.class);
+
+    verify(veiculoRepository, never()).delete(any());
+  }
+
+  // ---------------------------------------------------------------
+  // buscarPorId() / buscarPorEntidadeId()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("buscarPorId: veículo inexistente deve lançar VeiculoNotFoundException")
+  void deveLancarExcecaoAoBuscarVeiculoInexistente() {
+    when(veiculoRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> veiculoService.buscarPorId(99L))
+        .isInstanceOf(VeiculoNotFoundException.class);
+
+    verifyNoInteractions(oficinaAccessValidator);
+  }
+
+  @Test
+  @DisplayName("buscarPorEntidadeId: veículo sem oficina valida o acesso com oficina nula")
+  void deveValidarAcessoComOficinaNulaQuandoVeiculoNaoTemOficina() {
+    veiculo.setOficina(null);
+    when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
+
+    Veiculo resultado = veiculoService.buscarPorEntidadeId(1L);
+
+    assertThat(resultado).isSameAs(veiculo);
+    verify(oficinaAccessValidator)
+        .validarAcessoAoRegistro(eq(null), any(VeiculoNotFoundException.class));
+  }
+
+  // ---------------------------------------------------------------
+  // buscarPorPlaca()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("buscarPorPlaca: placa inexistente na oficina deve lançar VeiculoNotFoundException")
+  void deveLancarExcecaoAoBuscarPlacaInexistente() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.findByOficinaIdAndPlaca(1L, "ZZZ0000")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> veiculoService.buscarPorPlaca("zzz-0000"))
+        .isInstanceOf(VeiculoNotFoundException.class);
+
+    verify(oficinaAccessValidator, never()).validarAcessoAoRegistro(any(), any(RuntimeException.class));
+  }
+
+  // ---------------------------------------------------------------
+  // buscar() com termo nulo / count()
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("buscar: termo nulo deve listar a oficina sem filtrar")
+  void deveListarOficinaQuandoTermoForNulo() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.findByOficinaId(1L, pageable))
+        .thenReturn(new PageImpl<>(List.of(veiculo)));
+
+    Page<VeiculoResponseDTO> resultado = veiculoService.buscar(null, pageable);
+
+    assertThat(resultado.getContent()).hasSize(1);
+    verify(veiculoRepository, never()).buscar(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("count: deve contar apenas os veículos da oficina do usuário")
+  void deveContarVeiculosDaOficinaDoUsuario() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.countByOficinaId(1L)).thenReturn(12);
+
+    assertThat(veiculoService.count()).isEqualTo(12);
+  }
+
+  // ---------------------------------------------------------------
+  // atualizar() - casos adicionais
+  // ---------------------------------------------------------------
+
+  @Test
+  @DisplayName("atualizar: manter a mesma placa não deve consultar duplicidade")
+  void naoDeveConsultarDuplicidadeQuandoPlacaNaoMuda() {
+    VeiculoRequestDTO request = new VeiculoRequestDTO("Civic EX", 2021, "honda", "azul", "abc-1234");
+
+    when(veiculoRepository.findById(1L)).thenReturn(Optional.of(veiculo));
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(veiculoRepository.save(any(Veiculo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    VeiculoResponseDTO resultado = veiculoService.atualizar(1L, request);
+
+    assertThat(resultado.placa()).isEqualTo("ABC1234");
+    assertThat(resultado.marca()).isEqualTo("HONDA");
+    assertThat(resultado.cor()).isEqualTo("AZUL");
+    assertThat(resultado.modelo()).isEqualTo("CIVIC EX");
+    verify(veiculoRepository, never()).existsByOficinaIdAndPlacaAndIdNot(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("atualizar: veículo inexistente deve lançar VeiculoNotFoundException")
+  void deveLancarExcecaoAoAtualizarVeiculoInexistente() {
+    when(veiculoRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                veiculoService.atualizar(
+                    99L, new VeiculoRequestDTO("Civic", 2020, "Honda", "Azul", "ABC1234")))
+        .isInstanceOf(VeiculoNotFoundException.class);
+
+    verify(veiculoRepository, never()).save(any());
+  }
 }
