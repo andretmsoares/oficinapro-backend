@@ -361,9 +361,9 @@ class OrdemDeServicoServiceConsultasTest {
         service.atualizar(1L, new OrdemDeServicoRequestDTO(1L, 1L, 5L, 6L, "Nova obs"));
 
     assertThat(resultado.clienteId()).isEqualTo(5L);
-    assertThat(resultado.clienteNome()).isEqualTo("MARIA");
+    assertThat(resultado.nomeCliente()).isEqualTo("MARIA");
     assertThat(resultado.mecanicoId()).isEqualTo(6L);
-    assertThat(resultado.mecanicoNome()).isEqualTo("PEDRO");
+    assertThat(resultado.mecanico()).isEqualTo("PEDRO");
     assertThat(resultado.obs()).isEqualTo("Nova obs");
   }
 
@@ -381,9 +381,9 @@ class OrdemDeServicoServiceConsultasTest {
         service.atualizar(1L, new OrdemDeServicoRequestDTO(1L, 1L, null, null, null));
 
     assertThat(resultado.clienteId()).isNull();
-    assertThat(resultado.clienteNome()).isNull();
+    assertThat(resultado.nomeCliente()).isNull();
     assertThat(resultado.mecanicoId()).isNull();
-    assertThat(resultado.mecanicoNome()).isNull();
+    assertThat(resultado.mecanico()).isNull();
     verify(clienteService, never()).buscarPorEntidadeId(any());
     verify(mecanicoService, never()).buscarPorEntidadeId(any());
   }
