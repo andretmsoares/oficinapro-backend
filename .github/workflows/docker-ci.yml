@@ -1,4 +1,4 @@
-name: Docker Image
+name: Docker Images
 
 on:
   push:
@@ -22,13 +22,28 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build and push backend
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/oficinapro:latest
-            ${{ secrets.DOCKER_USERNAME }}/oficinapro:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/oficinapro-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/oficinapro-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/oficinapro-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/oficinapro-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

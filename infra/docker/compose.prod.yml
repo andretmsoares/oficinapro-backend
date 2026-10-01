@@ -1,11 +1,10 @@
 services:
-
   postgres:
     image: postgres:16-alpine
     container_name: oficinapro-db
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ./../../.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -15,24 +14,21 @@ services:
     volumes:
       - oficinapro-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oficinapro -d oficinapro"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   app:
-    image: eclipse-temurin:21-jdk
+    image: ${DOCKER_USERNAME}/oficinapro-backend:latest
     container_name: oficinapro-app
-    working_dir: /app
-    volumes:
-      - .:/app
-      - gradle_cache:/root/.gradle
+    restart: unless-stopped
     env_file:
-      - ./.env
+      - ./../../.env
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-    command: ./gradlew bootRun --no-daemon
+      SPRING_PROFILES_ACTIVE: prod
     ports:
       - "8080:8080"
     depends_on:
@@ -40,23 +36,13 @@ services:
         condition: service_healthy
 
   frontend:
-    image: node:22-bookworm-slim
+    image: ${DOCKER_USERNAME}/oficinapro-frontend:latest
     container_name: oficinapro-frontend
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    restart: unless-stopped
     ports:
-      - "3000:5173"
+      - "3000:80"
     depends_on:
       - app
 
 volumes:
   oficinapro-data:
-  gradle_cache:
-  frontend_node_modules:
-
-#docker compose -f compose.dev.yml build
