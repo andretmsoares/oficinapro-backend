@@ -201,7 +201,7 @@ V1–V12 seguem normalmente, sem recriar o volume.
   do Flyway seria "baselinado" e a `V1` consolidada seria pulada silenciosamente.
 
 > **Bancos de desenvolvimento existentes precisam ser recriados.** As versões e checksums
-> mudaram, então o Flyway recusa o histórico antigo. Use `docker compose down -v` (apaga o
+> mudaram, então o Flyway recusa o histórico antigo. Use `docker compose -f infra/docker/compose.dev.yml down -v` (apaga o
 > volume) e suba de novo.
 
 ---
@@ -231,8 +231,8 @@ Duas camadas:
 2. **PostgreSQL limpo + `ddl-auto=validate`** — obrigatório antes de entregar:
 
 ```bash
-docker compose down -v          # ⚠️ apaga o volume do banco
-docker compose up postgres -d
+docker compose -f infra/docker/compose.dev.yml down -v          # ⚠️ apaga o volume do banco
+docker compose -f infra/docker/compose.dev.yml up postgres -d
 ./gradlew bootRun               # Flyway aplica V1..V12 e o Hibernate valida o schema
 ```
 

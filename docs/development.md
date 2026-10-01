@@ -1,6 +1,7 @@
 # Desenvolvimento
 
-Como subir o projeto, rodar os testes e contribuir.
+Como subir o backend, rodar os testes e contribuir. O frontend é outro repositório
+([`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend)) e tem a sua própria documentação de desenvolvimento.
 
 Última verificação contra o código: branch `docs`.
 
@@ -12,7 +13,6 @@ Como subir o projeto, rodar os testes e contribuir.
 |---|---|---|
 | JDK | 21 | o Gradle usa toolchain; outra versão instalada não impede |
 | Docker + Docker Compose | recente | para o PostgreSQL |
-| Node.js | 20+ | para o frontend |
 | Git | — | |
 
 Não é necessário instalar Gradle: use o wrapper (`./gradlew`).
@@ -21,9 +21,9 @@ Não é necessário instalar Gradle: use o wrapper (`./gradlew`).
 
 ## 2. Variáveis de ambiente — leia antes de tentar subir
 
-**`docker compose up` falha sem um arquivo `.env` na raiz.** O `docker-compose.yml`
-declara `env_file: ./.env` para os serviços `postgres` e `app`, e esse arquivo **não está
-no repositório** (corretamente — contém segredo).
+**O Compose falha sem um arquivo `.env` na raiz do repositório.** O
+`infra/docker/compose.dev.yml` declara `env_file: ./../../.env` (a raiz) para os serviços
+`postgres` e `app`, e esse arquivo **não está no repositório** (corretamente — contém segredo).
 
 O que existe é o template `.env-example` (com hífen, não `.env.example`). Primeiro passo
 de qualquer ambiente novo:
@@ -75,38 +75,38 @@ Melhor para desenvolver o backend: reinício rápido, debug direto na IDE.
 
 ```bash
 cp .env-example .env          # e edite JWT_SECRET e ADMIN_*
-docker compose up postgres -d
+docker compose -f infra/docker/compose.dev.yml up postgres -d
 ./gradlew bootRun
 ```
 
 Aplicação em http://localhost:8080, Swagger em http://localhost:8080/swagger-ui.html.
 
-### Opção B — tudo no Docker
+### Opção B — banco e aplicação no Docker
 
 ```bash
 cp .env-example .env
-docker compose up --build
+docker compose -f infra/docker/compose.dev.yml up
 ```
+
+O serviço `app` monta a raiz do repositório e roda `./gradlew bootRun` dentro do container.
 
 | Serviço | Porta |
 |---|---|
-| frontend (nginx) | 3000 |
 | backend | 8080 |
 | postgres | valor de `POSTGRES_PORT` |
 
 O `Dockerfile` do backend é multi-stage: builda com `temurin:21-jdk` e roda o jar em
 `temurin:21-jre`.
 
-### Frontend isolado
+### Com o frontend
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+O frontend vive em [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend). Clone-o ao lado deste
+repositório, suba o backend (A ou B) e aponte o frontend para ele com
+`VITE_API_URL=http://localhost:8080/api`. O backend já libera `http://localhost:3000` por
+`OFICINAPRO_CORS_ALLOWED_ORIGINS` (valor do `.env-example`); se o frontend rodar em outra
+porta/origem, ajuste essa variável.
 
-Vite em http://localhost:5173. Como o frontend ainda usa dados mockados, ele **não precisa
-do backend rodando** — ver [frontend.md](./frontend.md).
+Passos e portas do frontend: README do repositório dele.
 
 ---
 
@@ -166,8 +166,8 @@ Saber disso vale mais que o número de testes:
    com banco limpo — ver [database.md §6](./database.md).
 2. **Comportamento real do PostgreSQL.** O H2 em modo de compatibilidade não reproduz
    tudo.
-3. **Frontend.** Zero testes.
-4. **Integração frontend ↔ backend.** Não existe.
+3. **Frontend.** Os testes dele ficam no repositório `oficinapro-frontend`.
+4. **Integração frontend ↔ backend.** Nenhum teste automatizado cobre os dois repositórios juntos.
 
 ### Dívida conhecida na suíte
 
@@ -197,28 +197,21 @@ logo no `build`.
 > vermelho neste projeto. O formato é `googleJavaFormat` — indentação de 2 espaços, não 4.
 > Não tente formatar à mão.
 
-Frontend:
-
-```bash
-cd frontend
-npm run lint            # ESLint
-npm run format          # Prettier
-npm run format:check
-```
-
-Há um hook `pre-commit` (husky) na raiz que roda `lint-staged` e `npm run build` **no
-frontend**. Ele **não** roda os testes do backend — o CI é que pega isso.
+Este repositório **não** tem hook de `pre-commit`: nem os testes nem o `spotlessCheck` rodam
+antes do commit — o CI é que pega isso. (Lint/format do frontend: repositório do frontend.)
 
 ---
 
 ## 7. CI
 
-Dois workflows, ambos em `push` e `pull_request` na `develop`:
+Dois workflows em `.github/workflows/`:
 
-| Workflow | Faz |
-|---|---|
-| `backend-ci.yml` | JDK 21 Temurin, cache Gradle, `./gradlew build` (compila + testa + spotlessCheck) |
-| `frontend-ci.yml` | lint e build do frontend |
+| Workflow | Quando | Faz |
+|---|---|---|
+| `backend-ci.yml` | `pull_request` para `develop`/`main` | JDK 21 Temurin, cache Gradle, `./gradlew clean check` (compila + testa + spotlessCheck) e `bootJar` |
+| `docker-ci.yml` | `pull_request` para `main` | builda e publica a imagem `oficinapro-backend` (exige os secrets `DOCKER_USERNAME` e `DOCKER_TOKEN`) |
+
+O CI do frontend está no repositório do frontend.
 
 Como o `build` inclui `spotlessCheck`, código mal formatado reprova o CI mesmo com todos
 os testes passando.
@@ -235,16 +228,12 @@ os testes passando.
 ./gradlew bootJar
 
 # Banco
-docker compose up postgres -d
-docker compose logs -f postgres
-docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB
+docker compose -f infra/docker/compose.dev.yml up postgres -d
+docker compose -f infra/docker/compose.dev.yml logs -f postgres
+docker compose -f infra/docker/compose.dev.yml exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB
 
 # ⚠️ DESTRUTIVO: apaga o volume e todos os dados locais
-docker compose down -v
-
-# Frontend
-cd frontend && npm run dev
-cd frontend && npm run build     # tsc -b && vite build
+docker compose -f infra/docker/compose.dev.yml down -v
 ```
 
 ---
@@ -304,11 +293,11 @@ ela é seguida.
 | Sintoma | Provável causa |
 |---|---|
 | App não sobe: erro de JWT | `JWT_SECRET` ausente ou com menos de 32 caracteres |
-| App não sobe: `docker compose` reclama de env | falta `cp .env-example .env` |
+| App não sobe: o Compose reclama de env | falta `cp .env-example .env` |
 | App não sobe: `BeanCurrentlyInCreationException` | dependência circular reintroduzida — ver [architecture.md §5](./architecture.md) |
 | App não sobe: erro de `validate` do Hibernate | entidade e schema divergem; falta migration |
 | Migration falha em banco limpo | rode `FlywayMigrationsTest` e siga [database.md §6](./database.md) |
-| Flyway recusa o banco existente (checksum/versão) | as migrations foram consolidadas; recrie o banco com `docker compose down -v` |
+| Flyway recusa o banco existente (checksum/versão) | as migrations foram consolidadas; recrie o banco com `docker compose -f infra/docker/compose.dev.yml down -v` |
 | Subiu, mas não consigo logar | `ADMIN_USERNAME`/`ADMIN_PASSWORD` não definidos na primeira subida |
 | Cadastro de gerente dá 409 sem motivo | `chk_usuario_role` desatualizada em relação ao enum `Role`; conferir a `V5` |
 | CI vermelho com testes passando | `spotlessCheck` — rode `./gradlew spotlessApply` |
