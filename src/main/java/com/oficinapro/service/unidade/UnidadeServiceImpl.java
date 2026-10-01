@@ -1,0 +1,134 @@
+package com.oficinapro.service.unidade;
+
+import static com.oficinapro.util.TextoUtil.normalizar;
+
+import com.oficinapro.dto.unidade.UnidadeRequestDTO;
+import com.oficinapro.dto.unidade.UnidadeResponseDTO;
+import com.oficinapro.enums.Role;
+import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
+import com.oficinapro.exception.unidade.UnidadeNotFoundException;
+import com.oficinapro.model.Oficina;
+import com.oficinapro.model.Unidade;
+import com.oficinapro.model.Usuario;
+import com.oficinapro.repository.UnidadeRepository;
+import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.service.oficina.OficinaService;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class UnidadeServiceImpl implements UnidadeService {
+
+  private final UnidadeRepository unidadeRepository;
+  private final OficinaService oficinaService;
+  private final OficinaAccessValidator oficinaAccessValidator;
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<UnidadeResponseDTO> listar() {
+    Usuario logado = oficinaAccessValidator.getUsuarioAutenticado();
+
+    List<Unidade> unidades =
+        logado.getRole() == Role.ADMIN
+            ? unidadeRepository.findAll()
+            : unidadeRepository.findByOficinaId(oficinaAccessValidator.getOficinaIdUsuarioLogado());
+
+    return unidades.stream().map(this::toResponse).toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public UnidadeResponseDTO buscarPorId(Long id) {
+    return toResponse(this.buscarPorEntidadeId(id));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Unidade buscarPorEntidadeId(Long id) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
+
+    return unidade;
+  }
+
+  @Override
+  @Transactional
+  public UnidadeResponseDTO criar(Long oficinaId, UnidadeRequestDTO request) {
+    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
+    Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
+
+    String endereco = normalizar(request.endereco());
+
+    if (unidadeRepository.existsByOficinaIdAndEndereco(oficinaId, endereco)) {
+      throw new EnderecoAlreadyExistsException(endereco);
+    }
+
+    Unidade unidade = new Unidade();
+    unidade.setOficina(oficina);
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
+    unidade.setTelefone(request.telefone());
+
+    Unidade saved = unidadeRepository.save(unidade);
+
+    return toResponse(saved);
+  }
+
+  @Override
+  @Transactional
+  public UnidadeResponseDTO atualizar(Long id, UnidadeRequestDTO request) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
+
+    Long oficinaDaUnidade = unidade.getOficina() != null ? unidade.getOficina().getId() : null;
+
+    String endereco = normalizar(request.endereco());
+
+    if (oficinaDaUnidade != null
+        && unidadeRepository.existsByOficinaIdAndEnderecoAndIdNot(oficinaDaUnidade, endereco, id)) {
+      throw new EnderecoAlreadyExistsException(endereco);
+    }
+
+    unidade.setNome(normalizar(request.nome()));
+    unidade.setEndereco(endereco);
+    unidade.setTelefone(request.telefone());
+
+    Unidade updated = unidadeRepository.save(unidade);
+
+    return toResponse(updated);
+  }
+
+  @Override
+  @Transactional
+  public void deletar(Long id) {
+    Unidade unidade =
+        unidadeRepository.findById(id).orElseThrow(() -> new UnidadeNotFoundException(id));
+
+    oficinaAccessValidator.validarAcessoAoRegistro(
+        unidade.getOficina() != null ? unidade.getOficina().getId() : null,
+        new UnidadeNotFoundException(id));
+
+    unidadeRepository.delete(unidade);
+  }
+
+  private UnidadeResponseDTO toResponse(Unidade unidade) {
+    return new UnidadeResponseDTO(
+        unidade.getId(),
+        unidade.getOficina().getId(),
+        unidade.getNome(),
+        unidade.getEndereco(),
+        unidade.getTelefone());
+  }
+}

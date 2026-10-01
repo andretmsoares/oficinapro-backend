@@ -1,0 +1,55 @@
+package com.oficinapro.service.ordem_servico;
+
+import com.oficinapro.dto.ordemDeServico.*;
+import com.oficinapro.enums.StatusOrdemDeServico;
+import com.oficinapro.model.OrdemDeServico;
+import java.math.BigDecimal;
+import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
+
+public interface OrdemDeServicoService {
+
+  // A negação de acesso é sinalizada por org.springframework.security.access.AccessDeniedException,
+  // que é unchecked. Declarar "throws" aqui já apontou para java.nio.file.AccessDeniedException por
+  // engano — uma exceção checked de I/O, sem relação com autorização — e isso forçou try/catch no
+  // controller, que acabou engolindo o erro e devolvendo 200 com corpo vazio em vez de 403.
+  List<OrdemDeServicoResponseDTO> listar();
+
+  List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
+
+  List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId);
+
+  List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId);
+
+  List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
+
+  List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
+
+  OrdemDeServicoResponseDTO buscarPorId(Long id);
+
+  OrdemDeServico buscarPorEntidadeId(Long id);
+
+  OrdemDeServicoResponseDTO aplicarDesconto(Long id, BigDecimal desconto);
+
+  OrdemDeServicoResponseDTO recalcularValorTotal(Long id, BigDecimal novoValorTotal);
+
+  OrdemDeServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOSRequestDTO dto);
+
+  OrdemDeServicoResponseDTO atribuirMecanico(Long id, AtribuirMecanicoRequestDTO dto);
+
+  OrdemDeServicoResponseDTO atribuirCliente(Long id, AtribuirClienteRequestDTO dto);
+
+  OrdemDeServicoResponseDTO criar(OrdemDeServicoRequestDTO request);
+
+  OrdemDeServicoResponseDTO atualizar(Long id, OrdemDeServicoRequestDTO request);
+
+  void deletar(Long id);
+
+  List<FluxoMensalOSResponseDTO> fluxoMensal(int mes, int ano);
+
+  @Transactional(readOnly = true)
+  byte[] gerarPdf(Long id);
+
+  @Transactional(readOnly = true)
+  byte[] gerarComprovantePagamento(Long id);
+}

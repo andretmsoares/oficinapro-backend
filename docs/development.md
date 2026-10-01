@@ -1,0 +1,306 @@
+# Desenvolvimento
+
+Como subir o backend, rodar os testes e contribuir. O frontend é outro repositório
+([`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend)) e tem a sua própria documentação de desenvolvimento.
+
+Última verificação contra o código: branch `docs`.
+
+---
+
+## 1. Pré-requisitos
+
+| Ferramenta | Versão | Observação |
+|---|---|---|
+| JDK | 21 | o Gradle usa toolchain; outra versão instalada não impede |
+| Docker + Docker Compose | recente | para o PostgreSQL |
+| Git | — | |
+
+Não é necessário instalar Gradle: use o wrapper (`./gradlew`).
+
+---
+
+## 2. Variáveis de ambiente — leia antes de tentar subir
+
+**O Compose falha sem um arquivo `.env` na raiz do repositório.** O
+`infra/docker/compose.dev.yml` declara `env_file: ./../../.env` (a raiz) para os serviços
+`postgres` e `app`, e esse arquivo **não está no repositório** (corretamente — contém segredo).
+
+O que existe é o template `.env-example` (com hífen, não `.env.example`). Primeiro passo
+de qualquer ambiente novo:
+
+```bash
+cp .env-example .env
+```
+
+### Variáveis
+
+| Variável | Obrigatória | Default | Para quê |
+|---|---|---|---|
+| `POSTGRES_DB` | ✅ | — | nome do banco |
+| `POSTGRES_HOST` | ✅ | `localhost` | no compose, o serviço sobrescreve para `postgres` |
+| `POSTGRES_PORT` | ✅ | `5432` | |
+| `POSTGRES_USER` | ✅ | — | |
+| `POSTGRES_PASSWORD` | ✅ | — | |
+| `SERVER_PORT` | ➖ | `8080` | |
+| `JWT_SECRET` | ✅ | — | assinatura HS256. **Mínimo 32 caracteres** |
+| `ADMIN_USERNAME` | ➖ | vazio | cria o ADMIN do SaaS na primeira subida |
+| `ADMIN_PASSWORD` | ➖ | vazio | idem |
+| `ADMIN_NOME` | ➖ | `Administrador do SaaS` | idem |
+
+### Duas armadilhas
+
+**`JWT_SECRET` com menos de 32 caracteres derruba a aplicação na subida.** É exigência do
+HS256. O `JwtConfig` valida no startup e falha com mensagem explicando o que fazer, em
+vez de estourar erro cru. Gere um segredo de verdade:
+
+```bash
+openssl rand -base64 48
+```
+
+**Sem `ADMIN_USERNAME`/`ADMIN_PASSWORD` você sobe a aplicação e não consegue logar.** O
+`AdminSeeder` só cria o ADMIN inicial se as duas estiverem preenchidas. Sem ADMIN, não há
+como criar oficina; sem oficina, não há como criar gerente. A aplicação sobe e fica
+inutilizável.
+
+O seeder também não roda se já existir qualquer usuário com papel `ADMIN` — não sobrescreve
+nada. Depois da primeira subida, troque a senha e remova as variáveis.
+
+---
+
+## 3. Subindo
+
+### Opção A — banco no Docker, aplicação local
+
+Melhor para desenvolver o backend: reinício rápido, debug direto na IDE.
+
+```bash
+cp .env-example .env          # e edite JWT_SECRET e ADMIN_*
+docker compose -f infra/docker/compose.dev.yml up postgres -d
+./gradlew bootRun
+```
+
+Aplicação em http://localhost:8080, Swagger em http://localhost:8080/swagger-ui.html.
+
+### Opção B — banco e aplicação no Docker
+
+```bash
+cp .env-example .env
+docker compose -f infra/docker/compose.dev.yml up
+```
+
+O serviço `app` monta a raiz do repositório e roda `./gradlew bootRun` dentro do container.
+
+| Serviço | Porta |
+|---|---|
+| backend | 8080 |
+| postgres | valor de `POSTGRES_PORT` |
+
+O `Dockerfile` do backend é multi-stage: builda com `temurin:21-jdk` e roda o jar em
+`temurin:21-jre`.
+
+### Com o frontend
+
+O frontend vive em [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend). Clone-o ao lado deste
+repositório, suba o backend (A ou B) e aponte o frontend para ele com
+`VITE_API_URL=http://localhost:8080/api`. O backend já libera `http://localhost:3000` por
+`OFICINAPRO_CORS_ALLOWED_ORIGINS` (valor do `.env-example`); se o frontend rodar em outra
+porta/origem, ajuste essa variável.
+
+Passos e portas do frontend: README do repositório dele.
+
+---
+
+## 4. Perfis
+
+| Perfil | Quando | Características |
+|---|---|---|
+| `dev` | **default** | `show-sql: true`, log `DEBUG` em `com.oficinapro`, bind de parâmetros em `TRACE` |
+| `prod` | explícito | `show-sql: false`, log `WARN`/`INFO` |
+| `test` | automático nos testes | H2 em memória, Flyway desligado, `create-drop` |
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=prod'
+```
+
+---
+
+## 5. Testes
+
+```bash
+./gradlew test                  # suíte completa
+./gradlew build                 # compila + testes + spotlessCheck
+./gradlew test --tests '*PagamentoServiceImplTest'
+./gradlew test --tests '*StatusMachine*'
+```
+
+Relatório HTML em `build/reports/tests/test/index.html`.
+
+### Composição da suíte
+
+| Tipo | Classes | O que valida | Anotação |
+|---|---|---|---|
+| Unitário de service | 28 | regra de negócio isolada, dependências mockadas | `@ExtendWith(MockitoExtension.class)` |
+| Web | 13 | contrato HTTP, validação de DTO, `403` por papel | `@WebMvcTest` |
+| Integração | 2 | contexto sobe; `401` com a cadeia real | `@SpringBootTest` |
+
+348 métodos no total (337 `@Test` + 11 `@ParameterizedTest`, que geram várias execuções
+cada).
+
+### Os testes de controller não são E2E
+
+São `@WebMvcTest` com o service **mockado**: validam a borda HTTP — status, JSON,
+`@PreAuthorize`, validação de DTO — e não o fluxo ponta a ponta. Chamá-los de E2E dá falsa
+sensação de cobertura, e a documentação anterior fazia isso.
+
+Consequência prática: `@WebMvcTest` **não carrega o `SecurityConfig`**. Ali só se verifica
+`403`. A distinção entre `401` e `403` exige a aplicação completa, e é por isso que
+`SecurityFilterChainIntegrationTest` existe como `@SpringBootTest`.
+
+### O que a suíte NÃO cobre
+
+Saber disso vale mais que o número de testes:
+
+1. **Migrations em PostgreSQL real.** O perfil de teste desliga o Flyway e gera o schema
+   pelas entidades; só `FlywayMigrationsTest` executa o SQL das migrations, e em H2 (modo
+   PostgreSQL). `ddl-auto=validate` contra PostgreSQL só é exercido subindo a aplicação
+   com banco limpo — ver [database.md §6](./database.md).
+2. **Comportamento real do PostgreSQL.** O H2 em modo de compatibilidade não reproduz
+   tudo.
+3. **Frontend.** Os testes dele ficam no repositório `oficinapro-frontend`.
+4. **Integração frontend ↔ backend.** Nenhum teste automatizado cobre os dois repositórios juntos.
+
+### Dívida conhecida na suíte
+
+Seis das oito classes que usavam `@MockitoSettings(strictness = LENIENT)` voltaram ao
+`STRICT_STUBS` padrão (`UnidadeServiceTest`, `OrdemDeServicoServiceTest`,
+`VeiculoServiceTest`, `ClienteServiceTest`, `MecanicoServiceTest`, `OficinaServiceTest`): os
+stubs ociosos de `getUsuarioAutenticado()` foram removidos e testes que passavam por acidente
+(stub de `getOficinaIdUsuarioLogado()` ausente) foram corrigidos.
+
+Continuam em `LENIENT`, por ainda não terem sido limpas: `UsuarioServiceTest` e
+`OrdemDeServicoStatusMachineTest`. Elas dependem de stubs de `getUsuarioAutenticado()` com
+papéis diferentes por cenário e precisam ser revisadas com a suíte rodando.
+
+---
+
+## 6. Formatação e lint
+
+Spotless com `googleJavaFormat` é obrigatório: `spotlessCheck` está pendurado no `check`,
+logo no `build`.
+
+```bash
+./gradlew spotlessApply     # formata
+./gradlew spotlessCheck     # só verifica
+```
+
+> **Rode `spotlessApply` antes de commitar.** Esquecer disso é a causa mais comum de CI
+> vermelho neste projeto. O formato é `googleJavaFormat` — indentação de 2 espaços, não 4.
+> Não tente formatar à mão.
+
+Este repositório **não** tem hook de `pre-commit`: nem os testes nem o `spotlessCheck` rodam
+antes do commit — o CI é que pega isso. (Lint/format do frontend: repositório do frontend.)
+
+---
+
+## 7. CI
+
+Dois workflows em `.github/workflows/`:
+
+| Workflow | Quando | Faz |
+|---|---|---|
+| `backend-ci.yml` | `pull_request` para `develop`/`main` | JDK 21 Temurin, cache Gradle, `./gradlew clean check` (compila + testa + spotlessCheck) e `bootJar` |
+| `docker-ci.yml` | `pull_request` para `main` | builda e publica a imagem `oficinapro-backend` (exige os secrets `DOCKER_USERNAME` e `DOCKER_TOKEN`) |
+
+O CI do frontend está no repositório do frontend.
+
+Como o `build` inclui `spotlessCheck`, código mal formatado reprova o CI mesmo com todos
+os testes passando.
+
+---
+
+## 8. Comandos úteis
+
+```bash
+# Backend
+./gradlew bootRun
+./gradlew build -x test          # build sem testes
+./gradlew clean build
+./gradlew bootJar
+
+# Banco
+docker compose -f infra/docker/compose.dev.yml up postgres -d
+docker compose -f infra/docker/compose.dev.yml logs -f postgres
+docker compose -f infra/docker/compose.dev.yml exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB
+
+# ⚠️ DESTRUTIVO: apaga o volume e todos os dados locais
+docker compose -f infra/docker/compose.dev.yml down -v
+```
+
+---
+
+## 9. Contribuindo
+
+### Branches
+
+| Branch | Papel |
+|---|---|
+| `main` | estável |
+| `develop` | integração; alvo dos PRs e dos workflows de CI |
+| `ci`, `docs`, `fix`, ... | trabalho pontual, mescladas em `develop` |
+
+### Commits — Conventional Commits em português
+
+```
+<tipo>: <assunto no imperativo, minúsculo>
+
+<corpo explicando POR QUE, não o que>
+```
+
+Tipos em uso: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+
+```
+fix: corrige CHECK de role que impedia cadastrar GERENTE
+
+A V2 criou chk_usuario_role permitindo ('ADMIN','ADMINISTRATIVO','MECANICO')
+e a V14 renomeou o cargo via UPDATE sem ajustar a constraint. Em base sem
+usuarios ADMINISTRATIVO a V14 passa com zero linhas, mas a constraint
+continua proibindo 'GERENTE' e qualquer cadastro de gerente morre como 409.
+```
+
+O diff mostra o que mudou; o corpo precisa dizer por que. Dica prática: aspas duplas
+dentro de `-m` quebram o shell no PowerShell — escreva `roles=ADMIN` em vez de
+`roles="ADMIN"`, ou use here-string.
+
+### Checklist de PR
+
+1. `./gradlew spotlessApply`
+2. `./gradlew build` verde localmente
+3. Teste cobrindo a mudança — ou justificativa de por que não dá
+4. Se mudou permissão → atualizar [permissions.md](./permissions.md)
+5. Se mudou regra financeira ou de status → atualizar [business-rules.md](./business-rules.md)
+6. Se criou migration → atualizar [database.md](./database.md) e testar contra
+   PostgreSQL real
+7. Se mudou arquitetura ou dependências → atualizar [architecture.md](./architecture.md)
+
+Os itens 4 a 7 existem porque a divergência entre documentação e código foi o principal
+achado da auditoria deste projeto. Documentação errada é pior que documentação ausente:
+ela é seguida.
+
+---
+
+## 10. Onde procurar quando quebrar
+
+| Sintoma | Provável causa |
+|---|---|
+| App não sobe: erro de JWT | `JWT_SECRET` ausente ou com menos de 32 caracteres |
+| App não sobe: o Compose reclama de env | falta `cp .env-example .env` |
+| App não sobe: `BeanCurrentlyInCreationException` | dependência circular reintroduzida — ver [architecture.md §5](./architecture.md) |
+| App não sobe: erro de `validate` do Hibernate | entidade e schema divergem; falta migration |
+| Migration falha em banco limpo | rode `FlywayMigrationsTest` e siga [database.md §6](./database.md) |
+| Flyway recusa o banco existente (checksum/versão) | as migrations foram consolidadas; recrie o banco com `docker compose -f infra/docker/compose.dev.yml down -v` |
+| Subiu, mas não consigo logar | `ADMIN_USERNAME`/`ADMIN_PASSWORD` não definidos na primeira subida |
+| Cadastro de gerente dá 409 sem motivo | `chk_usuario_role` desatualizada em relação ao enum `Role`; conferir a `V5` |
+| CI vermelho com testes passando | `spotlessCheck` — rode `./gradlew spotlessApply` |
+| 401 onde era esperado 403 | não é bug: sem token válido o filtro responde 401 antes do `@PreAuthorize` |
+| 404 em registro que existe | isolamento por oficina — é o comportamento correto. Ver [permissions.md §6](./permissions.md) |
+| 500 em qualquer rota | sempre bug. Não há handler genérico; provavelmente falta um `@ExceptionHandler` |

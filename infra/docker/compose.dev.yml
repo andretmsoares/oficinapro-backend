@@ -1,0 +1,46 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: oficinapro-db
+    restart: unless-stopped
+    env_file:
+      - ./../../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - oficinapro-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oficinapro -d oficinapro"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: eclipse-temurin:21-jdk
+    container_name: oficinapro-app
+    working_dir: /app
+    volumes:
+      - ../..:/app
+      - gradle_cache:/root/.gradle
+    env_file:
+      - ./../../.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    command: ./gradlew bootRun --no-daemon
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  oficinapro-data:
+  gradle_cache:
+
+# docker compose -f infra/docker/compose.dev.yml up

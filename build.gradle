@@ -2,6 +2,8 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '7.2.1'
+	id 'jacoco'
 }
 
 group = 'com.oficinaPro'
@@ -18,41 +20,103 @@ repositories {
 }
 
 dependencies {
-	// Spring
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-jackson'
+	implementation 'com.github.librepdf:openpdf:2.2.3'
+	implementation 'com.google.cloud:google-cloud-storage:2.70.0'
 
-	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'
 
-	// Flyway
-	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 
-	// Validation
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 
-	// Security
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-
-	// Swagger / OpenAPI
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
-
-	// Lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
-	// DevTools
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-	// Tests
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	testImplementation 'com.h2database:h2'
+}
+
+jacoco {
+	toolVersion = "0.8.13"
+}
+
+spotless {
+	java {
+		googleJavaFormat()
+		removeUnusedImports()
+		importOrder()
+	}
+}
+
+tasks.named('build') {
+	dependsOn 'spotlessApply'
+}
+
+tasks.named('check') {
+	dependsOn 'spotlessCheck'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	forkEvery = 0
+	maxParallelForks = 1
+
+	jvmArgs(
+			'-Xms256m',
+			'-Xmx1024m'
+	)
+
+	// Gera o relatório JaCoCo depois dos testes
+	finalizedBy 'jacocoTestReport'
+}
+
+
+tasks.named('jacocoTestReport') {
+	dependsOn 'test'
+
+	reports {
+		html.required = true
+		xml.required = true
+		csv.required = false
+	}
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+	dependsOn 'jacocoTestReport'
+
+	violationRules {
+		rule {
+			element = 'BUNDLE'
+
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.70
+			}
+		}
+	}
+}
+
+tasks.named('check') {
+	dependsOn 'jacocoTestCoverageVerification'
 }
