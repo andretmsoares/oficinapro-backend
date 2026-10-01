@@ -25,7 +25,8 @@ import org.springframework.stereotype.Component;
  * cache em memória não precisa ser invalidado.
  */
 @Component
-@ConditionalOnExpression("!'${oficinapro.storage.gcs.bucket:}'.isEmpty()")
+@ConditionalOnExpression(
+    "!'${oficinapro.storage.gcs.bucket:}'.isEmpty() && '${oficinapro.storage.r2.bucket:}'.isEmpty()")
 public class GcsLogoStorage implements LogoStorage {
 
   private static final Logger log = LoggerFactory.getLogger(GcsLogoStorage.class);

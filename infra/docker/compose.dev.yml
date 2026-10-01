@@ -6,16 +6,12 @@ services:
     restart: unless-stopped
     env_file:
       - ./../../.env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - oficinapro-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oficinapro -d oficinapro"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,4 +39,4 @@ volumes:
   oficinapro-data:
   gradle_cache:
 
-# docker compose -f infra/docker/compose.dev.yml up
+# docker compose --env-file .env -f infra/docker/compose.dev.yml up

@@ -55,6 +55,12 @@ oficinapro:
   storage:
     gcs:
       bucket: ${GCS_BUCKET:}
+    # Cloudflare R2 (API S3). Se R2_BUCKET estiver definido, tem prioridade sobre o GCS.
+    r2:
+      bucket: ${R2_BUCKET:}
+      endpoint: ${R2_ENDPOINT:}
+      access-key: ${R2_ACCESS_KEY:}
+      secret-key: ${R2_SECRET_KEY:}
 
 server:
   port: ${SERVER_PORT:8080}
