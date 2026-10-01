@@ -69,7 +69,7 @@ existe um papel de administrador da plataforma separado dos papéis de oficina.
 11 telas implementadas: Login, Dashboard, Clientes, Veículos, Mecânicos, Peças, Ordens de
 Serviço, Pagamentos, Usuários, Unidades e Oficinas.
 
-> O frontend está integrado ao backend por `fetch` (`frontend/src/services/api.ts`) com JWT.
+> O frontend está integrado ao backend por `fetch` (`src/services/api.ts` no repositório `oficinapro-frontend`) com JWT.
 > Valores monetários trafegam em **centavos** de ponta a ponta. Clientes, veículos, mecânicos,
 > usuários e oficinas têm busca e paginação no servidor (20 por página). Limitação do MVP: as
 > telas de OS, pagamentos, peças e unidades ainda carregam a lista inteira da oficina. Textos
@@ -90,7 +90,7 @@ O detalhe técnico vive em `docs/`. Este README é só a porta de entrada.
 | [`docs/database.md`](./docs/database.md) | ER, constraints, histórico das 12 migrations |
 | [`docs/development.md`](./docs/development.md) | como subir, variáveis de ambiente, testes, contribuição |
 | [`docs/frontend.md`](./docs/frontend.md) | arquitetura do frontend, componentes genéricos, integração |
-| [`frontend/README.md`](./frontend/README.md) | início rápido do frontend |
+| [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend#readme) | repositório do frontend (início rápido) |
 
 **A lista de endpoints não está aqui de propósito.** A fonte viva é o OpenAPI, gerado a
 partir do código:

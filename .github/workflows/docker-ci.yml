@@ -33,17 +33,3 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/oficinapro-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Build and push frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL }}
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/oficinapro-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/oficinapro-frontend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
