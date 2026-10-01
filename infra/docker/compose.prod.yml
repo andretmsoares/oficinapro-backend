@@ -4,7 +4,7 @@ services:
     container_name: oficinapro-db
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ./../../.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -14,19 +14,17 @@ services:
     volumes:
       - oficinapro-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oficinapro -d oficinapro"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   app:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: ${DOCKER_USERNAME}/oficinapro-backend:latest
     container_name: oficinapro-app
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ./../../.env
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -37,17 +35,5 @@ services:
       postgres:
         condition: service_healthy
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-          VITE_API_URL: ${VITE_API_URL}
-    container_name: oficinapro-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:80"
-    depends_on:
-      - app
 volumes:
   oficinapro-data:

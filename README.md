@@ -66,14 +66,15 @@ existe um papel de administrador da plataforma separado dos papéis de oficina.
 
 ### Frontend
 
+O frontend vive em um repositório próprio: [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend).
 11 telas implementadas: Login, Dashboard, Clientes, Veículos, Mecânicos, Peças, Ordens de
 Serviço, Pagamentos, Usuários, Unidades e Oficinas.
 
-> O frontend está integrado ao backend por `fetch` (`frontend/src/services/api.ts`) com JWT.
+> O frontend está integrado ao backend por `fetch` (`src/services/api.ts` no repositório `oficinapro-frontend`) com JWT.
 > Valores monetários trafegam em **centavos** de ponta a ponta. Clientes, veículos, mecânicos,
 > usuários e oficinas têm busca e paginação no servidor (20 por página). Limitação do MVP: as
 > telas de OS, pagamentos, peças e unidades ainda carregam a lista inteira da oficina. Textos
-> são gravados sem acento e em caixa alta. Detalhes em [`docs/frontend.md`](./docs/frontend.md).
+> são gravados sem acento e em caixa alta. Detalhes em [`docs/frontend.md`](https://github.com/andretmsoares/oficinapro-frontend/blob/develop/docs/frontend.md), no repositório do frontend.
 
 ---
 
@@ -89,8 +90,7 @@ O detalhe técnico vive em `docs/`. Este README é só a porta de entrada.
 | [`docs/api.md`](./docs/api.md) | contrato de erro, fluxo de autenticação, paginação, convenções de tipo |
 | [`docs/database.md`](./docs/database.md) | ER, constraints, histórico das 12 migrations |
 | [`docs/development.md`](./docs/development.md) | como subir, variáveis de ambiente, testes, contribuição |
-| [`docs/frontend.md`](./docs/frontend.md) | arquitetura do frontend, componentes genéricos, integração |
-| [`frontend/README.md`](./frontend/README.md) | início rápido do frontend |
+| [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend) | repositório do frontend — README e `docs/frontend.md` (arquitetura, componentes) |
 
 **A lista de endpoints não está aqui de propósito.** A fonte viva é o OpenAPI, gerado a
 partir do código:
@@ -107,7 +107,9 @@ anterior deste arquivo.
 
 ## Início rápido
 
-**Pré-requisitos:** JDK 21, Docker, Node 20+.
+**Pré-requisitos:** JDK 21 e Docker.
+
+Este repositório contém **só o backend**. O frontend é um projeto independente, em [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend).
 
 ```bash
 # 1. Configurar o ambiente (obrigatório — o compose falha sem .env)
@@ -115,7 +117,7 @@ cp .env-example .env
 #    edite JWT_SECRET (mínimo 32 caracteres) e ADMIN_USERNAME/ADMIN_PASSWORD
 
 # 2. Subir o banco
-docker compose up postgres -d
+docker compose -f infra/docker/compose.dev.yml up postgres -d
 
 # 3. Subir a aplicação
 ./gradlew bootRun
@@ -123,11 +125,7 @@ docker compose up postgres -d
 
 http://localhost:8080 · Swagger em http://localhost:8080/swagger-ui.html
 
-Frontend:
-
-```bash
-cd frontend && npm install && npm run dev
-```
+Para rodar a interface, siga o README do [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend) apontando `VITE_API_URL` para este backend (`http://localhost:8080/api`).
 
 Duas armadilhas que valem ler antes:
 
@@ -145,11 +143,11 @@ Tudo em [`docs/development.md`](./docs/development.md).
 
 ```
 ┌─────────────────────────┐        ┌──────────────────────────────┐
-│  frontend               │        │  backend                     │
+│  oficinapro-frontend    │        │  oficinapro-backend          │
 │  React 19 + TS + Vite   │        │  Spring Boot 4.1 · Java 21   │
-│  porta 3000 (nginx)     │╌╌╌╌╌╌╌>│  REST /api/** · JWT HS256    │
-│  fetch + JWT             │ HTTP   │  porta 8080                  │
-└─────────────────────────┘  não   └──────────────┬───────────────┘
+│  porta 3000 (nginx)     │───────>│  REST /api/** · JWT HS256    │
+│  fetch + JWT            │  HTTP  │  porta 8080                  │
+└─────────────────────────┘        └──────────────┬───────────────┘
                                                   │ JPA + Flyway
                                                   ▼
                                     ┌──────────────────────────────┐
@@ -196,11 +194,11 @@ Matriz completa em [`docs/permissions.md`](./docs/permissions.md).
 oauth2-resource-server, validation, actuator), PostgreSQL 16, Flyway, springdoc-openapi,
 Gradle, Spotless (googleJavaFormat), JUnit 5 + Mockito + AssertJ + H2.
 
-**Frontend** — React 19, TypeScript 6, Vite 8, react-router-dom 7, lucide-react, recharts,
-ESLint + Prettier + husky. Sem biblioteca de HTTP ainda.
+**Frontend** (repositório `oficinapro-frontend`) — React 19, TypeScript 6, Vite 8,
+react-router-dom 7, `fetch` nativo com JWT.
 
-**Infra** — Docker Compose (postgres + app + frontend), GitHub Actions
-(`backend-ci.yml`, `frontend-ci.yml`).
+**Infra** — Docker Compose (`infra/docker/`: postgres + app), GitHub Actions
+(`backend-ci.yml`, `docker-ci.yml`). O frontend tem Compose e CI próprios no seu repositório.
 
 ---
 
@@ -250,7 +248,7 @@ no `build`, e é a causa mais comum de CI vermelho aqui.
 | RF13 | Relatórios de compras | Pendente |
 | RF14 | Associação entre compras e OS | Pendente |
 | RF15 | Controle de pagamentos | **Implementado (backend)** |
-| RF16 | Dashboard | **Parcial** — fluxo mensal no backend; tela com dados mockados |
+| RF16 | Dashboard | **Parcial** — fluxo mensal no backend; tela do frontend consome a API |
 | RF17 | Auditoria | Pendente |
 
 RF10–RF14 não têm tabelas nem código: as tabelas órfãs de compras foram removidas na
@@ -271,7 +269,7 @@ consolidação das migrations. Ver [`docs/database.md`](./docs/database.md) §4.
 │ Oficinas ✓ · Unidades ✓ · Clientes ✓ · Veículos ✓ · Mecânicos ✓
 │ Usuários ✓ · OS ✓ · Peças ✓ · Mão de obra ✓ · Pagamentos ✓
 │ Auth JWT ✓ · Isolamento por oficina ✓
-│ ⬜ Integração frontend ↔ backend      ← próximo passo crítico
+│ ✓ Integração frontend ↔ backend (repositórios separados)
 │ ⬜ Histórico de veículos · Auditoria
 └───────┬───────┘
         ▼

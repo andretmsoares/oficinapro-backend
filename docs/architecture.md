@@ -1,23 +1,26 @@
 # Arquitetura
 
-Visão real do sistema, incluindo o frontend 
+Visão real do sistema. O projeto é composto por **dois repositórios independentes**:
+`oficinapro-backend` (este) e [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend). Este documento
+detalha o backend; do frontend há apenas o resumo da §7.
 
 ---
 
 ## 1. Visão geral
 
-Monorepo com dois artefatos independentes e um banco.
+Dois repositórios independentes (cada um com Dockerfile, Compose e CI próprios) e um banco.
+A única ligação entre eles é o contrato HTTP da API.
 
 ```
 ┌─────────────────────────┐        ┌──────────────────────────────┐
-│  frontend               │        │  backend                     │
+│  oficinapro-frontend    │        │  oficinapro-backend          │
 │  React 19 + TS + Vite   │        │  Spring Boot 4.1 · Java 21   │
 │  porta 3000 (nginx)     │        │  porta 8080                  │
 │                         │        │                              │
-│  ⚠️ dados 100% mockados  │╌╌╌╌╌╌╌>│  REST /api/**                │
-│  (sem camada HTTP)      │ ainda  │  JWT HS256                   │
-└─────────────────────────┘  não   └──────────────┬───────────────┘
-                            ligado                │ JPA + Flyway
+│  fetch + JWT            │───────>│  REST /api/**                │
+│  (VITE_API_URL)         │  HTTP  │  JWT HS256                   │
+└─────────────────────────┘        └──────────────┬───────────────┘
+                                                  │ JPA + Flyway
                                                   ▼
                                     ┌──────────────────────────────┐
                                     │  PostgreSQL 16               │
@@ -25,13 +28,10 @@ Monorepo com dois artefatos independentes e um banco.
                                     └──────────────────────────────┘
 ```
 
-> **O frontend ainda não conversa com o backend.** Não existe `fetch`, `axios` nem
-> qualquer cliente HTTP no `frontend/src`. Todas as telas leem de arquivos em
-> `src/mocks/` e mutam estado local com `useState`. O login grava a string literal
-> `"mock-token-123"` no `localStorage` e a usa apenas como flag booleana.
->
-> Isso é o maior item em aberto do projeto. Detalhes e plano em
-> [frontend.md](./frontend.md).
+> **Acoplamento entre os repositórios.** O frontend descobre o backend pela variável de build
+> `VITE_API_URL` (embutida na imagem, não lida em runtime) e o backend libera a origem do
+> frontend via `OFICINAPRO_CORS_ALLOWED_ORIGINS`. Mudou o contrato da API ou o papel de um
+> usuário? Atualize os dois repositórios — não há mais um commit único que cubra ambos.
 
 ---
 
@@ -243,41 +243,20 @@ Regras de cada passo em [business-rules.md](./business-rules.md).
 
 ---
 
-## 7. Frontend — arquitetura
+## 7. Frontend
 
-Organização **por tipo**, não por feature:
+O frontend é o repositório [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend) e a sua arquitetura (estrutura
+de pastas, componentes genéricos `EntityForm`/`EntityTable`/`EntityViewModal`, rotas e guard
+de papel, estilo) está documentada lá, em
+[`docs/frontend.md`](https://github.com/andretmsoares/oficinapro-frontend/blob/develop/docs/frontend.md).
 
-```
-frontend/src
-├── App.tsx        roteamento + todo o estado global (265 linhas)
-├── main.tsx       entry
-├── index.css      reset + classes globais de layout e modal
-├── assets/
-├── mocks/         12 arquivos MOCK_* — a fonte de dados atual
-├── types/         interfaces por domínio
-├── services/      formatters.ts · ordemServicoCalculos.ts · pagamentoCalculos.ts
-│                  (funções puras, nenhuma faz HTTP)
-├── pages/         11 páginas, pasta por página
-└── components/    componentes, pasta por componente com CSS co-localizado
-```
+O que importa daqui:
 
-Pontos estruturais:
-
-- **Sem gerenciador de estado e sem Context.** O estado de autenticação e os dados vivem
-  em `useState` dentro de `App.tsx` e descem por props.
-- **Guard de rota:** `RequireRole` em `App.tsx`, usado em 3 grupos de rotas
-  (operacional = MECANICO+GERENTE, GERENTE, ADMIN). Redireciona para a home do papel em
-  vez de mostrar 403.
-- **Três componentes genéricos** sustentam quase todas as telas: `EntityForm`,
-  `EntityTable`, `EntityViewModal`. API detalhada em [frontend.md](./frontend.md).
-- **CSS global puro**, sem CSS Modules nem Tailwind, com arquivo `.style.css`
-  co-localizado por componente.
-- **`Role` do frontend está alinhado ao backend:** `"ADMIN" | "GERENTE" | "MECANICO"`.
-  Essa divergência já existiu (o frontend usava um nome e o backend outro) e está
-  resolvida.
-
-Pontos frágeis conhecidos: `strict` desligado no TypeScript, `react-router-dom` em
-`devDependencies`, nenhum teste. Lista completa em [frontend.md](./frontend.md).
+- consome esta API por `fetch` com `Authorization: Bearer <token>`;
+- o tipo `Role` espelha o enum Java: `"ADMIN" | "GERENTE" | "MECANICO"` — mudança de papel
+  exige PR nos dois repositórios;
+- o guard de rota do frontend é só conveniência de UX; a autorização real é a deste backend
+  ([permissions.md](./permissions.md)).
 
 ---
 
@@ -301,17 +280,7 @@ Pontos frágeis conhecidos: `strict` desligado no TypeScript, `react-router-dom`
 
 ### Frontend
 
-| Item | Versão / escolha |
-|---|---|
-| React | 19 |
-| TypeScript | 6 (⚠️ `strict` desligado) |
-| Build | Vite 8 |
-| Rotas | react-router-dom 7 |
-| Ícones | lucide-react |
-| Gráficos | recharts |
-| Qualidade | ESLint flat config + Prettier + husky/lint-staged |
-| HTTP | **nenhum** |
-| Testes | **nenhum** |
+Ver o repositório [`oficinapro-frontend`](https://github.com/andretmsoares/oficinapro-frontend) (React 19, TypeScript, Vite).
 
 ---
 
@@ -322,13 +291,10 @@ Pontos frágeis conhecidos: `strict` desligado no TypeScript, `react-router-dom`
 | Formatação Java | `./gradlew spotlessCheck` | no `check`, logo no `build` |
 | Testes backend | `./gradlew test` | GitHub Actions (`backend-ci.yml`) |
 | Build backend | `./gradlew build` | GitHub Actions |
-| Lint frontend | `npm run lint` | GitHub Actions (`frontend-ci.yml`) |
-| Build frontend | `npm run build` (`tsc -b && vite build`) | GitHub Actions + hook pre-commit |
 
-Os workflows rodam em `push` e `pull_request` na `develop`, com JDK 21 Temurin.
-
-O hook `pre-commit` na raiz roda `lint-staged` e `npm run build` no frontend. Ele **não**
-roda os testes do backend.
+O `backend-ci.yml` roda em `pull_request` para `develop` e `main`, com JDK 21 Temurin. O
+`docker-ci.yml` builda e publica a imagem do backend (em PR para `main`). Lint e build do
+frontend são verificados no CI do repositório do frontend.
 
 ### Composição da suíte
 
@@ -368,16 +334,14 @@ anterior chamava-os de E2E, o que dava falsa sensação de cobertura.
 
 Em ordem de impacto:
 
-1. **Frontend não integrado.** Nenhuma tela usa o backend. É o que separa o projeto de
-   ser utilizável.
+1. **Sem teste de contrato entre os repositórios.** Backend e frontend evoluem em repos
+   separados; nada no CI detecta uma quebra de contrato da API do lado do frontend.
 2. **Ciclo OS ↔ Pagamento** mascarado por `@Lazy` (§5).
 3. **Bypass do ADMIN no `OficinaAccessValidator`**, deixando o controller como única
    barreira de isolamento — ver [permissions.md §2](./permissions.md).
 4. **`GET /api/clientes` e `GET /api/mecanicos`** permitem ao ADMIN listar dados de todas
    as oficinas, contrariando o princípio de separação.
-5. **`strict` desligado no TypeScript** — o frontend não tem checagem de nulos.
-6. **Zero teste no frontend.**
-7. ~~Três tabelas órfãs de compras~~ — removidas na consolidação das migrations
+5. ~~Três tabelas órfãs de compras~~ — removidas na consolidação das migrations
    (12 migrations, uma por entidade) — ver [database.md](./database.md).
-8. **Dois testes de service ainda em `LENIENT`** (`UsuarioServiceTest`,
+6. **Dois testes de service ainda em `LENIENT`** (`UsuarioServiceTest`,
    `OrdemDeServicoStatusMachineTest`); os demais voltaram ao `STRICT_STUBS`.

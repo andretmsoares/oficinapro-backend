@@ -366,7 +366,7 @@ completa, e é por isso que `SecurityFilterChainIntegrationTest` existe como
    `validarAcessoOficina`). A camada 2 sem a camada 3 não isola tenant.
 3. Atualizar o teste de controller (o caso `403`) e o de service.
 4. Atualizar a matriz da §3 **neste arquivo**.
-5. Se envolver papel, conferir `src/types/usuario/role.ts` no frontend e o `RequireRole`
-   em `App.tsx`.
+5. Se envolver papel, abrir PR correspondente no repositório `oficinapro-frontend`: conferir
+   `src/types/usuario/role.ts` e o `RequireRole` em `App.tsx`.
 6. Se persistir novo valor de papel: criar migration ajustando o `CHECK` de
    `chk_usuario_role`. Ver §1.
