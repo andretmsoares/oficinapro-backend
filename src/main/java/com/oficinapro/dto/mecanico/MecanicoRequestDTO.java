@@ -12,4 +12,4 @@ public record MecanicoRequestDTO(
     @Size(max = 20, message = "Telefone deve possuir 20 caracteres") String telefone,
     @Size(max = 14, message = "Documento deve ter no máximo 14 caracteres") String documento,
     @Positive(message = "O salário deve ser maior que zero") BigDecimal salario,
-    String obs) {}
+    @Size(max = 2000, message = "Observação deve ter no máximo 2000 caracteres") String obs) {}
