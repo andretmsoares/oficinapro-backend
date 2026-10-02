@@ -65,6 +65,9 @@ class UsuarioServiceTest {
   // a viver em OficinaAccessValidator, exigido pelo construtor do super().
   @Mock private com.oficinapro.security.OficinaAccessValidator oficinaAccessValidator;
 
+  @Mock private com.oficinapro.audit.AuditLogService auditLogService;
+  @Mock private com.oficinapro.security.ratelimit.LoginThrottleService loginThrottleService;
+
   @InjectMocks private UsuarioServiceImpl service;
 
   // ─── entidades de apoio ───
@@ -794,13 +797,19 @@ class UsuarioServiceTest {
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
     when(usuarioRepository.existsByUsernameAndIdNot("novo.login", 1L)).thenReturn(false);
+    when(passwordEncoder.matches("senhaAtual1", "$2a$10$hashOriginal")).thenReturn(true);
     when(passwordEncoder.encode("senhaNova1")).thenReturn("hash-me");
     when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
 
     UsuarioResponseDTO resultado =
         service.atualizarMe(
             new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
-                "Novo Nome", "11122233344", "83900001111", "novo.login", "senhaNova1"));
+                "Novo Nome",
+                "11122233344",
+                "83900001111",
+                "novo.login",
+                "senhaNova1",
+                "senhaAtual1"));
 
     assertThat(resultado.nome()).isEqualTo("Novo Nome");
     assertThat(resultado.username()).isEqualTo("novo.login");
@@ -821,10 +830,10 @@ class UsuarioServiceTest {
 
     service.atualizarMe(
         new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
-            "Nome", "12345678901", "83900001111", "usuario.original", null));
+            "Nome", "12345678901", "83900001111", "usuario.original", null, null));
     service.atualizarMe(
         new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
-            "Nome", "12345678901", "83900001111", "usuario.original", "  "));
+            "Nome", "12345678901", "83900001111", "usuario.original", "  ", null));
 
     assertThat(usuarioAlvo.getPassword()).isEqualTo("$2a$10$hashOriginal");
     verify(passwordEncoder, never()).encode(any());
@@ -838,16 +847,108 @@ class UsuarioServiceTest {
 
     when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
     when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(passwordEncoder.matches("senhaAtual1", "$2a$10$hashOriginal")).thenReturn(true);
     when(usuarioRepository.existsByUsernameAndIdNot("ocupado", 1L)).thenReturn(true);
 
     assertThatThrownBy(
             () ->
                 service.atualizarMe(
                     new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
-                        "Nome", "12345678901", "83900001111", "ocupado", null)))
+                        "Nome", "12345678901", "83900001111", "ocupado", null, "senhaAtual1")))
         .isInstanceOf(UsernameAlreadyExistsException.class);
 
     verify(usuarioRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizarMe() trocando a senha incrementa a versão dos tokens e audita")
+  void atualizarMe_trocaDeSenha_revogaTokensEAudita() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+    int versaoAntes = usuarioAlvo.getTokenVersion();
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(passwordEncoder.matches("senhaAtual1", "$2a$10$hashOriginal")).thenReturn(true);
+    when(passwordEncoder.encode("senhaNova1")).thenReturn("hash-nova");
+    when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    service.atualizarMe(
+        new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+            "Nome", "12345678901", "83900001111", "usuario.original", "senhaNova1", "senhaAtual1"));
+
+    assertThat(usuarioAlvo.getTokenVersion()).isEqualTo(versaoAntes + 1);
+    verify(loginThrottleService).registrarSucessoSenhaAtual(1L);
+    verify(auditLogService)
+        .registrar(
+            com.oficinapro.audit.AcaoAuditoria.SENHA_ALTERADA,
+            "USUARIO",
+            usuarioAlvo.getId(),
+            "troca pelo próprio usuário");
+  }
+
+  @Test
+  @DisplayName("atualizarMe() trocando a senha sem informar a senha atual é recusado")
+  void atualizarMe_trocaDeSenhaSemSenhaAtual_recusa() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+
+    assertThatThrownBy(
+            () ->
+                service.atualizarMe(
+                    new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+                        "Nome",
+                        "12345678901",
+                        "83900001111",
+                        "usuario.original",
+                        "senhaNova1",
+                        null)))
+        .isInstanceOf(com.oficinapro.exception.usuario.SenhaAtualInvalidaException.class);
+
+    verify(loginThrottleService).registrarFalhaSenhaAtual(1L);
+    verify(usuarioRepository, never()).save(any());
+    verify(passwordEncoder, never()).encode(any());
+  }
+
+  @Test
+  @DisplayName("atualizarMe() trocando o username com a senha atual errada é recusado")
+  void atualizarMe_trocaDeUsernameComSenhaAtualErrada_recusa() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(passwordEncoder.matches("errada123", "$2a$10$hashOriginal")).thenReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                service.atualizarMe(
+                    new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+                        "Nome", "12345678901", "83900001111", "outro.login", null, "errada123")))
+        .isInstanceOf(com.oficinapro.exception.usuario.SenhaAtualInvalidaException.class);
+
+    verify(usuarioRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("atualizarMe() só de dados cadastrais não exige a senha atual")
+  void atualizarMe_semTrocarCredenciais_naoExigeSenhaAtual() {
+    Usuario logado = new Usuario();
+    logado.setId(1L);
+
+    when(oficinaAccessValidator.getUsuarioAutenticado()).thenReturn(logado);
+    when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAlvo));
+    when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    service.atualizarMe(
+        new com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO(
+            "Outro Nome", "12345678901", "83900001111", "usuario.original", null, null));
+
+    verify(loginThrottleService, never()).verificarSenhaAtual(any());
+    verify(passwordEncoder, never()).matches(any(), any());
   }
 
   // ─────────────────────────── desbloquear ───────────────────────────

@@ -119,8 +119,9 @@ cp .env-example .env
 # 2. Subir o banco
 docker compose -f infra/docker/compose.dev.yml up postgres -d
 
-# 3. Subir a aplicação
-./gradlew bootRun
+# 3. Subir a aplicação (SPRING_PROFILES_ACTIVE=dev liga o log de SQL; sem ele a aplicação
+#    sobe quieta. No PowerShell: $env:SPRING_PROFILES_ACTIVE="dev"; ./gradlew bootRun)
+SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 ```
 
 http://localhost:8080 · Swagger em http://localhost:8080/swagger-ui.html
@@ -129,13 +130,15 @@ Para rodar a interface, siga o README do [`oficinapro-frontend`](https://github.
 
 Duas armadilhas que valem ler antes:
 
-- **`JWT_SECRET` com menos de 32 caracteres derruba a aplicação na subida** (exigência do
-  HS256).
+- **`JWT_SECRET` com menos de 32 caracteres, com o texto de exemplo ou previsível derruba a
+  aplicação na subida** (exigência do HS256).
+- **`ADMIN_PASSWORD` precisa atender à política de senha** (8 a 72 caracteres, com letra e
+  número, fora das senhas comuns); senão o ADMIN não é criado e o motivo aparece no log.
 - **Sem `ADMIN_USERNAME`/`ADMIN_PASSWORD` a aplicação sobe e você não consegue logar** — o
   `AdminSeeder` só cria o ADMIN inicial se as duas estiverem preenchidas, e sem ADMIN não
   há como criar oficina nem gerente.
 
-Tudo em [`docs/development.md`](./docs/development.md).
+Tudo em [`docs/development.md`](./docs/development.md). Operação e endurecimento (segredos, deploy, banco, Cloudflare, auditoria) em [`docs/security.md`](./docs/security.md).
 
 ---
 

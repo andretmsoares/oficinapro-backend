@@ -397,7 +397,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "200.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -420,7 +421,8 @@ class PagamentoServiceImplTest {
 
       existente.setDataPagamentoTotal(LocalDateTime.now());
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -439,7 +441,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "300.00", StatusPagamento.PAGA);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
           .as(
@@ -458,7 +461,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -475,7 +479,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -492,7 +497,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "50.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -687,7 +693,7 @@ class PagamentoServiceImplTest {
     @DisplayName("deve lançar PagamentoNotFoundForThisOsException quando a OS não tem pagamento")
     void deveLancarQuandoOsNaoTemPagamento() {
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
           .isInstanceOf(PagamentoNotFoundForThisOsException.class);

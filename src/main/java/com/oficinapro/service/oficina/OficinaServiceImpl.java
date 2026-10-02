@@ -2,6 +2,8 @@ package com.oficinapro.service.oficina;
 
 import static com.oficinapro.util.TextoUtil.normalizar;
 
+import com.oficinapro.audit.AcaoAuditoria;
+import com.oficinapro.audit.AuditLogService;
 import com.oficinapro.dto.oficina.OficinaRequestDTO;
 import com.oficinapro.dto.oficina.OficinaResponseDTO;
 import com.oficinapro.enums.Role;
@@ -25,6 +27,7 @@ public class OficinaServiceImpl implements OficinaService {
 
   private final OficinaRepository oficinaRepository;
   private final OficinaAccessValidator oficinaAccessValidator;
+  private final AuditLogService auditLogService;
 
   @Transactional(readOnly = true)
   @Override
@@ -137,6 +140,8 @@ public class OficinaServiceImpl implements OficinaService {
     oficina.setAtivo(false);
 
     oficinaRepository.save(oficina);
+
+    auditLogService.registrar(AcaoAuditoria.OFICINA_DESATIVADA, "OFICINA", id, null);
   }
 
   @Transactional
@@ -153,5 +158,7 @@ public class OficinaServiceImpl implements OficinaService {
     oficina.setAtivo(true);
 
     oficinaRepository.save(oficina);
+
+    auditLogService.registrar(AcaoAuditoria.OFICINA_ATIVADA, "OFICINA", id, null);
   }
 }

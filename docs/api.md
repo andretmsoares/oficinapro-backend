@@ -39,7 +39,7 @@ JWT HS256, stateless. Sem refresh token: expirado, faz login de novo.
 POST /api/auth/login
 Content-Type: application/json
 
-{ "username": "admin", "password": "senha-com-8-ou-mais" }
+{ "username": "admin", "password": "sua-senha" }
 ```
 
 Resposta `200`:
@@ -67,8 +67,11 @@ O bloco `usuario` vem no login de propósito: evita que o frontend precise chama
 `/api/auth/me` imediatamente depois. `oficinaId` é `null` para ADMIN, que não pertence a
 oficina.
 
-Validação do corpo: `username` obrigatório (máx. 100), `password` obrigatório (entre 8 e
-255). Violar isso dá `400`, não `401`.
+Validação do corpo: `username` obrigatório (máx. 100), `password` obrigatório (máx. 255).
+O tamanho mínimo da senha **não** é validado no login de propósito: responder `400` com a
+regra de senha antes de autenticar vazaria a política. A política (`@SenhaForte`: 8 a 72
+caracteres, com letra e número, fora de uma lista de senhas comuns) vale ao **definir** a
+senha (criar/alterar usuário e `PUT /api/usuarios/me`).
 
 ### Usando o token
 
@@ -79,6 +82,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 O filtro ignora o header quando ele não começa com `Bearer ` — nesse caso a requisição
 segue como não autenticada e termina em `401`.
+
+### Logout (revogação de tokens)
+
+```http
+POST /api/auth/logout
+Authorization: Bearer <token>
+```
+
+Responde `204` e **revoga todos os tokens** do usuário (o atual e os anteriores): o JWT
+carrega a claim `tv` (versão), e o filtro recusa o token se `tv` for diferente de
+`usuario.token_version`. A versão também é incrementada quando a senha do usuário é trocada
+(por ele mesmo ou por ADMIN/GERENTE). Não existe lista de bloqueio: é só uma coluna.
 
 ### Usuário autenticado
 
@@ -94,7 +109,9 @@ papel.
 
 | Claim | Conteúdo |
 |---|---|
-| `sub` | username |
+| `sub` | **id** do usuário (não o username: ele pode ser trocado e reaproveitado) |
+| `tv` | versão de revogação do usuário na emissão |
+| `jti` | identificador único do token |
 | `role` | `ADMIN`, `GERENTE` ou `MECANICO` |
 | `oficinaId` | id da oficina — **omitido** para ADMIN |
 | `iss` | `oficinapro` |
@@ -117,8 +134,8 @@ expirar.
 | Credenciais erradas no login | 401 | `Credenciais inválidas` |
 | Autenticado, sem permissão | 403 | `Acesso negado: Você não tem permissão para acessar este recurso.` |
 
-| Login bloqueado temporariamente (excesso de tentativas) | 429 | `Muitas tentativas de login. Tente novamente em N minuto(s).` (+ header `Retry-After` e `retryAfterSeconds` no corpo) |
-| Login bloqueado até intervenção do administrador | 423 | `Conta bloqueada por excesso de tentativas de login. Fale com o administrador do sistema.` |
+| Muitas tentativas de login (limite por IP) | 429 | `Muitas tentativas de login. Tente novamente em N minuto(s).` (+ header `Retry-After` e `retryAfterSeconds` no corpo) |
+| Senha atual incorreta em `PUT /api/usuarios/me` | 400 | `Senha atual incorreta...` (400 e não 401, para o frontend não derrubar a sessão) |
 
 `Credenciais inválidas` é intencionalmente genérica: não diz se o problema foi o usuário
 inexistente ou a senha errada. Diferenciar permitiria enumerar usuários válidos.
@@ -147,21 +164,49 @@ account precisa de `roles/storage.objectAdmin` no bucket, que deve ser **privado
 
 ### Proteção contra força bruta no login
 
-O estado fica no banco (`usuario.falhas_login`, `bloqueado_ate`, `bloqueio_permanente`), por
-isso sobrevive a reinício e vale com várias instâncias.
+O controle é **por IP**, em memória (`LoginThrottleService`), e **não depende de o usuário
+existir**: usuário real e inexistente recebem exatamente as mesmas respostas.
 
-- A cada **5 falhas seguidas** o usuário fica bloqueado por `5 min × n` (n = número do
-  bloqueio: 5 min, depois 10 min).
-- No **3º bloqueio** (15 falhas) o bloqueio passa a ser permanente: só volta com
-  `PATCH /api/usuarios/{id}/desbloquear` (ADMIN, ou GERENTE da mesma oficina).
-- Durante o bloqueio **até a senha correta é recusada**. Login bem-sucedido zera o contador.
-- Username inexistente não tem estado: recebe sempre `401 Credenciais inválidas`. Já um
-  usuário real bloqueado recebe 429/423, o que revela que a conta existe — trade-off aceito
-  em troca de o usuário saber por que não consegue entrar.
-- Configurável em `application.yml`: `oficinapro.login.tentativas-por-bloqueio` (5),
-  `oficinapro.login.duracao-bloqueio` (`5m`) e `oficinapro.login.bloqueios-ate-permanente` (3).
-- Um token já emitido continua válido até expirar mesmo se a conta for bloqueada depois.
-- O `UsuarioResponseDTO` traz `bloqueado` (`true` se o bloqueio é permanente ou temporário ainda vigente); a tela de Usuários usa isso para exibir "Bloqueado" e o botão de desbloqueio.
+- **IP + username**: 5 falhas dentro de 15 min bloqueiam aquele par por 15 min (`429` com
+  `Retry-After`). O bloqueio **nunca é permanente** e não afeta outros IPs, então ninguém
+  consegue trancar a conta de terceiros (antes, 15 requisições anônimas trancavam qualquer
+  conta, inclusive o ADMIN).
+- **Por IP**: no máximo 30 tentativas de login a cada 5 min, qualquer que seja o username
+  (barra *password spraying*, que o contador por username nunca pegaria).
+- Login bem-sucedido zera o contador do par. Durante o bloqueio até a senha correta é recusada.
+- `PATCH /api/usuarios/{id}/desbloquear` (ADMIN, ou GERENTE da mesma oficina) libera o username
+  em todos os IPs — útil para um usuário legítimo atrás de uma rede compartilhada.
+- A confirmação da senha atual em `PUT /api/usuarios/me` tem o mesmo limite (por usuário).
+- Configurável: `oficinapro.login.tentativas-por-bloqueio` (5), `janela-falhas` (`15m`),
+  `duracao-bloqueio` (`15m`), `max-tentativas-por-ip` (30) e `janela-ip` (`5m`).
+- O IP vem de `CF-Connecting-IP` / `X-Forwarded-For` **somente** com
+  `oficinapro.security.trust-proxy-headers=true` (`TRUST_PROXY_HEADERS`), que só é seguro
+  quando a API não é alcançável diretamente (túnel Cloudflare, sem porta publicada).
+- Com várias instâncias da API o limite vale por instância; o rate limit do Cloudflare
+  continua sendo a barreira global.
+- As colunas `falhas_login`, `bloqueado_ate` e `bloqueio_permanente` ficaram sem uso pelo
+  login (legado da V13). O `UsuarioResponseDTO.bloqueado` reflete só esse legado.
+
+### Alterar os próprios dados (`PUT /api/usuarios/me`)
+
+Trocar a **senha** ou o **username** exige `senhaAtual` no corpo (um token roubado, sozinho,
+não assume a conta). Trocar só nome/documento/telefone não exige. Ao trocar a senha, todos os
+tokens do usuário são revogados: o frontend deve pedir novo login.
+
+### Auditoria
+
+Eventos de segurança e financeiros gravam uma linha em `audit_log` (ator, papel, oficina,
+alvo, IP e um detalhe curto, sem dados pessoais) e no logger `AUDIT`: login, logout, troca de
+senha, criação/alteração/exclusão/desbloqueio de usuário, ativar/desativar oficina,
+exclusão de OS, desconto, recebimento e estorno. Falhas de login vão só para o log
+(`evento=LOGIN_FALHA`, com um hash curto do username, nunca o valor digitado).
+
+### Buscas por documento (CPF/CNPJ)
+
+Vão no **corpo** de um `POST`, não na URL (URLs ficam em logs de acesso, proxies e histórico):
+`POST /api/clientes/documento/buscar`, `POST /api/mecanicos/documento/buscar`,
+`POST /api/usuarios/documento/buscar` e `POST /api/usuarios/admin/documento/buscar`, com
+`{ "documento": "12345678901" }`.
 
 Os dois primeiros grupos (401 de filtro e 403) são respondidos pelo
 `SecurityErrorResponder`, não pelo `GlobalExceptionHandler` — erro de filtro acontece
@@ -228,7 +273,7 @@ errado. Note que `error` aqui é `"Validation Error"`, não a reason phrase.
 | `InvalidDataAccessApiUsageException` | uso incorreto da API de dados |
 | `DateTimeException` | data inválida (mês 13 no fluxo mensal) |
 
-**401 — não autenticado** · **403 — sem permissão** · **423 / 429 — login bloqueado**
+**401 — não autenticado** · **403 — sem permissão** · **429 — muitas tentativas de login**
 
 Ver §2.
 

@@ -2,8 +2,9 @@ spring:
   application:
     name: oficinapro
 
-  profiles:
-    default: dev
+  # Sem "profiles.default": quem sobe a aplicação escolhe o profile (SPRING_PROFILES_ACTIVE).
+  # Antes o padrão era "dev", e uma produção sem o profile definido logava SQL e parâmetros
+  # (hashes de senha, CPF, telefone). Sem profile, vale só esta configuração, que é quieta.
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
@@ -42,6 +43,22 @@ oficinapro:
     issuer: oficinapro
     expiration: 8h
 
+  security:
+    # true SOMENTE quando a API não é alcançável diretamente (atrás do túnel Cloudflare, sem
+    # porta publicada): só então CF-Connecting-IP / X-Forwarded-For são confiáveis. Com a API
+    # exposta, um cliente forjaria o header para escapar do limite de tentativas de login.
+    trust-proxy-headers: ${TRUST_PROXY_HEADERS:false}
+    # Tamanho máximo do corpo das requisições que não são upload (padrão 1 MB).
+    max-json-body-bytes: 1048576
+
+  # Proteção do login (por IP; ver LoginThrottleService).
+  login:
+    tentativas-por-bloqueio: 5
+    janela-falhas: 15m
+    duracao-bloqueio: 15m
+    max-tentativas-por-ip: 30
+    janela-ip: 5m
+
   # Cria o ADMIN do SaaS na primeira subida, caso ainda não exista nenhum.
   # Se as variáveis não forem definidas, o seeder simplesmente não roda.
   admin:
@@ -62,8 +79,22 @@ oficinapro:
       access-key: ${R2_ACCESS_KEY:}
       secret-key: ${R2_SECRET_KEY:}
 
+logging:
+  level:
+    # Este resolver registra, em WARN, o caminho de cada requisição para rota inexistente
+    # ("No static resource ..."). Se um cliente errar e puser um CPF numa URL, ele iria parar no
+    # log (e bots de varredura inundariam o log). O 404 já é tratado pelo GlobalExceptionHandler.
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
+
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  tomcat:
+    max-swallow-size: 2MB
 
 management:
   endpoints:

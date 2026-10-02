@@ -56,6 +56,19 @@ class AdminSeederTest {
   }
 
   @Test
+  @DisplayName("senha fraca (só dígitos ou comum): não deve criar o ADMIN")
+  void senhaFracaNaoCria() {
+    when(usuarioRepository.existsByRole(Role.ADMIN)).thenReturn(false);
+    when(usuarioRepository.existsByUsername("admin.saas")).thenReturn(false);
+
+    seeder("admin.saas", "123456789").run(args);
+    seeder("admin.saas", "password1").run(args);
+
+    verify(usuarioRepository, never()).save(any());
+    verifyNoInteractions(passwordEncoder);
+  }
+
+  @Test
   @DisplayName("já existindo um ADMIN, não deve criar outro nem alterar a senha existente")
   void jaExistindoAdminNaoCria() {
     when(usuarioRepository.existsByRole(Role.ADMIN)).thenReturn(true);

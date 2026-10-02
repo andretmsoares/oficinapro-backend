@@ -1,5 +1,6 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.dto.BuscaPorDocumentoRequestDTO;
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
 import com.oficinapro.service.cliente.ClienteService;
@@ -18,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @Tag(name = "Clientes", description = "Cadastro de clientes das oficinas")
@@ -100,19 +103,20 @@ public class ClienteController {
   @Operation(
       summary = "Buscar cliente por documento",
       description =
-          "Busca, na oficina do GERENTE autenticado, o cliente com o CPF/CNPJ exato"
-              + " informado (sem máscara).")
+          "Busca, na oficina do usuário autenticado, o cliente com o CPF/CNPJ exato"
+              + " informado (sem máscara). O documento vai no corpo (POST), e não na URL,"
+              + " para não ficar registrado em logs de acesso.")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Cliente encontrado"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
     @ApiResponse(responseCode = "404", description = "Nenhum cliente com este documento na oficina")
   })
-  @GetMapping("/documento/{documento}")
+  @PostMapping("/documento/buscar")
   @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
   public ResponseEntity<ClienteResponseDTO> buscarPorDocumento(
-      @Parameter(description = "CPF ou CNPJ, apenas dígitos") @PathVariable String documento) {
-    return ResponseEntity.ok(clienteService.buscarPorDocumento(documento));
+      @Valid @RequestBody BuscaPorDocumentoRequestDTO request) {
+    return ResponseEntity.ok(clienteService.buscarPorDocumento(request.documento()));
   }
 
   @Operation(

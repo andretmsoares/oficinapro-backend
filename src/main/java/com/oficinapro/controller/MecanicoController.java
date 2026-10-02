@@ -1,5 +1,6 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.dto.BuscaPorDocumentoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoRequestDTO;
 import com.oficinapro.dto.mecanico.MecanicoResponseDTO;
 import com.oficinapro.service.mecanico.MecanicoService;
@@ -18,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @Tag(name = "Mecânicos", description = "Cadastro de mecânicos das oficinas")
@@ -109,11 +112,11 @@ public class MecanicoController {
         responseCode = "404",
         description = "Nenhum mecânico com este documento na oficina")
   })
-  @GetMapping("/documento/{documento}")
+  @PostMapping("/documento/buscar")
   @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<MecanicoResponseDTO> buscarPorDocumento(
-      @Parameter(description = "CPF, apenas dígitos") @PathVariable String documento) {
-    return ResponseEntity.ok(mecanicoService.buscarPorDocumento(documento));
+      @Valid @RequestBody BuscaPorDocumentoRequestDTO request) {
+    return ResponseEntity.ok(mecanicoService.buscarPorDocumento(request.documento()));
   }
 
   @Operation(

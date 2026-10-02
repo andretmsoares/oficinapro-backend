@@ -9,6 +9,7 @@ import com.oficinapro.repository.ItemOsPecaRepository;
 import com.oficinapro.repository.MaoObraRepository;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.registro_pagamento.RegistroPagamentoService;
+import com.oficinapro.storage.ImagemLogoValidador;
 import com.oficinapro.storage.LogoStorage;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -279,6 +280,9 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
       try {
         Optional<byte[]> bytes = logoStorage.ler(caminho);
         if (bytes.isPresent()) {
+          // Antes de decodificar: uma imagem com dimensões absurdas (pixel flood) esgotaria a
+          // memória da JVM. Logo legada que não passe aqui cai na logo padrão.
+          ImagemLogoValidador.validarDimensoes(bytes.get());
           Image.getInstance(bytes.get());
           return bytes.get();
         }

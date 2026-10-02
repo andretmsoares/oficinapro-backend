@@ -27,6 +27,7 @@ import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundExce
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
 import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
+import com.oficinapro.exception.usuario.SenhaAtualInvalidaException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
@@ -38,6 +39,8 @@ import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -48,6 +51,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,6 +60,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
   public ResponseEntity<Map<String, Object>> handleAccessDenied(Exception exception) {
@@ -351,7 +357,37 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
 
+    // A mensagem de regra de negócio não vai ao cliente, mas precisa ficar no servidor: sem log,
+    // um bug de verdade se disfarçaria de "operação inválida".
+    log.warn("Operação recusada por regra de negócio: {}", ex.getMessage());
+
     return buildResponse(HttpStatus.BAD_REQUEST, "Operação inválida");
+  }
+
+  @ExceptionHandler(SenhaAtualInvalidaException.class)
+  public ResponseEntity<Map<String, Object>> handleSenhaAtualInvalida(
+      SenhaAtualInvalidaException exception) {
+    // 400 e não 401: o frontend trata 401 como sessão expirada e derrubaria o usuário logado.
+    return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+  }
+
+  /**
+   * Rede de segurança: qualquer exceção inesperada vira um 500 genérico (sem stack trace nem
+   * detalhe interno) e é registrada no servidor. Exceções do próprio Spring MVC (404, 405, 415...)
+   * implementam {@link ErrorResponse} e mantêm o status original.
+   */
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
+
+    if (ex instanceof ErrorResponse errorResponse) {
+      HttpStatus status = HttpStatus.resolve(errorResponse.getStatusCode().value());
+      return buildResponse(
+          status != null ? status : HttpStatus.BAD_REQUEST, "Requisição não pôde ser atendida");
+    }
+
+    log.error("Erro inesperado", ex);
+
+    return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno. Tente novamente.");
   }
 
   @ExceptionHandler(InvalidDataAccessApiUsageException.class)

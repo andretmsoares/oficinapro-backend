@@ -2,12 +2,15 @@ package com.oficinapro.service.usuario;
 
 import static com.oficinapro.util.TextoUtil.normalizar;
 
+import com.oficinapro.audit.AcaoAuditoria;
+import com.oficinapro.audit.AuditLogService;
 import com.oficinapro.dto.usuario.UsuarioMeUpdateRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.exception.usuario.OficinaIncompativelComRoleException;
+import com.oficinapro.exception.usuario.SenhaAtualInvalidaException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioCannotDeleteSelfException;
@@ -16,6 +19,7 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
 import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.security.ratelimit.LoginThrottleService;
 import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import com.oficinapro.service.pessoaCrud.AbstractPessoaServiceImpl;
@@ -34,16 +38,44 @@ public class UsuarioServiceImpl
 
   private final UsuarioRepository usuarioRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AuditLogService auditLogService;
+  private final LoginThrottleService loginThrottleService;
 
   public UsuarioServiceImpl(
       UsuarioRepository usuarioRepository,
       OficinaServiceImpl oficinaService,
       PessoaService pessoaService,
       PasswordEncoder passwordEncoder,
-      OficinaAccessValidator oficinaAccessValidator) {
+      OficinaAccessValidator oficinaAccessValidator,
+      AuditLogService auditLogService,
+      LoginThrottleService loginThrottleService) {
     super(usuarioRepository, oficinaService, pessoaService, oficinaAccessValidator);
     this.usuarioRepository = usuarioRepository;
     this.passwordEncoder = passwordEncoder;
+    this.auditLogService = auditLogService;
+    this.loginThrottleService = loginThrottleService;
+  }
+
+  @Override
+  @Transactional
+  public UsuarioResponseDTO criar(UsuarioRequestDTO request) {
+    UsuarioResponseDTO criado = super.criar(request);
+    auditLogService.registrar(
+        AcaoAuditoria.USUARIO_CRIADO, "USUARIO", criado.id(), "role=" + criado.role());
+    return criado;
+  }
+
+  @Override
+  @Transactional
+  public UsuarioResponseDTO atualizar(Long id, UsuarioUpdateRequestDTO request) {
+    UsuarioResponseDTO atualizado = super.atualizar(id, request);
+    boolean senhaRedefinida = request.password() != null && !request.password().isBlank();
+    auditLogService.registrar(
+        AcaoAuditoria.USUARIO_ALTERADO,
+        "USUARIO",
+        id,
+        "role=" + atualizado.role() + " senhaRedefinida=" + senhaRedefinida);
+    return atualizado;
   }
 
   // Único ponto do sistema onde listar() ainda se ramifica por role. O ADMIN do
@@ -189,6 +221,8 @@ public class UsuarioServiceImpl
 
     if (request.password() != null && !request.password().isBlank()) {
       usuario.setPassword(passwordEncoder.encode(request.password()));
+      // Senha redefinida por outra pessoa: os tokens emitidos com a senha antiga deixam de valer.
+      usuario.revogarTokens();
     }
   }
 
@@ -237,7 +271,15 @@ public class UsuarioServiceImpl
     // 2. Busca a entidade real no banco DENTRO desta transação (Managed)
     Usuario usuario = buscarPorEntidadeId(usuarioLogado.getId());
 
-    // 3. Valida se o novo username já existe
+    // 3. Trocar senha ou username exige confirmar a senha atual: um token roubado, sozinho, não
+    // basta para assumir a conta de forma permanente.
+    boolean trocaSenha = request.password() != null && !request.password().isBlank();
+    boolean trocaUsername = !usuario.getUsername().equals(request.username());
+    if (trocaSenha || trocaUsername) {
+      exigirSenhaAtual(usuario, request.senhaAtual());
+    }
+
+    // 3.1. Valida se o novo username já existe
     if (usuarioRepository.existsByUsernameAndIdNot(request.username(), usuario.getId())) {
       throw new UsernameAlreadyExistsException();
     }
@@ -248,14 +290,33 @@ public class UsuarioServiceImpl
     usuario.setTelefone(request.telefone());
     usuario.setUsername(request.username());
 
-    if (request.password() != null && !request.password().isBlank()) {
+    if (trocaSenha) {
       usuario.setPassword(passwordEncoder.encode(request.password()));
+      usuario.revogarTokens();
     }
 
     // 5. Salva no banco de dados
     usuario = usuarioRepository.save(usuario);
 
+    if (trocaSenha) {
+      auditLogService.registrar(
+          AcaoAuditoria.SENHA_ALTERADA, "USUARIO", usuario.getId(), "troca pelo próprio usuário");
+    }
+
     return toResponse(usuario);
+  }
+
+  private void exigirSenhaAtual(Usuario usuario, String senhaAtual) {
+    loginThrottleService.verificarSenhaAtual(usuario.getId());
+
+    if (senhaAtual == null
+        || senhaAtual.isBlank()
+        || !passwordEncoder.matches(senhaAtual, usuario.getPassword())) {
+      loginThrottleService.registrarFalhaSenhaAtual(usuario.getId());
+      throw new SenhaAtualInvalidaException();
+    }
+
+    loginThrottleService.registrarSucessoSenhaAtual(usuario.getId());
   }
 
   @Override
@@ -265,6 +326,9 @@ public class UsuarioServiceImpl
     Usuario usuario = buscarPorEntidadeId(id);
     usuario.resetarBloqueioLogin();
     usuarioRepository.save(usuario);
+    loginThrottleService.liberar(usuario.getUsername());
+
+    auditLogService.registrar(AcaoAuditoria.USUARIO_DESBLOQUEADO, "USUARIO", id, null);
   }
 
   @Transactional
@@ -278,5 +342,8 @@ public class UsuarioServiceImpl
     }
 
     repository.delete(usuario);
+
+    auditLogService.registrar(
+        AcaoAuditoria.USUARIO_EXCLUIDO, "USUARIO", id, "role=" + usuario.getRole());
   }
 }
