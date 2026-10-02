@@ -26,11 +26,10 @@ public class DashboardServiceImpl implements DashboardService {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
     return new DashboardResponseDTO(
-        ordemDeServicoService.listarPorStatus(StatusOrdemDeServico.ABERTA).size(),
+        (int) ordemDeServicoService.contarPorStatus(StatusOrdemDeServico.ABERTA),
         veiculoService.count(),
         clienteService.count(),
         pagamentoService.calcularValorParaReceber(oficinaId),
-        (Integer)
-            pagamentoService.buscarPorStatus(oficinaId, StatusPagamento.PAGAMENTO_PENDENTE).size());
+        (int) pagamentoService.contarPorStatus(oficinaId, StatusPagamento.PAGAMENTO_PENDENTE));
   }
 }

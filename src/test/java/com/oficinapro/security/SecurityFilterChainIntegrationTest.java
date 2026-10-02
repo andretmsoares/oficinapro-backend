@@ -113,6 +113,12 @@ class SecurityFilterChainIntegrationTest {
     mockMvc()
         .perform(
             post("/api/auth/login")
+                .with(
+                    request -> {
+                      // IP próprio: o limitador de login é um singleton compartilhado entre testes
+                      request.setRemoteAddr("198.51.100.250");
+                      return request;
+                    })
                 .contentType("application/json")
                 .content("{\"username\":\"inexistente\",\"password\":\"senha-errada\"}"))
         .andExpect(status().isUnauthorized())

@@ -3,6 +3,7 @@ package com.oficinapro.config;
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Usuario;
 import com.oficinapro.repository.UsuarioRepository;
+import com.oficinapro.validation.SenhaForteValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,6 +61,14 @@ public class AdminSeeder implements ApplicationRunner {
 
     if (usuarioRepository.existsByUsername(username)) {
       log.warn("Username '{}' já está em uso; ADMIN do SaaS não foi criado", username);
+      return;
+    }
+
+    if (!SenhaForteValidator.valida(password)) {
+      log.error(
+          "ADMIN_PASSWORD não atende à política de senha (8 a 72 caracteres, com letra e número,"
+              + " fora das senhas comuns); ADMIN do SaaS '{}' NÃO foi criado.",
+          username);
       return;
     }
 

@@ -1,5 +1,6 @@
 package com.oficinapro.controller;
 
+import com.oficinapro.dto.BuscaPorDocumentoRequestDTO;
 import com.oficinapro.dto.usuario.*;
 import com.oficinapro.service.usuario.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @Tag(name = "Usuários", description = "Contas de acesso ao sistema (ADMIN, GERENTE, MECANICO)")
@@ -129,11 +132,11 @@ public class UsuarioController {
     @ApiResponse(responseCode = "403", description = "Sem permissão"),
     @ApiResponse(responseCode = "404", description = "Nenhum usuário com este documento na oficina")
   })
-  @GetMapping("/documento/{documento}")
+  @PostMapping("/documento/buscar")
   @PreAuthorize("hasAnyRole('GERENTE')")
   public ResponseEntity<UsuarioResponseDTO> buscarPorDocumento(
-      @Parameter(description = "CPF, apenas dígitos") @PathVariable String documento) {
-    return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
+      @Valid @RequestBody BuscaPorDocumentoRequestDTO request) {
+    return ResponseEntity.ok(usuarioService.buscarPorDocumento(request.documento()));
   }
 
   @Operation(
@@ -168,11 +171,11 @@ public class UsuarioController {
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
     @ApiResponse(responseCode = "403", description = "Apenas o ADMIN do SaaS")
   })
-  @GetMapping("/admin/documento/{documento}")
+  @PostMapping("/admin/documento/buscar")
   @PreAuthorize("hasAnyRole('ADMIN')")
   public ResponseEntity<List<UsuarioResponseDTO>> buscarPorDocumentoAdmin(
-      @Parameter(description = "Documento, apenas dígitos") @PathVariable String documento) {
-    return ResponseEntity.ok(usuarioService.buscarPorDocumentoAdmin(documento));
+      @Valid @RequestBody BuscaPorDocumentoRequestDTO request) {
+    return ResponseEntity.ok(usuarioService.buscarPorDocumentoAdmin(request.documento()));
   }
 
   @Operation(

@@ -32,6 +32,8 @@ class RegistroPagamentoServiceImplTest {
 
   @Mock private PagamentoService pagamentoService;
 
+  @Mock private com.oficinapro.audit.AuditLogService auditLogService;
+
   @InjectMocks private RegistroPagamentoServiceImpl registroPagamentoService;
 
   private Pagamento pagamento;

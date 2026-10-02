@@ -2,6 +2,7 @@ package com.oficinapro.service.pagamento;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.dto.pagamento.PagamentoResumoDTO;
 import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusPagamento;
@@ -14,10 +15,16 @@ import com.oficinapro.repository.OrdemDeServicoRepository;
 import com.oficinapro.repository.PagamentoRepository;
 import com.oficinapro.repository.RegistroPagamentoRepository;
 import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.util.Paginacao;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,24 +91,67 @@ public class PagamentoServiceImpl implements PagamentoService {
     return toResponseDTO(pagamento);
   }
 
+  private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "status", "valorPago");
+
+  private static final Sort ORDENACAO_PADRAO = Sort.by(Sort.Direction.DESC, "id");
+
   @Override
   @Transactional(readOnly = true)
-  public List<PagamentoResponseDTO> buscarPorOficina(Long oficinaId) {
+  public Page<PagamentoResponseDTO> buscarPorOficina(
+      Long oficinaId, String termo, StatusPagamento status, Pageable pageable) {
 
     oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
-    return repository.findByOrdemDeServicoOficinaId(oficinaId).stream()
-        .map(this::toResponseDTO)
-        .toList();
+    String termoLimpo = Paginacao.termoOuVazio(termo);
+
+    return repository
+        .buscar(
+            oficinaId,
+            status == null ? "" : status.name(),
+            termoLimpo,
+            Paginacao.termoLike(termoLimpo),
+            Paginacao.segura(pageable, CAMPOS_ORDENAVEIS, ORDENACAO_PADRAO))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<PagamentoResponseDTO> buscarPorStatus(Long oficinaId, StatusPagamento status) {
+  public Page<PagamentoResponseDTO> buscarPorStatus(
+      Long oficinaId, StatusPagamento status, Pageable pageable) {
+    return buscarPorOficina(oficinaId, "", status, pageable);
+  }
 
+  @Override
+  @Transactional(readOnly = true)
+  public long contarPorStatus(Long oficinaId, StatusPagamento status) {
     oficinaAccessValidator.validarAcessoOficina(oficinaId);
 
-    return repository.findByOrdemDeServicoOficinaIdAndStatus(oficinaId, status).stream()
+    return repository.countByOrdemDeServicoOficinaIdAndStatus(oficinaId, status);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PagamentoResumoDTO resumo(Long oficinaId) {
+    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
+    return new PagamentoResumoDTO(
+        repository.somarRecebido(oficinaId),
+        repository.calcularValorParaReceber(
+            oficinaId,
+            List.of(StatusPagamento.PAGAMENTO_PENDENTE, StatusPagamento.PAGO_PARCIALMENTE)),
+        repository.contarComSaldo(oficinaId));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<PagamentoResponseDTO> buscarPorOsIds(Long oficinaId, Collection<Long> osIds) {
+    oficinaAccessValidator.validarAcessoOficina(oficinaId);
+
+    if (osIds == null || osIds.isEmpty()) {
+      return List.of();
+    }
+
+    return repository.findByOrdemDeServicoIdInAndOrdemDeServicoOficinaId(osIds, oficinaId).stream()
         .map(this::toResponseDTO)
         .toList();
   }
@@ -148,7 +198,11 @@ public class PagamentoServiceImpl implements PagamentoService {
   @Transactional
   @Override
   public void recalcularStatus(Long osId) {
-    Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
+    // Chamado quando o valor da OS muda: trava o pagamento por versão (ver o repository).
+    Pagamento pagamento =
+        repository
+            .findByOrdemDeServicoIdParaAlterarValor(osId)
+            .orElseThrow(() -> new PagamentoNotFoundForThisOsException(osId));
 
     BigDecimal valorPago = pagamento.getValorPago();
     BigDecimal valorOS = pagamento.getOrdemDeServico().getValorComDesconto();

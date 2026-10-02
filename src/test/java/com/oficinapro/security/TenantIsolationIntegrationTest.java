@@ -487,7 +487,7 @@ class TenantIsolationIntegrationTest {
                 "POST usuario na oficina B",
                 json(
                     post("/api/usuarios"),
-                    "{\"nome\":\"X\",\"username\":\"invasor\",\"password\":\"senha12345\","
+                    "{\"nome\":\"X\",\"username\":\"invasor\",\"password\":\"Tenant-teste-7421\","
                         + "\"role\":\"MECANICO\",\"oficinaId\":"
                         + b.oficina.getId()
                         + "}"),
@@ -505,7 +505,7 @@ class TenantIsolationIntegrationTest {
                 "POST usuario ADMIN por gerente",
                 json(
                     post("/api/usuarios"),
-                    "{\"nome\":\"X\",\"username\":\"novo.admin\",\"password\":\"senha12345\","
+                    "{\"nome\":\"X\",\"username\":\"novo.admin\",\"password\":\"Tenant-teste-7421\","
                         + "\"role\":\"ADMIN\"}"),
                 403)));
 

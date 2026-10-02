@@ -18,8 +18,11 @@ import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.security.OficinaAccessValidator;
 import com.oficinapro.storage.LogoStorage;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Optional;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,10 +37,20 @@ import org.springframework.web.multipart.MultipartFile;
 @ExtendWith(MockitoExtension.class)
 class OficinaLogoServiceImplTest {
 
-  private static final byte[] PNG = {
-    (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01
-  };
-  private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0x00};
+  // Imagens reais: o service lê as dimensões do cabeçalho, então assinatura solta não basta.
+  private static final byte[] PNG = imagem("png", 40, 20, BufferedImage.TYPE_INT_RGB);
+  private static final byte[] JPEG = imagem("jpg", 40, 20, BufferedImage.TYPE_INT_RGB);
+
+  private static byte[] imagem(String formato, int largura, int altura, int tipo) {
+    try {
+      BufferedImage img = new BufferedImage(largura, altura, tipo);
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      ImageIO.write(img, formato, out);
+      return out.toByteArray();
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   @Mock private OficinaRepository oficinaRepository;
   @Mock private OficinaService oficinaService;
@@ -145,6 +158,7 @@ class OficinaLogoServiceImplTest {
   @Test
   @DisplayName("atualizar: arquivo de exatamente 2 MB ainda é aceito")
   void deveAceitarArquivoNoLimiteDeTamanho() {
+    // PNG real no início e o resto preenchido até exatamente 2 MB
     byte[] limite = new byte[(int) OficinaLogoServiceImpl.TAMANHO_MAXIMO];
     System.arraycopy(PNG, 0, limite, 0, PNG.length);
     when(oficinaService.buscarPorEntidadeId(1L)).thenReturn(oficina);
@@ -153,6 +167,33 @@ class OficinaLogoServiceImplTest {
     service.atualizar(1L, arquivo(limite));
 
     assertThat(oficina.getLogoPath()).isEqualTo("logos/1/limite.png");
+  }
+
+  @Test
+  @DisplayName("atualizar: PNG com dimensões enormes (pixel flood) é recusado antes de salvar")
+  void deveRejeitarPixelFlood() {
+    // 1 bit por pixel: 4000x4000 ocupa ~2 MB na memória do teste e comprime para poucos KB,
+    // mas decodificado para o PDF viraria dezenas de MB (em imagens maiores, gigabytes).
+    byte[] gigante = imagem("png", 4000, 4000, BufferedImage.TYPE_BYTE_BINARY);
+    assertThat(gigante.length).isLessThan((int) OficinaLogoServiceImpl.TAMANHO_MAXIMO);
+
+    assertThatThrownBy(() -> service.atualizar(1L, arquivo(gigante)))
+        .isInstanceOf(LogoInvalidaException.class)
+        .hasMessageContaining("no máximo 2000x2000");
+
+    verifyNoInteractions(logoStorage, oficinaRepository);
+  }
+
+  @Test
+  @DisplayName("atualizar: cabeçalho PNG sem imagem legível é recusado")
+  void deveRejeitarPngCorrompido() {
+    byte[] corrompido = new byte[64];
+    System.arraycopy(PNG, 0, corrompido, 0, 8); // só a assinatura, sem chunks
+
+    assertThatThrownBy(() -> service.atualizar(1L, arquivo(corrompido)))
+        .isInstanceOf(LogoInvalidaException.class);
+
+    verifyNoInteractions(logoStorage, oficinaRepository);
   }
 
   @Test

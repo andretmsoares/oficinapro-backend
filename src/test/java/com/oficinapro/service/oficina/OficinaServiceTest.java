@@ -41,6 +41,8 @@ class OficinaServiceTest {
   // listar/buscarPorId/criar/atualizar via OficinaAccessValidator.
   @Mock private com.oficinapro.security.OficinaAccessValidator oficinaAccessValidator;
 
+  @Mock private com.oficinapro.audit.AuditLogService auditLogService;
+
   @InjectMocks private OficinaServiceImpl service;
 
   private Oficina oficina;

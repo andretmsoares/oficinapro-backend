@@ -1,5 +1,7 @@
 package com.oficinapro.service.registro_pagamento;
 
+import com.oficinapro.audit.AcaoAuditoria;
+import com.oficinapro.audit.AuditLogService;
 import com.oficinapro.dto.registro_pagamento.RegistroPagamentoRequestDTO;
 import com.oficinapro.dto.registro_pagamento.RegistroPagamentoResponseDTO;
 import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundException;
@@ -19,6 +21,7 @@ public class RegistroPagamentoServiceImpl implements RegistroPagamentoService {
 
   private final RegistroPagamentoRepository registroPagamentoRepository;
   private final PagamentoService pagamentoService;
+  private final AuditLogService auditLogService;
 
   @Override
   @Transactional(readOnly = true)
@@ -65,6 +68,12 @@ public class RegistroPagamentoServiceImpl implements RegistroPagamentoService {
 
     registro = registroPagamentoRepository.save(registro);
 
+    auditLogService.registrar(
+        AcaoAuditoria.PAGAMENTO_REGISTRADO,
+        "REGISTRO_PAGAMENTO",
+        registro.getId(),
+        "pagamento=" + pagamento.getId() + " valor=" + registro.getValor());
+
     return toResponse(registro);
   }
 
@@ -76,6 +85,12 @@ public class RegistroPagamentoServiceImpl implements RegistroPagamentoService {
     pagamentoService.estornarValorPago(registro.getPagamento().getId(), registro.getValor());
 
     registroPagamentoRepository.delete(registro);
+
+    auditLogService.registrar(
+        AcaoAuditoria.PAGAMENTO_ESTORNADO,
+        "REGISTRO_PAGAMENTO",
+        id,
+        "pagamento=" + registro.getPagamento().getId() + " valor=" + registro.getValor());
   }
 
   private RegistroPagamentoResponseDTO toResponse(RegistroPagamento registro) {

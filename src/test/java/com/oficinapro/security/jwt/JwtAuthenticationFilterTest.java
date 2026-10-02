@@ -51,12 +51,17 @@ class JwtAuthenticationFilterTest {
     SecurityContextHolder.clearContext();
   }
 
-  private static Jwt jwtDe(String subject) {
-    return Jwt.withTokenValue("token").header("alg", "HS256").subject(subject).build();
+  private static Jwt jwtDe(long id, int tokenVersion) {
+    return Jwt.withTokenValue("token")
+        .header("alg", "HS256")
+        .subject(String.valueOf(id))
+        .claim("tv", tokenVersion)
+        .build();
   }
 
   private static Usuario usuario(String username, Role role, Boolean oficinaAtiva) {
     Usuario usuario = new Usuario();
+    usuario.setId(1L);
     usuario.setUsername(username);
     usuario.setRole(role);
     if (oficinaAtiva != null) {
@@ -108,8 +113,8 @@ class JwtAuthenticationFilterTest {
   void tokenValidoAutentica() throws Exception {
     Usuario gerente = usuario("ana.gerente", Role.GERENTE, true);
     request.addHeader("Authorization", "Bearer abc.def.ghi");
-    when(jwtService.decodificar("abc.def.ghi")).thenReturn(jwtDe("ana.gerente"));
-    when(usuarioDetailsService.loadUserByUsername("ana.gerente")).thenReturn(gerente);
+    when(jwtService.decodificar("abc.def.ghi")).thenReturn(jwtDe(1L, 0));
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(gerente);
 
     executar();
 
@@ -128,8 +133,8 @@ class JwtAuthenticationFilterTest {
   void adminSemOficinaAutentica() throws Exception {
     Usuario admin = usuario("admin.saas", Role.ADMIN, null);
     request.addHeader("Authorization", "Bearer token-admin");
-    when(jwtService.decodificar("token-admin")).thenReturn(jwtDe("admin.saas"));
-    when(usuarioDetailsService.loadUserByUsername("admin.saas")).thenReturn(admin);
+    when(jwtService.decodificar("token-admin")).thenReturn(jwtDe(1L, 0));
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(admin);
 
     executar();
 
@@ -142,8 +147,8 @@ class JwtAuthenticationFilterTest {
   void oficinaDesativadaNaoAutentica() throws Exception {
     Usuario gerente = usuario("ana.gerente", Role.GERENTE, false);
     request.addHeader("Authorization", "Bearer token");
-    when(jwtService.decodificar("token")).thenReturn(jwtDe("ana.gerente"));
-    when(usuarioDetailsService.loadUserByUsername("ana.gerente")).thenReturn(gerente);
+    when(jwtService.decodificar("token")).thenReturn(jwtDe(1L, 0));
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(gerente);
 
     executar();
 
@@ -156,8 +161,8 @@ class JwtAuthenticationFilterTest {
   void usuarioSemOficinaNaoAutentica() throws Exception {
     Usuario semOficina = usuario("mec", Role.MECANICO, null);
     request.addHeader("Authorization", "Bearer token");
-    when(jwtService.decodificar("token")).thenReturn(jwtDe("mec"));
-    when(usuarioDetailsService.loadUserByUsername("mec")).thenReturn(semOficina);
+    when(jwtService.decodificar("token")).thenReturn(jwtDe(1L, 0));
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(semOficina);
 
     executar();
 
@@ -182,14 +187,63 @@ class JwtAuthenticationFilterTest {
   @DisplayName("token válido de usuário removido depois da emissão: não autentica")
   void usuarioRemovidoNaoAutentica() throws Exception {
     request.addHeader("Authorization", "Bearer token");
-    when(jwtService.decodificar("token")).thenReturn(jwtDe("fantasma"));
-    when(usuarioDetailsService.loadUserByUsername("fantasma"))
+    when(jwtService.decodificar("token")).thenReturn(jwtDe(99L, 0));
+    when(usuarioDetailsService.carregarPorId(99L))
         .thenThrow(new UsernameNotFoundException("Credenciais inválidas"));
 
     executar();
 
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     verify(chain).doFilter(request, response);
+  }
+
+  @Test
+  @DisplayName("token emitido antes de uma troca de senha ou logout (versão antiga): não autentica")
+  void tokenRevogadoNaoAutentica() throws Exception {
+    Usuario gerente = usuario("ana.gerente", Role.GERENTE, true);
+    gerente.revogarTokens(); // versão vigente passou a 1; o token ainda carrega 0
+    request.addHeader("Authorization", "Bearer token");
+    when(jwtService.decodificar("token")).thenReturn(jwtDe(1L, 0));
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(gerente);
+
+    executar();
+
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    verify(chain).doFilter(request, response);
+  }
+
+  @Test
+  @DisplayName("token sem a claim de versão não autentica")
+  void tokenSemVersaoNaoAutentica() throws Exception {
+    Usuario gerente = usuario("ana.gerente", Role.GERENTE, true);
+    request.addHeader("Authorization", "Bearer token");
+    when(jwtService.decodificar("token"))
+        .thenReturn(
+            Jwt.withTokenValue("token").header("alg", "HS256").subject("1").claim("x", 1).build());
+    when(usuarioDetailsService.carregarPorId(1L)).thenReturn(gerente);
+
+    executar();
+
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+  }
+
+  @Test
+  @DisplayName("subject que não é um id numérico (ex.: token antigo com username) não autentica")
+  void subjectNaoNumericoNaoAutentica() throws Exception {
+    request.addHeader("Authorization", "Bearer token");
+    when(jwtService.decodificar("token"))
+        .thenReturn(
+            Jwt.withTokenValue("token")
+                .header("alg", "HS256")
+                .subject("ana.gerente")
+                .claim("tv", 0)
+                .build());
+
+    executar();
+
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    verify(chain).doFilter(request, response);
+    verifyNoInteractions(usuarioDetailsService);
   }
 
   @Test

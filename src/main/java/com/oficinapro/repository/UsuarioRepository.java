@@ -51,6 +51,12 @@ public interface UsuarioRepository extends PessoaCrudRepository<Usuario> {
   @Query("select u from Usuario u left join fetch u.oficina where u.username = :username")
   Optional<Usuario> findByUsernameComOficina(@Param("username") String username);
 
+  /**
+   * Usada pelo filtro JWT: o token identifica o usuário pelo id, que nunca muda nem se reaproveita.
+   */
+  @Query("select u from Usuario u left join fetch u.oficina where u.id = :id")
+  Optional<Usuario> findByIdComOficina(@Param("id") Long id);
+
   /** Lock pessimista para que tentativas paralelas nao percam incrementos do contador. */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select u from Usuario u where u.username = :username")

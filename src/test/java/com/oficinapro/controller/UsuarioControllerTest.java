@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.oficinapro.dto.usuario.UsuarioRequestDTO;
@@ -218,22 +219,30 @@ class UsuarioControllerTest {
 
   @Test
   @WithMockUser(roles = "ADMIN")
-  @DisplayName("GET /api/usuarios/admin/documento/{doc} - ADMIN busca em todas as oficinas")
+  @DisplayName("POST /api/usuarios/admin/documento/buscar - ADMIN busca em todas as oficinas")
   void buscarPorDocumentoAdmin_admin_retorna200() throws Exception {
     when(usuarioService.buscarPorDocumentoAdmin("12345678901")).thenReturn(List.of(responseDTO));
 
     mockMvc
-        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .perform(
+            post("/api/usuarios/admin/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"12345678901\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(1));
   }
 
   @Test
   @WithMockUser(roles = "MECANICO")
-  @DisplayName("GET /api/usuarios/admin/documento/{doc} - MECANICO recebe 403")
+  @DisplayName("POST /api/usuarios/admin/documento/buscar - MECANICO recebe 403")
   void buscarPorDocumentoAdmin_mecanico_retorna403() throws Exception {
     mockMvc
-        .perform(get("/api/usuarios/admin/documento/12345678901"))
+        .perform(
+            post("/api/usuarios/admin/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"12345678901\"}"))
         .andExpect(status().isForbidden());
 
     verify(usuarioService, never()).buscarPorDocumentoAdmin(any());

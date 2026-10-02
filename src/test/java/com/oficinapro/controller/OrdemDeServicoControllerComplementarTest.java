@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -317,19 +319,21 @@ class OrdemDeServicoControllerComplementarTest {
   @DisplayName("GET /veiculo/{id} - deve listar as OS do veículo")
   @WithMockUser(roles = "MECANICO")
   void deveListarPorVeiculo() throws Exception {
-    when(service.listarPorVeiculo(1L)).thenReturn(List.of(responseDTO));
+    when(service.listarPorVeiculo(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico/veiculo/1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].veiculoId").value(1));
+        .andExpect(jsonPath("$.content[0].veiculoId").value(1));
   }
 
   @Test
   @DisplayName("GET /veiculo/{id} - veículo inexistente vira 404")
   @WithMockUser(roles = "GERENTE")
   void deveRetornar404ParaVeiculoInexistente() throws Exception {
-    when(service.listarPorVeiculo(99L)).thenThrow(new VeiculoNotFoundException(99L));
+    when(service.listarPorVeiculo(org.mockito.ArgumentMatchers.eq(99L), any(Pageable.class)))
+        .thenThrow(new VeiculoNotFoundException(99L));
 
     mockMvc.perform(get("/api/ordens-servico/veiculo/99")).andExpect(status().isNotFound());
   }
@@ -338,31 +342,34 @@ class OrdemDeServicoControllerComplementarTest {
   @DisplayName("GET /mecanico/{id} - deve listar as OS do mecânico")
   @WithMockUser(roles = "GERENTE")
   void deveListarPorMecanico() throws Exception {
-    when(service.listarPorMecanico(1L)).thenReturn(List.of(responseDTO));
+    when(service.listarPorMecanico(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico/mecanico/1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].mecanicoId").value(1));
+        .andExpect(jsonPath("$.content[0].mecanicoId").value(1));
   }
 
   @Test
   @DisplayName("GET /unidade/{id} - deve listar as OS da unidade")
   @WithMockUser(roles = "GERENTE")
   void deveListarPorUnidade() throws Exception {
-    when(service.listarPorUnidade(1L)).thenReturn(List.of(responseDTO));
+    when(service.listarPorUnidade(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico/unidade/1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].unidadeId").value(1));
+        .andExpect(jsonPath("$.content[0].unidadeId").value(1));
   }
 
   @Test
   @DisplayName("GET /unidade/{id} - unidade inexistente vira 404")
   @WithMockUser(roles = "GERENTE")
   void deveRetornar404ParaUnidadeInexistente() throws Exception {
-    when(service.listarPorUnidade(99L)).thenThrow(new UnidadeNotFoundException(99L));
+    when(service.listarPorUnidade(org.mockito.ArgumentMatchers.eq(99L), any(Pageable.class)))
+        .thenThrow(new UnidadeNotFoundException(99L));
 
     mockMvc.perform(get("/api/ordens-servico/unidade/99")).andExpect(status().isNotFound());
   }
@@ -371,24 +378,27 @@ class OrdemDeServicoControllerComplementarTest {
   @DisplayName("GET /cliente/{id} - deve listar as OS do cliente")
   @WithMockUser(roles = "GERENTE")
   void deveListarPorCliente() throws Exception {
-    when(service.listarPorCliente(1L)).thenReturn(List.of(responseDTO));
+    when(service.listarPorCliente(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico/cliente/1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].clienteId").value(1));
+        .andExpect(jsonPath("$.content[0].clienteId").value(1));
   }
 
   @Test
   @DisplayName("GET /status/{status} - deve converter o enum e listar por status")
   @WithMockUser(roles = "GERENTE")
   void deveListarPorStatus() throws Exception {
-    when(service.listarPorStatus(StatusOrdemDeServico.ABERTA)).thenReturn(List.of(responseDTO));
+    when(service.listarPorStatus(
+            org.mockito.ArgumentMatchers.eq(StatusOrdemDeServico.ABERTA), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico/status/ABERTA"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].status").value("ABERTA"));
+        .andExpect(jsonPath("$.content[0].status").value("ABERTA"));
   }
 
   @Test

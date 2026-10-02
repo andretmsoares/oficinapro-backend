@@ -48,6 +48,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -123,71 +127,80 @@ class OrdemDeServicoServiceConsultasTest {
   // listarPor{Veiculo,Mecanico,Unidade,Cliente}()
   // ---------------------------------------------------------------
 
+  private static final Pageable PAGINA = PageRequest.of(0, 20);
+
   @Nested
   @DisplayName("listagens por entidade relacionada")
   class ListagensPorRelacao {
 
-    private OrdemDeServico osDeOutraOficina;
-    private OrdemDeServico osSemOficina;
-
     @BeforeEach
-    void prepararOutrasOs() {
-      osDeOutraOficina = novaOs(2L, outraOficina);
-      osSemOficina = novaOs(3L, null);
+    void escopo() {
       when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
     }
 
     @Test
-    @DisplayName("listarPorVeiculo: valida o veículo e devolve só as OS da oficina do usuário")
+    @DisplayName("listarPorVeiculo: valida o veículo e consulta já restrito à oficina do usuário")
     void listarPorVeiculoFiltraPorOficina() {
-      when(ordemServicoRepository.findByVeiculoId(1L))
-          .thenReturn(List.of(os, osDeOutraOficina, osSemOficina));
+      when(ordemServicoRepository.findByOficinaIdAndVeiculoId(eq(1L), eq(1L), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(os)));
 
-      List<OrdemDeServicoResponseDTO> resultado = service.listarPorVeiculo(1L);
+      Page<OrdemDeServicoResponseDTO> resultado = service.listarPorVeiculo(1L, PAGINA);
 
-      assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+      assertThat(resultado.getContent())
+          .extracting(OrdemDeServicoResponseDTO::id)
+          .containsExactly(1L);
       verify(veiculoService).buscarPorEntidadeId(1L);
     }
 
     @Test
-    @DisplayName("listarPorMecanico: valida o mecânico e devolve só as OS da oficina do usuário")
+    @DisplayName("listarPorMecanico: valida o mecânico e consulta já restrito à oficina do usuário")
     void listarPorMecanicoFiltraPorOficina() {
-      when(ordemServicoRepository.findByMecanicoId(1L)).thenReturn(List.of(osDeOutraOficina, os));
+      when(ordemServicoRepository.findByOficinaIdAndMecanicoId(eq(1L), eq(1L), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(os)));
 
-      List<OrdemDeServicoResponseDTO> resultado = service.listarPorMecanico(1L);
+      Page<OrdemDeServicoResponseDTO> resultado = service.listarPorMecanico(1L, PAGINA);
 
-      assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+      assertThat(resultado.getContent())
+          .extracting(OrdemDeServicoResponseDTO::id)
+          .containsExactly(1L);
       verify(mecanicoService).buscarPorEntidadeId(1L);
     }
 
     @Test
-    @DisplayName("listarPorUnidade: valida a unidade e devolve só as OS da oficina do usuário")
+    @DisplayName("listarPorUnidade: valida a unidade e consulta já restrito à oficina do usuário")
     void listarPorUnidadeFiltraPorOficina() {
-      when(ordemServicoRepository.findByUnidadeId(1L)).thenReturn(List.of(os, osDeOutraOficina));
+      when(ordemServicoRepository.findByOficinaIdAndUnidadeId(eq(1L), eq(1L), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(os)));
 
-      List<OrdemDeServicoResponseDTO> resultado = service.listarPorUnidade(1L);
+      Page<OrdemDeServicoResponseDTO> resultado = service.listarPorUnidade(1L, PAGINA);
 
-      assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+      assertThat(resultado.getContent())
+          .extracting(OrdemDeServicoResponseDTO::id)
+          .containsExactly(1L);
       verify(unidadeService).buscarPorId(1L);
     }
 
     @Test
-    @DisplayName("listarPorCliente: valida o cliente e devolve só as OS da oficina do usuário")
+    @DisplayName("listarPorCliente: valida o cliente e consulta já restrito à oficina do usuário")
     void listarPorClienteFiltraPorOficina() {
-      when(ordemServicoRepository.findByClienteId(1L)).thenReturn(List.of(os, osDeOutraOficina));
+      when(ordemServicoRepository.findByOficinaIdAndClienteId(eq(1L), eq(1L), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(os)));
 
-      List<OrdemDeServicoResponseDTO> resultado = service.listarPorCliente(1L);
+      Page<OrdemDeServicoResponseDTO> resultado = service.listarPorCliente(1L, PAGINA);
 
-      assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+      assertThat(resultado.getContent())
+          .extracting(OrdemDeServicoResponseDTO::id)
+          .containsExactly(1L);
       verify(clienteService).buscarPorEntidadeId(1L);
     }
 
     @Test
-    @DisplayName("listarPorCliente: sem OS do cliente na oficina devolve lista vazia")
+    @DisplayName("listarPorCliente: sem OS do cliente na oficina devolve página vazia")
     void listarPorClienteSemResultadosDevolveVazio() {
-      when(ordemServicoRepository.findByClienteId(1L)).thenReturn(List.of(osDeOutraOficina));
+      when(ordemServicoRepository.findByOficinaIdAndClienteId(eq(1L), eq(1L), any(Pageable.class)))
+          .thenReturn(Page.empty());
 
-      assertThat(service.listarPorCliente(1L)).isEmpty();
+      assertThat(service.listarPorCliente(1L, PAGINA).getContent()).isEmpty();
     }
   }
 
@@ -200,7 +213,7 @@ class OrdemDeServicoServiceConsultasTest {
     void veiculoInexistente() {
       when(veiculoService.buscarPorEntidadeId(9L)).thenThrow(new VeiculoNotFoundException(9L));
 
-      assertThatThrownBy(() -> service.listarPorVeiculo(9L))
+      assertThatThrownBy(() -> service.listarPorVeiculo(9L, PAGINA))
           .isInstanceOf(VeiculoNotFoundException.class);
 
       verifyNoInteractions(ordemServicoRepository);
@@ -211,7 +224,7 @@ class OrdemDeServicoServiceConsultasTest {
     void mecanicoInexistente() {
       when(mecanicoService.buscarPorEntidadeId(9L)).thenThrow(new MecanicoNotFoundException());
 
-      assertThatThrownBy(() -> service.listarPorMecanico(9L))
+      assertThatThrownBy(() -> service.listarPorMecanico(9L, PAGINA))
           .isInstanceOf(MecanicoNotFoundException.class);
 
       verifyNoInteractions(ordemServicoRepository);
@@ -222,7 +235,7 @@ class OrdemDeServicoServiceConsultasTest {
     void unidadeInexistente() {
       when(unidadeService.buscarPorId(9L)).thenThrow(new UnidadeNotFoundException(9L));
 
-      assertThatThrownBy(() -> service.listarPorUnidade(9L))
+      assertThatThrownBy(() -> service.listarPorUnidade(9L, PAGINA))
           .isInstanceOf(UnidadeNotFoundException.class);
 
       verifyNoInteractions(ordemServicoRepository);
@@ -233,7 +246,7 @@ class OrdemDeServicoServiceConsultasTest {
     void clienteInexistente() {
       when(clienteService.buscarPorEntidadeId(9L)).thenThrow(new ClienteNotFoundException());
 
-      assertThatThrownBy(() -> service.listarPorCliente(9L))
+      assertThatThrownBy(() -> service.listarPorCliente(9L, PAGINA))
           .isInstanceOf(ClienteNotFoundException.class);
 
       verifyNoInteractions(ordemServicoRepository);

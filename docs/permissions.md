@@ -7,7 +7,7 @@ pelos controllers e em chamadas de validação dentro dos services. Frontend e b
 chegaram a discordar sobre o nome de um papel. Se você alterar uma permissão no código,
 **atualize este arquivo no mesmo commit**.
 
-Última verificação contra o código: branch `docs`, após a suíte de 348 testes passar.
+A matriz da §3 é **gerada a partir dos `@PreAuthorize`** dos controllers; regenere-a ao mudar uma permissão.
 
 ---
 
@@ -42,12 +42,12 @@ que chame `POST /api/ordens-servico` recebe `403`. Há teste para isso em
 
 ### Onde o princípio ainda NÃO vale (dívida conhecida)
 
-Três pontos em aberto. Estão documentados aqui em vez de escondidos:
+Um ponto em aberto. Está documentado aqui em vez de escondido. (P1 e P2, que diziam que o ADMIN
+listava clientes e mecânicos de todas as oficinas, **já não existem**: `GET /api/clientes` é de
+GERENTE/MECANICO e `GET /api/mecanicos` é só de GERENTE, e o ADMIN recebe `403`.)
 
 | # | Ponto | Situação |
 |---|---|---|
-| P1 | `GET /api/clientes` | Restrito a `ADMIN` — e o service, para ADMIN, faz `findAll()`. Ou seja: **o ADMIN lista os clientes de todas as oficinas.** Contradiz o princípio. |
-| P2 | `GET /api/mecanicos` | Idem: `ADMIN` recebe `findAll()` de todos os mecânicos de todas as oficinas. |
 | P3 | `OficinaAccessValidator` | `validarAcessoOficina` e `validarAcessoAoRegistro` começam com `if (role == ADMIN) return;`. O ADMIN atravessa o isolamento na camada de serviço. Hoje o controller é a **única** barreira. |
 
 Sobre P3: isso inverte a defesa em profundidade. Se algum endpoint operacional passar a
@@ -75,172 +75,182 @@ atrás de uma resposta de sucesso — bug que já ocorreu neste projeto (ver §6
 
 ## 3. Matriz completa papel × endpoint
 
-Extraída direto dos `@PreAuthorize`. "—" significa que o endpoint não exige papel
-específico, apenas autenticação.
+Gerada a partir dos `@PreAuthorize` dos controllers (a fonte de verdade é o código). "público"
+= `permitAll` no `SecurityConfig`; "token" = só exige estar autenticado. O service ainda aplica
+o isolamento por oficina (§6) e, em vários casos, `validarRole` como segunda barreira.
 
 ### Autenticação — `/api/auth`
 
-| Método | Rota | ADMIN | GERENTE | MECANICO | Observação |
-|---|---|:-:|:-:|:-:|---|
-| POST | `/login` | público | público | público | Não exige token |
-| GET | `/me` | ✅ | ✅ | ✅ | Só exige estar autenticado |
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| POST | `/api/auth/login` | público | público | público |
+| POST | `/api/auth/logout` | token | token | token |
+| GET | `/api/auth/me` | token | token | token |
 
-### Oficinas — `/api/oficinas` (plataforma)
+### Oficinas (plataforma) — `/api/oficinas`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/` | ✅ | ❌ | ❌ |
-| GET | `/{id}` | ✅ | ❌ | ❌ |
-| POST | `/` | ✅ | ❌ | ❌ |
-| PUT | `/{id}` | ✅ | ❌ | ❌ |
-| DELETE | `/{id}` | ✅ | ❌ | ❌ |
+| GET | `/api/oficinas` | ✅ | ❌ | ❌ |
+| GET | `/api/oficinas/buscar` | ✅ | ❌ | ❌ |
+| GET | `/api/oficinas/{id}` | ✅ | ❌ | ❌ |
+| POST | `/api/oficinas` | ✅ | ❌ | ❌ |
+| PUT | `/api/oficinas/{id}` | ✅ | ❌ | ❌ |
+| PATCH | `/api/oficinas/{id}/ativar` | ✅ | ❌ | ❌ |
+| PATCH | `/api/oficinas/{id}/desativar` | ✅ | ❌ | ❌ |
 
-Exclusivo do ADMIN, e o service reforça com `validarRole(ADMIN)` nos cinco métodos.
-
-### Usuários — `/api/usuarios` (plataforma + oficina)
+### Logo da oficina — `/api/oficinas/{oficinaId}/logo`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/` | ✅ | ❌ | ❌ |
-| GET | `/oficina/{oficinaId}` | ✅ | ✅ | ❌ |
-| GET | `/{id}` | ✅ | ✅ | ❌ |
-| GET | `/nome/{nome}` | ✅ | ❌ | ❌ |
-| GET | `/documento/{documento}` | ✅ | ❌ | ❌ |
-| POST | `/` | ✅ | ✅ | ❌ |
-| PUT | `/{id}` | ✅ | ✅ | ❌ |
-| DELETE | `/{id}` | ✅ | ✅ | ❌ |
-| PATCH | `/{id}/desbloquear` | ✅ | ✅ | ❌ |
+| PUT | `/api/oficinas/{oficinaId}/logo` | ✅ | ✅ | ❌ |
+| DELETE | `/api/oficinas/{oficinaId}/logo` | ✅ | ✅ | ❌ |
+| GET | `/api/oficinas/{oficinaId}/logo` | ✅ | ✅ | ✅ |
 
-Único módulo compartilhado entre ADMIN e GERENTE. As regras de hierarquia estão na §4.
+### Usuários — `/api/usuarios`
 
-`PATCH /{id}/desbloquear` remove o bloqueio de login por excesso de tentativas (temporário ou
-permanente). O GERENTE só desbloqueia usuário da própria oficina; de outra oficina, ou de um
-ADMIN, recebe `404`.
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| GET | `/api/usuarios` | ✅ | ✅ | ❌ |
+| GET | `/api/usuarios/buscar` | ✅ | ✅ | ❌ |
+| PUT | `/api/usuarios/me` | ✅ | ✅ | ✅ |
+| GET | `/api/usuarios/{id}` | ✅ | ✅ | ❌ |
+| GET | `/api/usuarios/nome/{nome}` | ❌ | ✅ | ❌ |
+| POST | `/api/usuarios/documento/buscar` | ❌ | ✅ | ❌ |
+| GET | `/api/usuarios/admin/nome/{nome}` | ✅ | ❌ | ❌ |
+| POST | `/api/usuarios/admin/documento/buscar` | ✅ | ❌ | ❌ |
+| POST | `/api/usuarios` | ✅ | ✅ | ❌ |
+| PUT | `/api/usuarios/{id}` | ✅ | ✅ | ❌ |
+| PATCH | `/api/usuarios/{id}/desbloquear` | ✅ | ✅ | ❌ |
+| DELETE | `/api/usuarios/{id}` | ✅ | ✅ | ❌ |
 
 ### Unidades — `/api/unidades`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/` | ❌ | ✅ | ❌ |
-| GET | `/{id}` | ❌ | ✅ | ❌ |
-| GET | `/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
-| POST | `/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
-| PUT | `/{id}` | ❌ | ✅ | ❌ |
-| DELETE | `/{id}` | ❌ | ✅ | ❌ |
+| GET | `/api/unidades` | ❌ | ✅ | ✅ |
+| GET | `/api/unidades/{id}` | ❌ | ✅ | ✅ |
+| POST | `/api/unidades/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
+| PUT | `/api/unidades/{id}` | ❌ | ✅ | ❌ |
+| DELETE | `/api/unidades/{id}` | ❌ | ✅ | ❌ |
 
 ### Clientes — `/api/clientes`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/` | ✅ ⚠️ | ❌ | ❌ |
-| GET | `/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
-| GET | `/{id}` | ❌ | ✅ | ❌ |
-| GET | `/nome/{nome}` | ❌ | ✅ | ❌ |
-| GET | `/documento/{documento}` | ❌ | ✅ | ❌ |
-| POST | `/` | ❌ | ✅ | ❌ |
-| PUT | `/{id}` | ❌ | ✅ | ❌ |
-| DELETE | `/{id}` | ❌ | ✅ | ❌ |
-
-⚠️ P1 da §2. O MECANICO não acessa cadastro de clientes.
+| GET | `/api/clientes` | ❌ | ✅ | ✅ |
+| GET | `/api/clientes/buscar` | ❌ | ✅ | ✅ |
+| GET | `/api/clientes/{id}` | ❌ | ✅ | ✅ |
+| GET | `/api/clientes/nome/{nome}` | ❌ | ✅ | ✅ |
+| POST | `/api/clientes/documento/buscar` | ❌ | ✅ | ✅ |
+| POST | `/api/clientes` | ❌ | ✅ | ❌ |
+| PUT | `/api/clientes/{id}` | ❌ | ✅ | ❌ |
+| DELETE | `/api/clientes/{id}` | ❌ | ✅ | ❌ |
 
 ### Mecânicos — `/api/mecanicos`
 
-Estrutura idêntica à de Clientes, incluindo o ⚠️ em `GET /` (P2 da §2).
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| GET | `/api/mecanicos` | ❌ | ✅ | ❌ |
+| GET | `/api/mecanicos/buscar` | ❌ | ✅ | ❌ |
+| GET | `/api/mecanicos/{id}` | ❌ | ✅ | ❌ |
+| GET | `/api/mecanicos/nome/{nome}` | ❌ | ✅ | ❌ |
+| POST | `/api/mecanicos/documento/buscar` | ❌ | ✅ | ❌ |
+| POST | `/api/mecanicos` | ❌ | ✅ | ❌ |
+| PUT | `/api/mecanicos/{id}` | ❌ | ✅ | ❌ |
+| DELETE | `/api/mecanicos/{id}` | ❌ | ✅ | ❌ |
 
 ### Veículos — `/api/veiculos`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/` | ❌ | ✅ | ✅ |
-| GET | `/{id}` | ❌ | ✅ | ✅ |
-| GET | `/placa/{placa}` | ❌ | ✅ | ✅ |
-| GET | `/oficina/{oficinaId}` | ❌ | ✅ | ✅ |
-| POST | `/` | ❌ | ✅ | ✅ |
-| PUT | `/{id}` | ❌ | ✅ | ❌ |
-| DELETE | `/{id}` | ❌ | ✅ | ❌ |
-
-O MECANICO pode cadastrar um veículo (carro que chegou agora), mas não alterar nem
-excluir.
-
-`GET /placa/{placa}` escopa a busca na oficina do usuário logado lendo
-`AuthenticatedUserProvider.getOficinaIdUsuarioLogado()`. Como o ADMIN não tem oficina,
-esse endpoint nunca funcionaria para ele — coerente com o fato de não estar liberado.
+| GET | `/api/veiculos` | ❌ | ✅ | ✅ |
+| GET | `/api/veiculos/buscar` | ❌ | ✅ | ✅ |
+| GET | `/api/veiculos/{id}` | ❌ | ✅ | ✅ |
+| GET | `/api/veiculos/placa/{placa}` | ❌ | ✅ | ✅ |
+| POST | `/api/veiculos` | ❌ | ✅ | ❌ |
+| PUT | `/api/veiculos/{id}` | ❌ | ✅ | ❌ |
+| DELETE | `/api/veiculos/{id}` | ❌ | ✅ | ❌ |
 
 ### Ordens de serviço — `/api/ordens-servico`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| POST | `/` | ❌ | ✅ | ❌ |
-| GET | `/` | ❌ | ✅ | ✅ |
-| GET | `/{id}` | ❌ | ✅ | ✅ |
-| GET | `/veiculo/{veiculoId}` | ❌ | ✅ | ✅ |
-| GET | `/mecanico/{mecanicoId}` | ❌ | ✅ | ✅ |
-| GET | `/unidade/{unidadeId}` | ❌ | ✅ | ✅ |
-| GET | `/cliente/{clienteId}` | ❌ | ✅ | ✅ |
-| GET | `/oficina/{oficinaId}` | ❌ | ✅ | ✅ |
-| GET | `/status/{status}` | ❌ | ✅ | ✅ |
-| GET | `/oficina/{oficinaId}/fluxo-mensal` | ❌ | ✅ | ✅ |
-| PUT | `/{id}` | ❌ | ✅ | ❌ |
-| DELETE | `/{id}` | ❌ | ✅ | ❌ |
-| PATCH | `/{id}/status` | ❌ | ✅ | ✅ |
-| PATCH | `/{id}/mecanico` | ❌ | ✅ | ❌ |
-| PATCH | `/{id}/cliente` | ❌ | ✅ | ❌ |
-| PATCH | `/{id}/desconto` | ❌ | ✅ | ❌ |
-
-`PATCH /{id}/status` é liberado ao MECANICO, mas com restrição **dentro** do service —
-ver §5.
-
-Consequência de acoplamento em `POST /`: criar uma OS abre o pagamento dela, e
-`PagamentoServiceImpl.criar` exige `validarRole(GERENTE)`. Logo a criação de OS é de
-GERENTE tanto pelo controller quanto pelo service.
+| POST | `/api/ordens-servico` | ❌ | ✅ | ❌ |
+| GET | `/api/ordens-servico` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/{id}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/fluxo-mensal` | ❌ | ✅ | ✅ |
+| PUT | `/api/ordens-servico/{id}` | ❌ | ✅ | ✅ |
+| DELETE | `/api/ordens-servico/{id}` | ❌ | ✅ | ❌ |
+| PATCH | `/api/ordens-servico/{id}/status` | ❌ | ✅ | ✅ |
+| PATCH | `/api/ordens-servico/{id}/mecanico` | ❌ | ✅ | ✅ |
+| PATCH | `/api/ordens-servico/{id}/cliente` | ❌ | ✅ | ✅ |
+| PATCH | `/api/ordens-servico/{id}/desconto` | ❌ | ✅ | ❌ |
+| GET | `/api/ordens-servico/veiculo/{veiculoId}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/mecanico/{mecanicoId}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/unidade/{unidadeId}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/cliente/{clienteId}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/status/{status}` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/{id}/pdf` | ❌ | ✅ | ✅ |
+| GET | `/api/ordens-servico/{id}/comprovante-pagamento` | ❌ | ✅ | ✅ |
 
 ### Peças da OS — `/api/itens-os-peca`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| GET | `/os/{osId}` | ❌ | ✅ | ✅ |
-| GET | `/{id}` | ❌ | ✅ | ✅ |
-| POST | `/` | ❌ | ✅ | ✅ |
-| PUT | `/{id}` | ❌ | ✅ | ✅ |
-| DELETE | `/{id}` | ❌ | ✅ | ✅ |
+| GET | `/api/itens-os-peca/os/{osId}` | ❌ | ✅ | ✅ |
+| GET | `/api/itens-os-peca` | ❌ | ✅ | ✅ |
+| GET | `/api/itens-os-peca/{id}` | ❌ | ✅ | ✅ |
+| POST | `/api/itens-os-peca` | ❌ | ✅ | ✅ |
+| PUT | `/api/itens-os-peca/{id}` | ❌ | ✅ | ✅ |
+| DELETE | `/api/itens-os-peca/{id}` | ❌ | ✅ | ✅ |
+| PUT | `/api/itens-os-peca/{id}/os/{osId}` | ❌ | ✅ | ✅ |
+| DELETE | `/api/itens-os-peca/{id}/os` | ❌ | ✅ | ✅ |
 
 ### Mão de obra — `/api/mao-obra`
 
-Permissões idênticas às de peças: `GERENTE` e `MECANICO` em todos os cinco endpoints.
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| GET | `/api/mao-obra/os/{osId}` | ❌ | ✅ | ✅ |
+| GET | `/api/mao-obra/{id}` | ❌ | ✅ | ✅ |
+| POST | `/api/mao-obra` | ❌ | ✅ | ✅ |
+| PUT | `/api/mao-obra/{id}` | ❌ | ✅ | ✅ |
+| DELETE | `/api/mao-obra/{id}` | ❌ | ✅ | ✅ |
 
 ### Pagamentos — `/api/pagamentos`
 
 | Método | Rota | ADMIN | GERENTE | MECANICO |
 |---|---|:-:|:-:|:-:|
-| POST | `/` | ❌ | ✅ | ❌ |
-| GET | `/{id}` | ❌ | ✅ | ❌ |
-| GET | `/os/{osId}` | ❌ | ✅ | ❌ |
-| GET | `/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
-| GET | `/oficina/{oficinaId}/a-receber` | ❌ | ✅ | ❌ |
-| GET | `/oficina/{oficinaId}/status/{status}` | ❌ | ✅ | ✅ |
-| PUT | `/{id}` | ❌ | ✅ | ❌ |
-
-O financeiro é do GERENTE. A **única** exceção é a consulta por status, liberada ao
-MECANICO — ela informa se a OS está paga, sem expor valores agregados da oficina.
+| GET | `/api/pagamentos/{id}` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/os/{osId}` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/status/{status}` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/a-receber` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/resumo` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/por-os` | ❌ | ✅ | ❌ |
+| PUT | `/api/pagamentos/{id}` | ❌ | ✅ | ❌ |
 
 ### Registros de pagamento — `/api/registros-pagamento`
 
-Todos os quatro endpoints: apenas `GERENTE`.
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| POST | `/api/registros-pagamento` | ❌ | ✅ | ❌ |
+| GET | `/api/registros-pagamento/{id}` | ❌ | ✅ | ❌ |
+| GET | `/api/registros-pagamento/pagamento/{pagamentoId}` | ❌ | ✅ | ❌ |
+| DELETE | `/api/registros-pagamento/{id}` | ❌ | ✅ | ❌ |
 
-### Ajustes de fechamento do MVP (valem sobre as tabelas acima)
+### Dashboard — `/api/dashboard`
 
-As tabelas acima foram escritas antes de várias mudanças e nem todas as células refletem o
-código. Decisões confirmadas na revisão final, que **prevalecem**:
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| GET | `/api/dashboard/data` | ❌ | ✅ | ❌ |
 
-| Assunto | Regra atual |
-|---|---|
-| `PUT /api/ordens-servico/{id}`, `PATCH .../mecanico`, `PATCH .../cliente` | `GERENTE` e `MECANICO` (decisão de produto: o mecânico pode reatribuir). Em OS `CANCELADA` ou `FECHADA` ninguém altera — `422` |
-| `PATCH .../desconto` | só `GERENTE`; bloqueado em OS `CANCELADA`/`FECHADA`; recusado (`409`) se a OS ficar abaixo do valor já pago |
-| `GET /api/dashboard/data` | só `GERENTE`. O `MECANICO` vê o dashboard sem os cartões numéricos |
-| `DELETE /api/oficinas/{id}` | **removido**. Oficina só é desativada/ativada (`PATCH .../desativar`, `.../ativar`) |
-| `GET /api/pagamentos/os/{osId}` | valida a oficina da OS; OS de outra oficina responde `404` |
-| `PUT/DELETE /api/itens-os-peca/{id}/os...` (vincular/desvincular) | `GERENTE` e `MECANICO`, explícito no controller |
-| Token de usuário cuja oficina foi desativada | deixa de valer na próxima requisição (`401`), não só no login |
+### Estatísticas do sistema — `/api/admin/estatisticas`
+
+| Método | Rota | ADMIN | GERENTE | MECANICO |
+|---|---|:-:|:-:|:-:|
+| GET | `/api/admin/estatisticas` | ✅ | ❌ | ❌ |
+| GET | `/api/admin/estatisticas/oficina/{oficinaId}` | ✅ | ❌ | ❌ |
 
 ---
 

@@ -21,6 +21,14 @@ public class UsuarioDetailsService implements UserDetailsService {
     this.usuarioRepository = usuarioRepository;
   }
 
+  /** Carrega o usuário pelo id do token (claim "sub"), já com a oficina inicializada. */
+  @Transactional(readOnly = true)
+  public Usuario carregarPorId(Long id) throws UsernameNotFoundException {
+    return usuarioRepository
+        .findByIdComOficina(id)
+        .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas"));
+  }
+
   @Override
   @Transactional(readOnly = true)
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

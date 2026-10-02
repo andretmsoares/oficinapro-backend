@@ -3,6 +3,7 @@ package com.oficinapro.controller;
 import com.oficinapro.dto.auth.LoginRequestDTO;
 import com.oficinapro.dto.auth.LoginResponseDTO;
 import com.oficinapro.dto.usuario.UsuarioResponseDTO;
+import com.oficinapro.security.ClientIpResolver;
 import com.oficinapro.service.auth.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,7 +11,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
+  private final boolean confiarEmHeadersDeProxy;
 
-  public AuthController(AuthService authService) {
+  public AuthController(
+      AuthService authService,
+      @Value("${oficinapro.security.trust-proxy-headers:false}") boolean confiarEmHeadersDeProxy) {
     this.authService = authService;
+    this.confiarEmHeadersDeProxy = confiarEmHeadersDeProxy;
   }
 
   @Operation(
@@ -35,13 +42,33 @@ public class AuthController {
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Autenticado com sucesso"),
     @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-    @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
+    @ApiResponse(responseCode = "401", description = "Credenciais inválidas"),
+    @ApiResponse(responseCode = "429", description = "Muitas tentativas; aguarde e tente de novo")
   })
   @SecurityRequirements // rota pública: não exige o cadeado no Swagger
   @PostMapping("/login")
-  public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
+  public ResponseEntity<LoginResponseDTO> login(
+      @Valid @RequestBody LoginRequestDTO request, HttpServletRequest http) {
 
-    return ResponseEntity.ok(authService.login(request));
+    String ip = ClientIpResolver.resolver(http, confiarEmHeadersDeProxy);
+
+    return ResponseEntity.ok(authService.login(request, ip));
+  }
+
+  @Operation(
+      summary = "Logout",
+      description =
+          "Revoga todos os tokens do usuário autenticado: o token atual e os emitidos antes"
+              + " deixam de valer imediatamente.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Tokens revogados"),
+    @ApiResponse(responseCode = "401", description = "Token ausente ou inválido")
+  })
+  @SecurityRequirement(name = "bearerAuth")
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout() {
+    authService.logout();
+    return ResponseEntity.noContent().build();
   }
 
   @Operation(

@@ -1,0 +1,63 @@
+# Produção: Neon (banco gerenciado) + Cloudflare Tunnel. Nenhuma porta é publicada no host:
+# a única entrada é o túnel (conexão de saída do cloudflared para o Cloudflare), então a API não
+# pode ser alcançada contornando o proxy, e CF-Connecting-IP é confiável (TRUST_PROXY_HEADERS).
+#
+# Uso (a partir da raiz do repositório):
+#   docker compose -f infra/docker/compose.tunnel.yml --env-file .env.prod up -d
+#
+# No painel Zero Trust, o Public Hostname (ex.: api.appoficinapro.com.br) deve apontar para
+#   http://app:8080
+# Variáveis esperadas no .env.prod: ver .env-example (DOCKER_USERNAME, TUNNEL_TOKEN, JWT_SECRET,
+# POSTGRES_*/SPRING_DATASOURCE_URL, ADMIN_*, OFICINAPRO_CORS_ALLOWED_ORIGINS).
+# Prefira IMAGE_TAG=<sha do commit> a :latest para deploys reproduzíveis e rollback.
+
+services:
+  app:
+    image: ${DOCKER_USERNAME}/oficinapro-backend:${IMAGE_TAG:-latest}
+    container_name: oficinapro-app
+    restart: unless-stopped
+    env_file:
+      - ./../../.env.prod
+    environment:
+      # Explícito: sem isso a aplicação sobe só com a configuração base (quieta, sem debug).
+      SPRING_PROFILES_ACTIVE: prod
+      # Seguro SOMENTE aqui, onde a API não é alcançável diretamente.
+      TRUST_PROXY_HEADERS: "true"
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /actuator/health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
+          grep -q '"status":"UP"' <&3
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    container_name: oficinapro-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      app:
+        condition: service_healthy

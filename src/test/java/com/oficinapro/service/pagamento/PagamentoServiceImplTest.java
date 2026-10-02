@@ -3,6 +3,7 @@ package com.oficinapro.service.pagamento;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
+import com.oficinapro.dto.pagamento.PagamentoResumoDTO;
 import com.oficinapro.dto.pagamento.PagamentoUpdateRequestDTO;
 import com.oficinapro.enums.Role;
 import com.oficinapro.enums.StatusPagamento;
@@ -40,10 +42,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
@@ -397,7 +403,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "200.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -420,7 +427,8 @@ class PagamentoServiceImplTest {
 
       existente.setDataPagamentoTotal(LocalDateTime.now());
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -439,7 +447,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "300.00", StatusPagamento.PAGA);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
           .as(
@@ -458,7 +467,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -475,7 +485,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "0.00", StatusPagamento.PAGAMENTO_PENDENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -492,7 +503,8 @@ class PagamentoServiceImplTest {
 
       Pagamento existente = pagamento(os, "50.00", StatusPagamento.PAGO_PARCIALMENTE);
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(existente);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID))
+          .thenReturn(Optional.of(existente));
 
       service.recalcularStatus(OS_ID);
 
@@ -575,9 +587,10 @@ class PagamentoServiceImplTest {
     @DisplayName("deve validar o acesso à oficina antes de listar pagamentos dela")
     void deveValidarAcessoAntesDeListarPorOficina() {
 
-      when(repository.findByOrdemDeServicoOficinaId(OFICINA_ID)).thenReturn(List.of());
+      when(repository.buscar(eq(OFICINA_ID), eq(""), eq(""), anyString(), any(Pageable.class)))
+          .thenReturn(Page.empty());
 
-      service.buscarPorOficina(OFICINA_ID);
+      service.buscarPorOficina(OFICINA_ID, "", null, PageRequest.of(0, 20));
 
       verify(oficinaAccessValidator).validarAcessoOficina(OFICINA_ID);
     }
@@ -592,10 +605,11 @@ class PagamentoServiceImplTest {
           .when(oficinaAccessValidator)
           .validarAcessoOficina(outraOficina);
 
-      assertThatThrownBy(() -> service.buscarPorOficina(outraOficina))
+      assertThatThrownBy(
+              () -> service.buscarPorOficina(outraOficina, "", null, PageRequest.of(0, 20)))
           .isInstanceOf(AccessDeniedException.class);
 
-      verify(repository, never()).findByOrdemDeServicoOficinaId(any());
+      verify(repository, never()).buscar(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -616,6 +630,75 @@ class PagamentoServiceImplTest {
     }
 
     @Test
+    @DisplayName("buscarPorOficina: a busca vai ao banco (parte do nº da OS) e o tamanho tem teto")
+    void deveBuscarNoServidorComTetoDeTamanho() {
+      when(repository.buscar(any(), any(), any(), any(), any(Pageable.class)))
+          .thenReturn(Page.empty());
+
+      service.buscarPorOficina(OFICINA_ID, " 12 ", StatusPagamento.PAGA, PageRequest.of(2, 100000));
+
+      ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+      verify(repository)
+          .buscar(eq(OFICINA_ID), eq("PAGA"), eq("12"), eq("%12%"), pageable.capture());
+      assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+      assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("resumo: totais calculados no banco, restritos à oficina validada")
+    void deveCalcularResumoNoBanco() {
+      when(repository.somarRecebido(OFICINA_ID)).thenReturn(new BigDecimal("900"));
+      when(repository.calcularValorParaReceber(
+              OFICINA_ID,
+              List.of(StatusPagamento.PAGAMENTO_PENDENTE, StatusPagamento.PAGO_PARCIALMENTE)))
+          .thenReturn(new BigDecimal("300"));
+      when(repository.contarComSaldo(OFICINA_ID)).thenReturn(4L);
+
+      PagamentoResumoDTO resumo = service.resumo(OFICINA_ID);
+
+      assertThat(resumo.totalRecebido()).isEqualByComparingTo("900");
+      assertThat(resumo.valorAReceber()).isEqualByComparingTo("300");
+      assertThat(resumo.pendentes()).isEqualTo(4L);
+      verify(oficinaAccessValidator).validarAcessoOficina(OFICINA_ID);
+    }
+
+    @Test
+    @DisplayName("resumo: oficina de terceiros é negada sem consultar o banco")
+    void naoDeveCalcularResumoDeOutraOficina() {
+      Long outraOficina = 99L;
+      doThrow(new AccessDeniedException("oficina alheia"))
+          .when(oficinaAccessValidator)
+          .validarAcessoOficina(outraOficina);
+
+      assertThatThrownBy(() -> service.resumo(outraOficina))
+          .isInstanceOf(AccessDeniedException.class);
+
+      verify(repository, never()).somarRecebido(any());
+    }
+
+    @Test
+    @DisplayName("buscarPorOsIds: consulta só as OS informadas, restritas à oficina")
+    void deveBuscarPagamentosDasOsDaPagina() {
+      OrdemDeServico os = os("500.00");
+      when(repository.findByOrdemDeServicoIdInAndOrdemDeServicoOficinaId(
+              List.of(OS_ID), OFICINA_ID))
+          .thenReturn(List.of(pagamento(os, "100.00", StatusPagamento.PAGO_PARCIALMENTE)));
+
+      List<PagamentoResponseDTO> resultado = service.buscarPorOsIds(OFICINA_ID, List.of(OS_ID));
+
+      assertThat(resultado).hasSize(1);
+      verify(oficinaAccessValidator).validarAcessoOficina(OFICINA_ID);
+    }
+
+    @Test
+    @DisplayName("buscarPorOsIds: lista vazia não consulta o banco")
+    void naoDeveConsultarComListaVazia() {
+      assertThat(service.buscarPorOsIds(OFICINA_ID, List.of())).isEmpty();
+
+      verify(repository, never()).findByOrdemDeServicoIdInAndOrdemDeServicoOficinaId(any(), any());
+    }
+
+    @Test
     @DisplayName("deve considerar apenas pendentes e parciais no cálculo do valor a receber")
     void deveConsiderarApenasPendentesEParciaisNoValorAReceber() {
 
@@ -633,11 +716,12 @@ class PagamentoServiceImplTest {
     @DisplayName("deve validar o acesso à oficina ao filtrar pagamentos por status")
     void deveValidarAcessoAoFiltrarPorStatus() {
 
-      when(repository.findByOrdemDeServicoOficinaIdAndStatus(
-              OFICINA_ID, StatusPagamento.PAGAMENTO_PENDENTE))
-          .thenReturn(List.of());
+      when(repository.buscar(
+              eq(OFICINA_ID), eq("PAGAMENTO_PENDENTE"), eq(""), anyString(), any(Pageable.class)))
+          .thenReturn(Page.empty());
 
-      service.buscarPorStatus(OFICINA_ID, StatusPagamento.PAGAMENTO_PENDENTE);
+      service.buscarPorStatus(
+          OFICINA_ID, StatusPagamento.PAGAMENTO_PENDENTE, PageRequest.of(0, 20));
 
       verify(oficinaAccessValidator).validarAcessoOficina(OFICINA_ID);
     }
@@ -653,10 +737,12 @@ class PagamentoServiceImplTest {
           .validarAcessoOficina(outraOficina);
 
       assertThatThrownBy(
-              () -> service.buscarPorStatus(outraOficina, StatusPagamento.PAGAMENTO_PENDENTE))
+              () ->
+                  service.buscarPorStatus(
+                      outraOficina, StatusPagamento.PAGAMENTO_PENDENTE, PageRequest.of(0, 20)))
           .isInstanceOf(AccessDeniedException.class);
 
-      verify(repository, never()).findByOrdemDeServicoOficinaIdAndStatus(any(), any());
+      verify(repository, never()).buscar(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -687,7 +773,7 @@ class PagamentoServiceImplTest {
     @DisplayName("deve lançar PagamentoNotFoundForThisOsException quando a OS não tem pagamento")
     void deveLancarQuandoOsNaoTemPagamento() {
 
-      when(repository.findByOrdemDeServicoId(OS_ID)).thenReturn(null);
+      when(repository.findByOrdemDeServicoIdParaAlterarValor(OS_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.recalcularStatus(OS_ID))
           .isInstanceOf(PagamentoNotFoundForThisOsException.class);

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 
 import com.oficinapro.dto.cliente.ClienteRequestDTO;
 import com.oficinapro.dto.cliente.ClienteResponseDTO;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +33,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -356,8 +359,9 @@ class ClienteServiceTest {
   @DisplayName("buscarPorNome() deve normalizar o nome e filtrar pela oficina do usuário")
   void buscarPorNome_normalizaEFiltraPelaOficina() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(1L, "JOAO"))
-        .thenReturn(List.of(cliente));
+    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(
+            eq(1L), eq("JOAO"), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(cliente)));
 
     List<ClienteResponseDTO> resultado = service.buscarPorNome("  joão ");
 
@@ -365,11 +369,30 @@ class ClienteServiceTest {
   }
 
   @Test
+  @DisplayName("buscarPorNome() (autocomplete) pesquisa em toda a oficina, com teto de 20 por nome")
+  void buscarPorNome_limitaEOrdenaPorNome() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(
+            any(), any(), any(Pageable.class)))
+        .thenReturn(Page.empty());
+
+    service.buscarPorNome("maria");
+
+    ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+    verify(clienteRepository)
+        .findByOficinaIdAndNomeContainingIgnoreCase(eq(1L), eq("MARIA"), pageable.capture());
+    assertThat(pageable.getValue().getPageNumber()).isZero();
+    assertThat(pageable.getValue().getPageSize()).isEqualTo(20);
+    assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by("nome"));
+  }
+
+  @Test
   @DisplayName("buscarPorNome() sem resultados deve devolver lista vazia")
   void buscarPorNome_semResultados_listaVazia() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(1L, "ZZZ"))
-        .thenReturn(List.of());
+    when(clienteRepository.findByOficinaIdAndNomeContainingIgnoreCase(
+            eq(1L), eq("ZZZ"), any(Pageable.class)))
+        .thenReturn(Page.empty());
 
     assertThat(service.buscarPorNome("zzz")).isEmpty();
   }
