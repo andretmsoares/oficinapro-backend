@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -131,12 +133,13 @@ class PagamentoControllerTest {
   @WithMockUser(roles = "GERENTE")
   @DisplayName("GET /api/pagamentos/oficina/{id} - GERENTE lista pagamentos da oficina")
   void buscarPorOficina_gerente_retorna200() throws Exception {
-    when(pagamentoService.buscarPorOficina(1L)).thenReturn(java.util.List.of(responseDTO()));
+    when(pagamentoService.buscarPorOficina(eq(1L), any(), any(), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(java.util.List.of(responseDTO())));
 
     mockMvc
         .perform(get("/api/pagamentos/oficina/1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(10));
+        .andExpect(jsonPath("$.content[0].id").value(10));
   }
 
   @Test
@@ -145,7 +148,7 @@ class PagamentoControllerTest {
   void buscarPorOficina_mecanico_retorna403() throws Exception {
     mockMvc.perform(get("/api/pagamentos/oficina/1")).andExpect(status().isForbidden());
 
-    verify(pagamentoService, never()).buscarPorOficina(any());
+    verify(pagamentoService, never()).buscarPorOficina(any(), any(), any(), any());
   }
 
   @Test
