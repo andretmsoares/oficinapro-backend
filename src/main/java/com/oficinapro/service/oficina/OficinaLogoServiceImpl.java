@@ -5,6 +5,7 @@ import com.oficinapro.exception.logo.LogoNotFoundException;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.repository.OficinaRepository;
 import com.oficinapro.security.OficinaAccessValidator;
+import com.oficinapro.storage.ImagemLogoValidador;
 import com.oficinapro.storage.LogoStorage;
 import java.io.IOException;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,8 @@ public class OficinaLogoServiceImpl implements OficinaLogoService {
 
     byte[] conteudo = lerEValidar(arquivo);
     String contentType = detectarTipo(conteudo);
+    // Só o cabeçalho é lido: rejeita pixel flood antes de qualquer decodificação.
+    ImagemLogoValidador.validarDimensoes(conteudo);
 
     Oficina oficina = oficinaService.buscarPorEntidadeId(oficinaId);
     String antigo = oficina.getLogoPath();
