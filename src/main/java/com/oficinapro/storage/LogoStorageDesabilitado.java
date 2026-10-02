@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
  * logo padrão do sistema.
  */
 @Component
-@ConditionalOnExpression("'${oficinapro.storage.gcs.bucket:}'.isEmpty()")
+@ConditionalOnExpression(
+    "'${oficinapro.storage.gcs.bucket:}'.isEmpty() && '${oficinapro.storage.r2.bucket:}'.isEmpty()")
 public class LogoStorageDesabilitado implements LogoStorage {
 
   @Override
