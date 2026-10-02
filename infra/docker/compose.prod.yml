@@ -1,18 +1,30 @@
+# Produção com Postgres no próprio host (alternativa ao Neon; para Neon + túnel use
+# compose.tunnel.yml). Nada é publicado em todas as interfaces:
+#  - o Postgres só é alcançável pela rede interna do compose (sem "ports");
+#  - a API escuta apenas em loopback; o acesso externo deve passar por um proxy reverso com TLS
+#    (ex.: nginx/Caddy/Cloudflare Tunnel) na mesma máquina. Publicar 8080 direto exporia login e
+#    JWT em HTTP puro e permitiria contornar o proxy.
+#
+# Use um .env de PRODUÇÃO (senhas e JWT_SECRET próprios), nunca o .env de desenvolvimento.
+#   docker compose -f infra/docker/compose.prod.yml --env-file .env.prod up -d
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: oficinapro-db
     restart: unless-stopped
     env_file:
-      - ./../../.env
+      - ./../../.env.prod
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_PORT}:5432"
+    expose:
+      - "5432"
     volumes:
       - oficinapro-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -20,17 +32,26 @@ services:
       retries: 5
 
   app:
-    image: ${DOCKER_USERNAME}/oficinapro-backend:latest
+    image: ${DOCKER_USERNAME}/oficinapro-backend:${IMAGE_TAG:-latest}
     container_name: oficinapro-app
     restart: unless-stopped
     env_file:
-      - ./../../.env
+      - ./../../.env.prod
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       SPRING_PROFILES_ACTIVE: prod
+      # Só ligue TRUST_PROXY_HEADERS=true se o proxy na frente sobrescreve X-Forwarded-For
+      # e a API não é alcançável por outro caminho.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
       postgres:
         condition: service_healthy

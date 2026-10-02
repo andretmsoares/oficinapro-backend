@@ -7,7 +7,8 @@ services:
     env_file:
       - ./../../.env
     ports:
-      - "${POSTGRES_PORT}:5432"
+      # Só loopback: a senha de dev é fraca e este banco não deve ser visto por outras máquinas.
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - oficinapro-data:/var/lib/postgresql/data
     healthcheck:
@@ -28,9 +29,11 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      # Sem profile a aplicação sobe quieta; "dev" liga o log de SQL/debug (nunca use em produção).
+      SPRING_PROFILES_ACTIVE: dev
     command: ./gradlew bootRun --no-daemon
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
