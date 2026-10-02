@@ -4,7 +4,7 @@ services:
     container_name: oficinapro-app
     restart: unless-stopped
     env_file:
-      - ./../../.env
+      - ./../../.env.prod
     environment:
       SPRING_PROFILES_ACTIVE: prod
     # Só o túnel precisa alcançar o app; nada fica exposto na rede local.
@@ -22,5 +22,5 @@ services:
       - app
 
 # Banco (Neon) e storage (R2) são externos, então não há container de Postgres aqui.
-# docker compose -f infra/docker/compose.tunnel.yml --env-file .env up -d
+# docker compose -f infra/docker/compose.tunnel.yml --env-file .env.prod up -d
 # No painel do Cloudflare, o Public Hostname do túnel deve apontar para http://app:8080

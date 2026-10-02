@@ -15,7 +15,7 @@ precisar ficar ligada. Confira os limites atuais dos planos gratuitos antes de d
 ## 1. Domínio no Cloudflare
 1. Compre ou transfira um domínio no Cloudflare (Registrar) ou aponte os nameservers de um
    domínio existente para o Cloudflare.
-2. Vai usar `api.seudominio.com` (back) e `app.seudominio.com` (front, opcional).
+2. Vai usar `api.appoficinapro.com.br` (back) e `appoficinapro.com.br` (front, apex).
 
 ## 2. Banco: Neon
 1. Crie conta em neon.tech e um projeto (região mais próxima, ex.: São Paulo se disponível).
@@ -37,8 +37,8 @@ precisar ficar ligada. Confira os limites atuais dos planos gratuitos antes de d
 ## 4. Back: Cloudflare Tunnel
 1. Painel Cloudflare > **Zero Trust** > **Networks** > **Tunnels** > **Create a tunnel**
    (tipo Cloudflared). Copie o **token**.
-2. Em **Public Hostname**: `api.seudominio.com` apontando para `http://app:8080`.
-3. No `.env` do backend (nunca commitar), preencha:
+2. Em **Public Hostname**: `api.appoficinapro.com.br` apontando para `http://app:8080`.
+3. No `.env.prod` (gitignored; nunca commitar), preencha:
 
 ```env
 POSTGRES_DB=...            # exigido pelo application.yml mesmo usando SPRING_DATASOURCE_URL
@@ -52,7 +52,7 @@ R2_BUCKET=oficinapro-logos
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 R2_ACCESS_KEY=...
 R2_SECRET_KEY=...
-OFICINAPRO_CORS_ALLOWED_ORIGINS=https://<seu-projeto>.vercel.app
+OFICINAPRO_CORS_ALLOWED_ORIGINS=https://appoficinapro.com.br,https://www.appoficinapro.com.br
 TUNNEL_TOKEN=<token-do-tunel>
 DOCKER_USERNAME=<seu-usuario-dockerhub>
 ```
@@ -60,16 +60,16 @@ DOCKER_USERNAME=<seu-usuario-dockerhub>
 4. Suba:
 
 ```bash
-docker compose -f infra/docker/compose.tunnel.yml --env-file .env up -d
+docker compose -f infra/docker/compose.tunnel.yml --env-file .env.prod up -d
 ```
 
-5. Teste: `https://api.seudominio.com/actuator/health` deve responder `UP`.
+5. Teste: `https://api.appoficinapro.com.br/actuator/health` deve responder `UP`.
 6. No Windows: desative a hibernação (Configurações > Energia) e deixe o Docker Desktop
    iniciar com o sistema.
 
 ## 5. Front: Vercel
 1. Importe o repositório `oficinapro-frontend` na Vercel (preset Vite).
-2. Em **Environment Variables**: `VITE_API_URL=https://api.seudominio.com`. A variável é
+2. Em **Environment Variables**: `VITE_API_URL=https://api.appoficinapro.com.br`. A variável é
    embutida no build, então mudar o valor exige novo deploy.
 3. Se o app usa rotas do React Router, adicione `vercel.json` na raiz do front para o refresh
    de página não dar 404:
