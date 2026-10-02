@@ -27,6 +27,7 @@ import com.oficinapro.exception.pagamento.PagamentoNotFoundForThisOsException;
 import com.oficinapro.exception.registro_pagamento.RegistroPagamentoNotFoundException;
 import com.oficinapro.exception.unidade.EnderecoAlreadyExistsException;
 import com.oficinapro.exception.unidade.UnidadeNotFoundException;
+import com.oficinapro.exception.usuario.SenhaAtualInvalidaException;
 import com.oficinapro.exception.usuario.UsernameAlreadyExistsException;
 import com.oficinapro.exception.usuario.UsuarioAcessDeniedException;
 import com.oficinapro.exception.usuario.UsuarioAlreadyExistsException;
@@ -94,6 +95,7 @@ class GlobalExceptionHandlerMapeamentoTest {
     reg("logo-storage", LogoStorageIndisponivelException::new);
     reg("credenciais", () -> new BadCredentialsException("Bad credentials"));
     reg("upload-grande", () -> new MaxUploadSizeExceededException(1L));
+    reg("senha-atual", SenhaAtualInvalidaException::new);
   }
 
   private MockMvc mockMvc;
@@ -136,7 +138,9 @@ class GlobalExceptionHandlerMapeamentoTest {
         Arguments.of("logo-invalida", 400),
         Arguments.of("logo-storage", 503),
         Arguments.of("credenciais", 401),
-        Arguments.of("upload-grande", 413));
+        Arguments.of("upload-grande", 413),
+        // 400 e não 401: o frontend trata 401 como sessão expirada e derrubaria o usuário logado
+        Arguments.of("senha-atual", 400));
   }
 
   @ParameterizedTest(name = "{0} deve virar HTTP {1}")
@@ -179,9 +183,40 @@ class GlobalExceptionHandlerMapeamentoTest {
         .andExpect(jsonPath("$.status").value(429));
   }
 
+  @Test
+  @DisplayName("exceção inesperada vira 500 genérico, sem vazar a mensagem interna")
+  void excecaoInesperadaViraErro500Generico() throws Exception {
+    mockMvc
+        .perform(get("/teste/inesperado"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.message").value("Erro interno. Tente novamente."))
+        .andExpect(
+            result ->
+                org.assertj.core.api.Assertions.assertThat(
+                        result.getResponse().getContentAsString())
+                    .doesNotContain("detalhe-sigiloso"));
+  }
+
+  @Test
+  @DisplayName("exceções do Spring MVC (ex.: 405) mantêm o status e não viram 500")
+  void excecaoDoSpringMantemOStatus() throws Exception {
+    mockMvc
+        .perform(get("/teste/so-post/rota")) // só existe POST nesta rota
+        .andExpect(status().isMethodNotAllowed())
+        .andExpect(jsonPath("$.status").value(405));
+  }
+
   @RestController
   @RequestMapping("/teste")
   static class ControllerDeTeste {
+
+    @GetMapping("/inesperado")
+    public void inesperado() {
+      throw new IllegalArgumentException("detalhe-sigiloso: tabela usuario, coluna password");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/so-post/rota")
+    public void soPost() {}
 
     @GetMapping("/login-bloqueado")
     public void loginBloqueado() {

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -107,24 +108,34 @@ class BuscasPorCampoControllersTest {
   }
 
   @Test
-  @DisplayName("GET /api/clientes/documento/{doc} - encontrado retorna 200")
+  @DisplayName("POST /api/clientes/documento/buscar - encontrado retorna 200")
   @WithMockUser(roles = "GERENTE")
   void clientePorDocumento() throws Exception {
     when(clienteService.buscarPorDocumento("12345678901")).thenReturn(cliente);
 
     mockMvc
-        .perform(get("/api/clientes/documento/12345678901"))
+        .perform(
+            post("/api/clientes/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"12345678901\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.documento").value("12345678901"));
   }
 
   @Test
-  @DisplayName("GET /api/clientes/documento/{doc} - inexistente retorna 404")
+  @DisplayName("POST /api/clientes/documento/buscar - inexistente retorna 404")
   @WithMockUser(roles = "GERENTE")
   void clientePorDocumentoInexistente() throws Exception {
     when(clienteService.buscarPorDocumento("000")).thenThrow(new ClienteNotFoundException());
 
-    mockMvc.perform(get("/api/clientes/documento/000")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(
+            post("/api/clientes/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"000\"}"))
+        .andExpect(status().isNotFound());
   }
 
   // ─── Mecânico ─────────────────────────────────────────────────────────────────
@@ -151,24 +162,34 @@ class BuscasPorCampoControllersTest {
   }
 
   @Test
-  @DisplayName("GET /api/mecanicos/documento/{doc} - encontrado retorna 200")
+  @DisplayName("POST /api/mecanicos/documento/buscar - encontrado retorna 200")
   @WithMockUser(roles = "GERENTE")
   void mecanicoPorDocumento() throws Exception {
     when(mecanicoService.buscarPorDocumento("98765432100")).thenReturn(mecanico);
 
     mockMvc
-        .perform(get("/api/mecanicos/documento/98765432100"))
+        .perform(
+            post("/api/mecanicos/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"98765432100\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.salario").value(2500));
   }
 
   @Test
-  @DisplayName("GET /api/mecanicos/documento/{doc} - inexistente retorna 404")
+  @DisplayName("POST /api/mecanicos/documento/buscar - inexistente retorna 404")
   @WithMockUser(roles = "GERENTE")
   void mecanicoPorDocumentoInexistente() throws Exception {
     when(mecanicoService.buscarPorDocumento("000")).thenThrow(new MecanicoNotFoundException());
 
-    mockMvc.perform(get("/api/mecanicos/documento/000")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(
+            post("/api/mecanicos/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"000\"}"))
+        .andExpect(status().isNotFound());
   }
 
   // ─── Veículo ──────────────────────────────────────────────────────────────────
@@ -206,22 +227,32 @@ class BuscasPorCampoControllersTest {
   // ─── Usuário ──────────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("GET /api/usuarios/documento/{doc} - GERENTE encontra o usuário")
+  @DisplayName("POST /api/usuarios/documento/buscar - GERENTE encontra o usuário")
   @WithMockUser(roles = "GERENTE")
   void usuarioPorDocumento() throws Exception {
     when(usuarioService.buscarPorDocumento("12345678901")).thenReturn(usuario);
 
     mockMvc
-        .perform(get("/api/usuarios/documento/12345678901"))
+        .perform(
+            post("/api/usuarios/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"12345678901\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.username").value("ana"));
   }
 
   @Test
-  @DisplayName("GET /api/usuarios/documento/{doc} - ADMIN recebe 403 (rota é de GERENTE)")
+  @DisplayName("POST /api/usuarios/documento/buscar - ADMIN recebe 403 (rota é de GERENTE)")
   @WithMockUser(roles = "ADMIN")
   void usuarioPorDocumentoNegadoParaAdmin() throws Exception {
-    mockMvc.perform(get("/api/usuarios/documento/12345678901")).andExpect(status().isForbidden());
+    mockMvc
+        .perform(
+            post("/api/usuarios/documento/buscar")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documento\":\"12345678901\"}"))
+        .andExpect(status().isForbidden());
 
     verifyNoInteractions(usuarioService);
   }
@@ -240,7 +271,7 @@ class BuscasPorCampoControllersTest {
                 .content(
                     objectMapper.writeValueAsString(
                         new UsuarioMeUpdateRequestDTO(
-                            "Ana", "12345678901", "83988887777", "ana", null))))
+                            "Ana", "12345678901", "83988887777", "ana", null, null))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.username").value("ana"));
   }
@@ -256,7 +287,7 @@ class BuscasPorCampoControllersTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
-                        new UsuarioMeUpdateRequestDTO("", "", "", "", null))))
+                        new UsuarioMeUpdateRequestDTO("", "", "", "", null, null))))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.fields.nome").exists())
         .andExpect(jsonPath("$.fields.username").exists());
@@ -279,7 +310,7 @@ class BuscasPorCampoControllersTest {
                 .content(
                     objectMapper.writeValueAsString(
                         new UsuarioMeUpdateRequestDTO(
-                            "Ana", "12345678901", "83988887777", "ocupado", null))))
+                            "Ana", "12345678901", "83988887777", "ocupado", null, "senhaAtual1"))))
         .andExpect(status().isConflict());
   }
 

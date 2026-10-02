@@ -1,6 +1,7 @@
 package com.oficinapro.dto.usuario;
 
 import com.oficinapro.enums.Role;
+import com.oficinapro.validation.SenhaForte;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -18,6 +19,5 @@ public record UsuarioRequestDTO(
     Long oficinaId,
     @NotBlank @Size(max = 100, message = "Username deve ter no máximo 100 caracteres")
         String username,
-    @NotBlank @Size(min = 8, max = 255, message = "Password deve ter entre 8 e 255 caracteres")
-        String password,
+    @NotBlank(message = "Password é obrigatório") @SenhaForte String password,
     @NotNull(message = "O cargo(Role) é obrigatório") Role role) {}
