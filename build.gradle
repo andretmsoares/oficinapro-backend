@@ -9,6 +9,14 @@ plugins {
 group = 'com.oficinaPro'
 version = '0.0.1-SNAPSHOT'
 
+// Versoes gerenciadas pelo Spring Boot 4.1.1 que tem CVE ja corrigido upstream (o Trivy do CI barra a
+// publicacao da imagem): Tomcat (bypass de autenticacao/restricao de seguranca, CRITICAL) e Jackson
+// 2 e 3 (DoS). Sao bumps de PATCH na mesma linha que o Boot gerencia. Remover cada linha quando o
+// Spring Boot passar a trazer versao igual ou maior.
+ext['tomcat.version'] = '11.0.26'
+ext['jackson-2-bom.version'] = '2.21.7'
+ext['jackson-bom.version'] = '3.1.7'
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)

@@ -18,6 +18,12 @@ RUN ./gradlew bootJar --no-daemon
 # Para builds reproduzíveis, fixe a base por digest (eclipse-temurin:21-jre@sha256:...).
 FROM eclipse-temurin:24-jre
 
+# A imagem base pode demorar a incorporar correções de pacotes Ubuntu já publicadas (openssl, gnupg;
+# o Trivy barra a publicação). Atualiza no build, como root, antes de criar o usuário sem privilégios.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
+
 # Usuário sem privilégios: um RCE na aplicação não vira root no container.
 RUN groupadd --system --gid 10001 app \
  && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
