@@ -61,7 +61,7 @@ class AuthControllerTest {
   @DisplayName("POST /api/auth/login - credenciais válidas devem retornar 200 com o token")
   @WithMockUser
   void deveAutenticarERetornarToken() throws Exception {
-    when(authService.login(any(LoginRequestDTO.class)))
+    when(authService.login(any(LoginRequestDTO.class), any()))
         .thenReturn(LoginResponseDTO.bearer("token.jwt.aqui", 28800, usuarioAdmin));
 
     mockMvc
@@ -85,7 +85,7 @@ class AuthControllerTest {
       "POST /api/auth/login - credenciais inválidas devem retornar 401 sem revelar a causa")
   @WithMockUser
   void deveRetornar401ParaCredenciaisInvalidas() throws Exception {
-    when(authService.login(any(LoginRequestDTO.class)))
+    when(authService.login(any(LoginRequestDTO.class), any()))
         .thenThrow(new BadCredentialsException("Bad credentials"));
 
     mockMvc

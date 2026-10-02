@@ -10,10 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.oficinapro.enums.Role;
 import com.oficinapro.model.Oficina;
 import com.oficinapro.model.Usuario;
-import com.oficinapro.repository.UsuarioRepository;
 import com.oficinapro.security.jwt.JwtService;
 import jakarta.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,25 +29,29 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * Protecao contra forca bruta no login: 5 falhas seguidas bloqueiam por um tempo; na terceira
- * sequencia de falhas a conta so volta com um administrador.
+ * Proteção do login contra força bruta e spraying: o controle é por IP (+ username digitado), não
+ * por conta, e a resposta é a mesma para usuário existente e inexistente.
+ *
+ * <p>O {@code LoginThrottleService} é um singleton do contexto de teste compartilhado entre
+ * classes; por isso cada teste usa um IP próprio, em vez de depender de estado limpo.
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class LoginBloqueioIntegrationTest {
+class LoginThrottleIntegrationTest {
 
   private static final String SENHA = "senha-correta-1";
-  private static final String USERNAME = "gerente.bloqueio";
+  private static final String USERNAME = "gerente.throttle";
+  private static final AtomicInteger PROXIMO_IP = new AtomicInteger(1);
 
   @Autowired private WebApplicationContext context;
   @Autowired private EntityManager em;
-  @Autowired private UsuarioRepository usuarioRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtService jwtService;
 
   private Oficina oficina;
   private Usuario gerente;
+  private String ip;
 
   private MockMvc mockMvc() {
     return MockMvcBuilders.webAppContextSetup(context)
@@ -60,8 +63,10 @@ class LoginBloqueioIntegrationTest {
 
   @BeforeEach
   void criarUsuario() {
+    ip = "198.51.100." + PROXIMO_IP.getAndIncrement();
+
     oficina = new Oficina();
-    oficina.setNome("OFICINA BLOQUEIO");
+    oficina.setNome("OFICINA THROTTLE");
     oficina.setCnpj("33333333000133");
     oficina.setAtivo(true);
     em.persist(oficina);
@@ -81,12 +86,21 @@ class LoginBloqueioIntegrationTest {
     return u;
   }
 
-  private ResultActions login(String username, String senha) throws Exception {
+  private ResultActions loginDe(String origem, String username, String senha) throws Exception {
     return mockMvc()
         .perform(
             post("/api/auth/login")
+                .with(
+                    request -> {
+                      request.setRemoteAddr(origem);
+                      return request;
+                    })
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"" + username + "\",\"password\":\"" + senha + "\"}"));
+  }
+
+  private ResultActions login(String username, String senha) throws Exception {
+    return loginDe(ip, username, senha);
   }
 
   private void falhar(String username, int vezes) throws Exception {
@@ -95,24 +109,10 @@ class LoginBloqueioIntegrationTest {
     }
   }
 
-  private void expirarBloqueio(String username) {
-    Usuario u = usuarioRepository.findByUsername(username).orElseThrow();
-    u.setBloqueadoAte(LocalDateTime.now().minusMinutes(1));
-    usuarioRepository.saveAndFlush(u);
-  }
-
-  private Usuario recarregar(String username) {
-    // Sem o flush, o em.clear() descartaria as alteracoes ainda nao gravadas (a transacao do
-    // teste nunca faz commit) e o teste leria o estado antigo do banco.
-    em.flush();
-    em.clear();
-    return usuarioRepository.findByUsername(username).orElseThrow();
-  }
-
   @Test
-  @DisplayName("as 4 primeiras falhas respondem 401 e a 5a bloqueia por tempo, com Retry-After")
-  void quintaFalhaBloqueiaTemporariamente() throws Exception {
-    for (int i = 1; i <= 4; i++) {
+  @DisplayName("as 5 primeiras falhas respondem 401 e a seguinte já é bloqueada com Retry-After")
+  void sextaTentativaEBloqueada() throws Exception {
+    for (int i = 1; i <= 5; i++) {
       login(USERNAME, "senha-errada-1").andExpect(status().isUnauthorized());
     }
 
@@ -124,7 +124,7 @@ class LoginBloqueioIntegrationTest {
   }
 
   @Test
-  @DisplayName("durante o bloqueio ate a senha correta e recusada")
+  @DisplayName("durante o bloqueio até a senha correta é recusada")
   void bloqueioRecusaSenhaCorreta() throws Exception {
     falhar(USERNAME, 5);
 
@@ -132,18 +132,14 @@ class LoginBloqueioIntegrationTest {
   }
 
   @Test
-  @DisplayName("depois do prazo o login volta a funcionar e o contador e zerado")
-  void bloqueioTemporarioExpira() throws Exception {
-    falhar(USERNAME, 5);
-    expirarBloqueio(USERNAME);
+  @DisplayName("outro IP não é afetado: ninguém consegue trancar a conta de terceiros")
+  void bloqueioDeUmIpNaoAfetaOutroIp() throws Exception {
+    falhar(USERNAME, 6);
+    login(USERNAME, SENHA).andExpect(status().isTooManyRequests());
 
-    login(USERNAME, SENHA)
+    loginDe("203.0.113." + PROXIMO_IP.getAndIncrement(), USERNAME, SENHA)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accessToken").isNotEmpty());
-
-    Usuario u = recarregar(USERNAME);
-    assertThat(u.getFalhasLogin()).isZero();
-    assertThat(u.getBloqueadoAte()).isNull();
   }
 
   @Test
@@ -153,71 +149,51 @@ class LoginBloqueioIntegrationTest {
     login(USERNAME, SENHA).andExpect(status().isOk());
 
     falhar(USERNAME, 3);
-    // 3 + sucesso + 3 falhas: nunca chegou a 5 seguidas, entao ainda nao esta bloqueado
+    // 3 + sucesso + 3 falhas: nunca chegou a 5 seguidas, então ainda não está bloqueado
     login(USERNAME, "senha-errada-1").andExpect(status().isUnauthorized());
-    assertThat(recarregar(USERNAME).getBloqueadoAte()).isNull();
   }
 
   @Test
-  @DisplayName("na terceira sequencia de falhas a conta e bloqueada e pede o administrador")
-  void terceiraSequenciaBloqueiaPermanentemente() throws Exception {
-    falhar(USERNAME, 5);
-    login(USERNAME, SENHA).andExpect(status().isTooManyRequests());
-    expirarBloqueio(USERNAME);
+  @DisplayName("usuário existente e inexistente recebem respostas indistinguíveis")
+  void naoHaOraculoDeEnumeracao() throws Exception {
+    String ipFalso = "198.51.100." + (200 + PROXIMO_IP.getAndIncrement());
 
-    falhar(USERNAME, 5);
-    login(USERNAME, SENHA).andExpect(status().isTooManyRequests());
-    expirarBloqueio(USERNAME);
-
-    falhar(USERNAME, 4);
-    login(USERNAME, "senha-errada-1")
-        .andExpect(status().isLocked())
-        .andExpect(
-            jsonPath("$.message").value(org.hamcrest.Matchers.containsString("administrador")));
-
-    // permanente: nem o tempo nem a senha correta liberam
-    expirarBloqueio(USERNAME);
-    login(USERNAME, SENHA).andExpect(status().isLocked());
-    assertThat(recarregar(USERNAME).isBloqueioPermanente()).isTrue();
-  }
-
-  @Test
-  @DisplayName("usuario inexistente nunca e bloqueado e recebe sempre a resposta generica")
-  void usuarioInexistenteNaoRevelaNada() throws Exception {
-    for (int i = 0; i < 12; i++) {
-      login("nao.existe", "senha-errada-1")
+    for (int i = 0; i < 5; i++) {
+      login(USERNAME, "senha-errada-1").andExpect(status().isUnauthorized());
+      loginDe(ipFalso, "nao.existe", "senha-errada-1")
           .andExpect(status().isUnauthorized())
           .andExpect(jsonPath("$.message").value("Credenciais inválidas"));
     }
+
+    // a partir daqui os dois são bloqueados exatamente da mesma forma
+    login(USERNAME, "senha-errada-1")
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("minuto")));
+    loginDe(ipFalso, "nao.existe", "senha-errada-1")
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("minuto")));
   }
 
   @Test
-  @DisplayName("GERENTE da mesma oficina desbloqueia o usuario e ele volta a logar")
-  void gerenteDesbloqueiaUsuarioDaPropriaOficina() throws Exception {
-    Usuario mecanico = usuario(oficina, "mecanico.bloqueio", Role.MECANICO);
-    em.flush();
-    falhar("mecanico.bloqueio", 5);
-    login("mecanico.bloqueio", SENHA).andExpect(status().isTooManyRequests());
-
-    mockMvc()
-        .perform(
-            patch("/api/usuarios/" + mecanico.getId() + "/desbloquear")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtService.gerarToken(gerente)))
-        .andExpect(status().isNoContent());
-
-    login("mecanico.bloqueio", SENHA).andExpect(status().isOk());
-  }
-
-  @Test
-  @DisplayName("desbloqueio tambem libera bloqueio permanente")
-  void desbloqueioLiberaBloqueioPermanente() throws Exception {
-    Usuario mecanico = usuario(oficina, "mecanico.permanente", Role.MECANICO);
-    em.flush();
-    for (int ciclo = 1; ciclo <= 3; ciclo++) {
-      falhar("mecanico.permanente", 5);
-      expirarBloqueio("mecanico.permanente");
+  @DisplayName("password spraying: um IP não pode tentar mais de 30 logins na janela")
+  void limitePorIpBarraSpraying() throws Exception {
+    // 1 tentativa por username: o contador por par IP+username nunca chegaria ao limite
+    for (int i = 0; i < 30; i++) {
+      login("usuario.spray." + i, "senha-errada-1").andExpect(status().isUnauthorized());
     }
-    login("mecanico.permanente", SENHA).andExpect(status().isLocked());
+
+    login("usuario.spray.31", "senha-errada-1").andExpect(status().isTooManyRequests());
+    // nem a senha correta de um usuário real passa por esse IP enquanto o limite vale
+    login(USERNAME, SENHA).andExpect(status().isTooManyRequests());
+  }
+
+  @Test
+  @DisplayName("GERENTE da mesma oficina libera o usuário bloqueado, e ele volta a logar")
+  void gerenteLiberaUsuarioDaPropriaOficina() throws Exception {
+    Usuario mecanico = usuario(oficina, "mecanico.throttle", Role.MECANICO);
+    em.flush();
+    falhar("mecanico.throttle", 6);
+    login("mecanico.throttle", SENHA).andExpect(status().isTooManyRequests());
 
     mockMvc()
         .perform(
@@ -225,11 +201,11 @@ class LoginBloqueioIntegrationTest {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtService.gerarToken(gerente)))
         .andExpect(status().isNoContent());
 
-    login("mecanico.permanente", SENHA).andExpect(status().isOk());
+    login("mecanico.throttle", SENHA).andExpect(status().isOk());
   }
 
   @Test
-  @DisplayName("GERENTE de outra oficina nao desbloqueia (404) e MECANICO nao pode (403)")
+  @DisplayName("GERENTE de outra oficina não desbloqueia (404) e MECANICO não pode (403)")
   void desbloqueioRespeitaIsolamentoEPermissao() throws Exception {
     Oficina outra = new Oficina();
     outra.setNome("OUTRA OFICINA");
@@ -251,5 +227,32 @@ class LoginBloqueioIntegrationTest {
             patch("/api/usuarios/" + gerente.getId() + "/desbloquear")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtService.gerarToken(mecanico)))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("logout revoga o token: o mesmo token deixa de valer em seguida")
+  void logoutRevogaOToken() throws Exception {
+    String token = jwtService.gerarToken(gerente);
+
+    mockMvc()
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        .andExpect(status().isOk());
+
+    mockMvc()
+        .perform(post("/api/auth/logout").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        .andExpect(status().isNoContent());
+
+    em.flush();
+    em.clear();
+
+    mockMvc()
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        .andExpect(status().isUnauthorized());
+
+    assertThat(em.find(Usuario.class, gerente.getId()).getTokenVersion()).isEqualTo(1);
   }
 }
