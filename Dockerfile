@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:24-jdk AS build
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN ./gradlew bootJar --no-daemon
 
 # Imagem final: JRE, sem ferramentas de build e sem root.
 # Para builds reproduzíveis, fixe a base por digest (eclipse-temurin:21-jre@sha256:...).
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:24-jre
 
 # Usuário sem privilégios: um RCE na aplicação não vira root no container.
 RUN groupadd --system --gid 10001 app \
