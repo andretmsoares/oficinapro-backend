@@ -28,8 +28,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-jackson'
 	implementation 'com.github.librepdf:openpdf:2.2.3'
-	implementation 'com.google.cloud:google-cloud-storage:2.70.0'
-	implementation platform('software.amazon.awssdk:bom:2.55.7')
+	implementation 'com.google.cloud:google-cloud-storage:2.74.0'
+	implementation platform('software.amazon.awssdk:bom:2.31.50')
 	implementation 'software.amazon.awssdk:s3'
 
 	runtimeOnly 'org.postgresql:postgresql'
