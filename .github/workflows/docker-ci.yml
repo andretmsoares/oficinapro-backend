@@ -3,7 +3,7 @@ name: Docker Images
 # A imagem de produção só é publicada DEPOIS do merge na main (ou manualmente).
 # Antes rodava em pull_request e fazia push de :latest com código ainda sem revisão.
 on:
-  push:
+  pull_request:
     branches:
       - main
   workflow_dispatch:
