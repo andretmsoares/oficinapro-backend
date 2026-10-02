@@ -148,7 +148,11 @@ public class PagamentoServiceImpl implements PagamentoService {
   @Transactional
   @Override
   public void recalcularStatus(Long osId) {
-    Pagamento pagamento = this.buscarPorEntidadeOsId(osId);
+    // Chamado quando o valor da OS muda: trava o pagamento por versão (ver o repository).
+    Pagamento pagamento =
+        repository
+            .findByOrdemDeServicoIdParaAlterarValor(osId)
+            .orElseThrow(() -> new PagamentoNotFoundForThisOsException(osId));
 
     BigDecimal valorPago = pagamento.getValorPago();
     BigDecimal valorOS = pagamento.getOrdemDeServico().getValorComDesconto();

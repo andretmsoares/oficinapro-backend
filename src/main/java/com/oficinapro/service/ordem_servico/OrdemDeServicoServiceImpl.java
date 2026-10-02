@@ -1,5 +1,7 @@
 package com.oficinapro.service.ordem_servico;
 
+import com.oficinapro.audit.AcaoAuditoria;
+import com.oficinapro.audit.AuditLogService;
 import com.oficinapro.dto.ordemDeServico.*;
 import com.oficinapro.dto.pagamento.PagamentoRequestDTO;
 import com.oficinapro.dto.pagamento.PagamentoResponseDTO;
@@ -46,6 +48,7 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final PagamentoService pagamentoService;
   private final OficinaAccessValidator oficinaAccessValidator;
   private final OrdemDeServicoPdfService ordemDeServicoPdfService;
+  private final AuditLogService auditLogService;
 
   private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
@@ -156,6 +159,9 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
 
     OrdemDeServico saved = ordemServicoRepository.save(os);
     pagamentoService.recalcularStatus(id);
+
+    auditLogService.registrar(
+        AcaoAuditoria.DESCONTO_APLICADO, "ORDEM_SERVICO", id, "desconto=" + descontoValido);
 
     return toResponseDTO(saved);
   }
@@ -310,6 +316,8 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
     }
     pagamentoService.deletar(pagamento.id());
     ordemServicoRepository.delete(os);
+
+    auditLogService.registrar(AcaoAuditoria.OS_EXCLUIDA, "ORDEM_SERVICO", id, null);
   }
 
   @Override

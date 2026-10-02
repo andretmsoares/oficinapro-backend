@@ -75,6 +75,8 @@ class OrdemDeServicoServiceTest {
 
   @Mock private OrdemDeServicoPdfService ordemDeServicoPdfService;
 
+  @Mock private com.oficinapro.audit.AuditLogService auditLogService;
+
   @InjectMocks private OrdemDeServicoServiceImpl ordemDeServicoService;
 
   private Oficina oficina;
