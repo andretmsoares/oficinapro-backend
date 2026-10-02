@@ -19,10 +19,15 @@ import com.oficinapro.service.oficina.OficinaService;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoService;
 import com.oficinapro.service.ordem_servico.OrdemDeServicoValorRecalculator;
 import com.oficinapro.service.pagamento.PagamentoService;
+import com.oficinapro.util.Paginacao;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -239,12 +244,27 @@ public class ItemOsPecaServiceImpl implements ItemOsPecaService {
         item.getValorTotal());
   }
 
+  private static final Set<String> CAMPOS_ORDENAVEIS =
+      Set.of("id", "nome", "quantidade", "valorUnitario", "valorTotal");
+
+  private static final Sort ORDENACAO_PADRAO = Sort.by(Sort.Direction.DESC, "id");
+
   @Override
   @Transactional(readOnly = true)
-  public List<ItemOsPecaResponseDTO> listar() {
+  public Page<ItemOsPecaResponseDTO> listar(
+      String termo, boolean somenteAvulsas, Pageable pageable) {
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return itemOsPecaRepository.findByOficinaId(oficinaId).stream().map(this::toResponse).toList();
+    String termoLimpo = Paginacao.termoOuVazio(termo);
+
+    return itemOsPecaRepository
+        .buscar(
+            oficinaId,
+            somenteAvulsas,
+            termoLimpo,
+            Paginacao.termoLike(normalizar(termoLimpo)),
+            Paginacao.segura(pageable, CAMPOS_ORDENAVEIS, ORDENACAO_PADRAO))
+        .map(this::toResponse);
   }
 }

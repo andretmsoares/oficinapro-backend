@@ -12,6 +12,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,8 +56,15 @@ public class ItemOsPecaController {
   })
   @GetMapping
   @PreAuthorize("hasAnyRole('GERENTE', 'MECANICO')")
-  public ResponseEntity<List<ItemOsPecaResponseDTO>> listar() {
-    return ResponseEntity.ok(itemOsPecaService.listar());
+  public ResponseEntity<Page<ItemOsPecaResponseDTO>> listar(
+      @Parameter(description = "Nome da peça ou parte do número da OS")
+          @RequestParam(required = false)
+          String q,
+      @Parameter(description = "Só peças sem OS (candidatas a vincular)")
+          @RequestParam(defaultValue = "false")
+          boolean avulsas,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(itemOsPecaService.listar(q, avulsas, pageable));
   }
 
   @Operation(summary = "Buscar peça por ID", description = "Busca uma peça pelo ID.")

@@ -3,6 +3,9 @@ package com.oficinapro.service.item_os_peca;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
@@ -49,6 +52,11 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 /**
  * Testes do serviço de peças.
@@ -898,26 +906,63 @@ class ItemOsPecaServiceTest {
     }
 
     @Test
-    @DisplayName("listar() deve devolver as peças da oficina, vinculadas ou avulsas")
+    @DisplayName("listar() devolve uma página das peças da oficina, vinculadas ou avulsas")
     void deveListarPecasDaOficina() {
       OrdemDeServico os = os(StatusOrdemDeServico.EM_EXECUCAO, "240.00");
-      when(itemOsPecaRepository.findByOficinaId(OFICINA_ID))
-          .thenReturn(List.of(item(os, "2", "120.00"), itemSemOs("1", "50.00")));
+      when(itemOsPecaRepository.buscar(
+              eq(OFICINA_ID), eq(false), eq(""), anyString(), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(item(os, "2", "120.00"), itemSemOs("1", "50.00"))));
 
-      List<ItemOsPecaResponseDTO> resultado = service.listar();
+      Page<ItemOsPecaResponseDTO> resultado = service.listar("", false, PageRequest.of(0, 20));
 
-      assertThat(resultado).hasSize(2);
-      assertThat(resultado.get(0).osId()).isEqualTo(OS_ID);
-      assertThat(resultado.get(1).osId()).isNull();
+      assertThat(resultado.getContent()).hasSize(2);
+      assertThat(resultado.getContent().get(0).osId()).isEqualTo(OS_ID);
+      assertThat(resultado.getContent().get(1).osId()).isNull();
       verifyNoInteractions(ordemDeServicoService);
     }
 
     @Test
-    @DisplayName("listar() sem peças na oficina devolve lista vazia")
+    @DisplayName("listar() sem peças na oficina devolve página vazia")
     void deveListarVazioQuandoOficinaNaoTemPecas() {
-      when(itemOsPecaRepository.findByOficinaId(OFICINA_ID)).thenReturn(List.of());
+      when(itemOsPecaRepository.buscar(
+              eq(OFICINA_ID), eq(false), eq(""), anyString(), any(Pageable.class)))
+          .thenReturn(Page.empty());
 
-      assertThat(service.listar()).isEmpty();
+      assertThat(service.listar(null, false, PageRequest.of(0, 20)).getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName(
+        "listar() busca no servidor: termo normalizado, filtro de avulsas e tamanho com teto")
+    void deveRepassarBuscaFiltroETetoDeTamanho() {
+      when(itemOsPecaRepository.buscar(any(), anyBoolean(), any(), any(), any(Pageable.class)))
+          .thenReturn(Page.empty());
+
+      service.listar("  Filtro de Óleo ", true, PageRequest.of(1, 100000));
+
+      ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+      verify(itemOsPecaRepository)
+          .buscar(
+              eq(OFICINA_ID),
+              eq(true),
+              eq("Filtro de Óleo"),
+              eq("%filtro de oleo%"),
+              pageable.capture());
+      assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+      assertThat(pageable.getValue().getPageNumber()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("listar() só ordena por campos permitidos; caminho livre cai na ordenação padrão")
+    void deveIgnorarOrdenacaoPorCampoNaoPermitido() {
+      when(itemOsPecaRepository.buscar(any(), anyBoolean(), any(), any(), any(Pageable.class)))
+          .thenReturn(Page.empty());
+
+      service.listar("", false, PageRequest.of(0, 10, Sort.by("oficina.cnpj")));
+
+      ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+      verify(itemOsPecaRepository).buscar(any(), anyBoolean(), any(), any(), pageable.capture());
+      assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by(Sort.Direction.DESC, "id"));
     }
   }
 }
