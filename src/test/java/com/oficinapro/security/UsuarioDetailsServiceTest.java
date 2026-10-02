@@ -40,6 +40,26 @@ class UsuarioDetailsServiceTest {
   }
 
   @Test
+  @DisplayName("deve carregar o usuário (com a oficina) pelo id do token")
+  void deveCarregarUsuarioPeloId() {
+    Usuario usuario = new Usuario();
+    usuario.setId(5L);
+    when(usuarioRepository.findByIdComOficina(5L)).thenReturn(Optional.of(usuario));
+
+    assertThat(service.carregarPorId(5L)).isSameAs(usuario);
+  }
+
+  @Test
+  @DisplayName("id inexistente deve lançar UsernameNotFoundException genérica")
+  void deveLancarQuandoIdNaoExiste() {
+    when(usuarioRepository.findByIdComOficina(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.carregarPorId(99L))
+        .isInstanceOf(UsernameNotFoundException.class)
+        .hasMessageNotContaining("99");
+  }
+
+  @Test
   @DisplayName("username inexistente deve lançar UsernameNotFoundException genérica")
   void deveLancarQuandoUsernameNaoExiste() {
     when(usuarioRepository.findByUsernameComOficina("fantasma")).thenReturn(Optional.empty());

@@ -18,6 +18,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtConfig {
 
+  private static final int MIN_CARACTERES_DISTINTOS = 8;
+
   private final JwtProperties properties;
 
   public JwtConfig(JwtProperties properties) {
@@ -43,6 +45,19 @@ public class JwtConfig {
       throw new IllegalStateException(
           "oficinapro.jwt.secret precisa ter no mínimo %d bytes para HS256 (atual: %d)."
               .formatted(JwtProperties.MIN_SECRET_LENGTH, keyBytes.length));
+    }
+
+    String minusculo = secret.toLowerCase(java.util.Locale.ROOT);
+    if (minusculo.contains("troque") || minusculo.contains("change-me")) {
+      throw new IllegalStateException(
+          "oficinapro.jwt.secret está com o valor de exemplo. Gere um segredo aleatório"
+              + " (ex.: openssl rand -base64 48).");
+    }
+
+    if (secret.chars().distinct().count() < MIN_CARACTERES_DISTINTOS) {
+      throw new IllegalStateException(
+          "oficinapro.jwt.secret é previsível demais (poucos caracteres distintos). Gere um"
+              + " segredo aleatório (ex.: openssl rand -base64 48).");
     }
 
     return new SecretKeySpec(keyBytes, "HmacSHA256");

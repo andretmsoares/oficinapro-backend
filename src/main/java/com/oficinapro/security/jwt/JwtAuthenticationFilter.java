@@ -64,7 +64,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       Jwt jwt = jwtService.decodificar(token);
 
-      Usuario usuario = (Usuario) usuarioDetailsService.loadUserByUsername(jwt.getSubject());
+      Usuario usuario = usuarioDetailsService.carregarPorId(Long.valueOf(jwt.getSubject()));
+
+      if (!tokenVigente(jwt, usuario)) {
+        // Senha trocada ou logout depois da emissão: o token foi revogado.
+        logger.debug("Token JWT revogado");
+        SecurityContextHolder.clearContext();
+        return;
+      }
 
       if (!oficinaAtiva(usuario)) {
         // Oficina desativada depois da emissao do token: o acesso cai imediatamente.
@@ -85,11 +92,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       logger.debug("Token JWT rejeitado: " + exception.getMessage());
       SecurityContextHolder.clearContext();
 
+    } catch (NumberFormatException exception) {
+      // Subject que não é um id: token de outro formato.
+      logger.debug("Token JWT com subject inválido");
+      SecurityContextHolder.clearContext();
+
     } catch (UsernameNotFoundException exception) {
       // Token válido, mas o usuário foi removido depois da emissão.
       logger.debug("Usuário do token JWT não existe mais");
       SecurityContextHolder.clearContext();
     }
+  }
+
+  /** O token só vale enquanto a versão dele for a vigente do usuário. */
+  private boolean tokenVigente(Jwt jwt, Usuario usuario) {
+    Object versao = jwt.getClaims().get(JwtService.CLAIM_TOKEN_VERSION);
+    return versao instanceof Number numero && numero.intValue() == usuario.getTokenVersion();
   }
 
   /** O ADMIN do SaaS nao tem oficina; os demais exigem oficina ativa. */

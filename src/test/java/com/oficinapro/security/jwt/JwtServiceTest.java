@@ -45,11 +45,13 @@ class JwtServiceTest {
     oficina.setId(7L);
 
     gerente = new Usuario();
+    gerente.setId(42L);
     gerente.setUsername("ana.gerente");
     gerente.setRole(Role.GERENTE);
     gerente.setOficina(oficina);
 
     adminSaas = new Usuario();
+    adminSaas.setId(1L);
     adminSaas.setUsername("admin.saas");
     adminSaas.setRole(Role.ADMIN);
     adminSaas.setOficina(null);
@@ -60,7 +62,9 @@ class JwtServiceTest {
   void roundTrip_preservaClaims() {
     Jwt jwt = jwtService.decodificar(jwtService.gerarToken(gerente));
 
-    assertThat(jwt.getSubject()).isEqualTo("ana.gerente");
+    assertThat(jwt.getSubject()).as("o subject é o id, não o username").isEqualTo("42");
+    assertThat(jwt.getClaimAsString("tv")).isEqualTo("0");
+    assertThat(jwt.getId()).as("cada token tem um jti próprio").isNotBlank();
     assertThat(jwt.getClaimAsString("role")).isEqualTo("GERENTE");
     assertThat(jwt.getClaim("oficinaId").toString()).isEqualTo("7");
     assertThat(jwt.getClaimAsString("iss")).isEqualTo(ISSUER);
@@ -68,11 +72,31 @@ class JwtServiceTest {
   }
 
   @Test
+  @DisplayName("a claim tv acompanha a versão de revogação do usuário")
+  void tokenCarregaAVersaoDeRevogacao() {
+    gerente.revogarTokens();
+    gerente.revogarTokens();
+
+    Jwt jwt = jwtService.decodificar(jwtService.gerarToken(gerente));
+
+    assertThat(jwt.getClaimAsString("tv")).isEqualTo("2");
+  }
+
+  @Test
+  @DisplayName("dois tokens do mesmo usuário têm jti diferentes")
+  void jtiEhUnicoPorToken() {
+    String primeiro = jwtService.decodificar(jwtService.gerarToken(gerente)).getId();
+    String segundo = jwtService.decodificar(jwtService.gerarToken(gerente)).getId();
+
+    assertThat(primeiro).isNotEqualTo(segundo);
+  }
+
+  @Test
   @DisplayName("Token do ADMIN do SaaS não deve conter a claim oficinaId")
   void adminSaas_semClaimOficina() {
     Jwt jwt = jwtService.decodificar(jwtService.gerarToken(adminSaas));
 
-    assertThat(jwt.getSubject()).isEqualTo("admin.saas");
+    assertThat(jwt.getSubject()).isEqualTo("1");
     assertThat(jwt.getClaimAsString("role")).isEqualTo("ADMIN");
     assertThat(jwt.hasClaim("oficinaId")).isFalse();
   }
@@ -143,6 +167,19 @@ class JwtServiceTest {
     assertThatThrownBy(() -> construir("curto", ISSUER, Duration.ofHours(8)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("32 bytes");
+  }
+
+  @Test
+  @DisplayName("Segredo de exemplo ou previsível deve impedir a subida da aplicação")
+  void segredoPrevisivel_falhaNaConstrucao() {
+    assertThatThrownBy(
+            () -> construir("troque-por-uma-chave-aleatoria-de-48-bytes", ISSUER, Duration.ZERO))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("exemplo");
+
+    assertThatThrownBy(() -> construir("a".repeat(40), ISSUER, Duration.ZERO))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("previsível");
   }
 
   @Test

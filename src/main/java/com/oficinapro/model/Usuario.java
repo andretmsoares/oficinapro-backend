@@ -41,6 +41,17 @@ public class Usuario extends Pessoa implements UserDetails {
   @Column(name = "bloqueio_permanente", nullable = false)
   private boolean bloqueioPermanente = false;
 
+  /**
+   * Versão dos tokens deste usuário. O JWT carrega o valor vigente na emissão (claim "tv"); trocar
+   * a senha ou fazer logout incrementa e invalida todos os tokens anteriores.
+   */
+  @Column(name = "token_version", nullable = false)
+  private int tokenVersion = 0;
+
+  public void revogarTokens() {
+    this.tokenVersion++;
+  }
+
   /** Bloqueio permanente, ou temporário ainda dentro do prazo. */
   public boolean isLoginBloqueado() {
     return bloqueioPermanente
