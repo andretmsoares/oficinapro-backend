@@ -36,6 +36,12 @@ out/
 ### VS Code ###
 .vscode/
 
-.env
+# Secrets: qualquer .env* fica fora do Git, exceto o modelo sem valores reais.
+.env*
+!.env-example
+*.pem
+*.p12
+*.jks
+*-credentials*.json
 /node_modules
 .env.prod

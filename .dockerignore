@@ -1,0 +1,17 @@
+# Nada disto deve entrar no contexto de build: segredos, histórico e artefatos locais.
+.env
+.env.*
+!.env-example
+.git
+.github
+.gradle
+.idea
+.vscode
+build
+out
+docs
+infra
+*.md
+*.pem
+*.p12
+*.jks
