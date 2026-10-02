@@ -3,6 +3,7 @@ package com.oficinapro.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,6 +26,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -113,25 +117,48 @@ class OrdemDeServicoControllerTest {
   @DisplayName("GET /api/ordens-servico - GERENTE deve retornar 200 com lista de OS")
   @WithMockUser(roles = "GERENTE")
   void deveListarOrdensDeServicoComoGerente() throws Exception {
-    when(service.listar()).thenReturn(List.of(responseDTO));
+    when(service.listar(any(), any(), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(1))
-        .andExpect(jsonPath("$[0].status").value("ABERTA"));
+        .andExpect(jsonPath("$.content[0].id").value(1))
+        .andExpect(jsonPath("$.content[0].status").value("ABERTA"));
   }
 
   @Test
   @DisplayName("GET /api/ordens-servico - MECANICO deve retornar 200 (acesso de leitura)")
   @WithMockUser(roles = "MECANICO")
   void deveListarOrdensDeServicoComoMecanico() throws Exception {
-    when(service.listar()).thenReturn(List.of(responseDTO));
+    when(service.listar(any(), any(), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(responseDTO)));
 
     mockMvc
         .perform(get("/api/ordens-servico"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(1));
+        .andExpect(jsonPath("$.content[0].id").value(1));
+  }
+
+  @Test
+  @DisplayName("GET /api/ordens-servico?q=&status= - repassa a busca e o filtro ao service")
+  @WithMockUser(roles = "GERENTE")
+  void deveRepassarBuscaEStatusAoService() throws Exception {
+    when(service.listar(any(), any(), any(Pageable.class))).thenReturn(Page.empty());
+
+    mockMvc
+        .perform(get("/api/ordens-servico?q=abc1d23&status=ABERTA&page=2&size=5"))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<Pageable> pageable =
+        org.mockito.ArgumentCaptor.forClass(Pageable.class);
+    verify(service)
+        .listar(
+            org.mockito.ArgumentMatchers.eq("abc1d23"),
+            org.mockito.ArgumentMatchers.eq(StatusOrdemDeServico.ABERTA),
+            pageable.capture());
+    org.assertj.core.api.Assertions.assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+    org.assertj.core.api.Assertions.assertThat(pageable.getValue().getPageSize()).isEqualTo(5);
   }
 
   // ─── GET /api/ordens-servico/{id} ────────────────────────────────────────────

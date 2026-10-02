@@ -5,6 +5,8 @@ import com.oficinapro.enums.StatusOrdemDeServico;
 import com.oficinapro.model.OrdemDeServico;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface OrdemDeServicoService {
@@ -13,17 +15,27 @@ public interface OrdemDeServicoService {
   // que é unchecked. Declarar "throws" aqui já apontou para java.nio.file.AccessDeniedException por
   // engano — uma exceção checked de I/O, sem relação com autorização — e isso forçou try/catch no
   // controller, que acabou engolindo o erro e devolvendo 200 com corpo vazio em vez de 403.
-  List<OrdemDeServicoResponseDTO> listar();
+  /**
+   * Lista as OS da oficina do usuário, com busca no servidor sobre todos os registros.
+   *
+   * @param termo placa, nome do cliente, status ou número da OS; vazio = sem busca
+   * @param status filtro de status; nulo = qualquer
+   */
+  Page<OrdemDeServicoResponseDTO> listar(
+      String termo, StatusOrdemDeServico status, Pageable pageable);
 
-  List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId);
+  Page<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId, Pageable pageable);
 
-  List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId);
+  Page<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId, Pageable pageable);
 
-  List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId);
+  Page<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId, Pageable pageable);
 
-  List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId);
+  Page<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId, Pageable pageable);
 
-  List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status);
+  Page<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status, Pageable pageable);
+
+  /** Contagem direta no banco (o dashboard não precisa carregar as OS para contar). */
+  long contarPorStatus(StatusOrdemDeServico status);
 
   OrdemDeServicoResponseDTO buscarPorId(Long id);
 
