@@ -201,6 +201,49 @@ senha, criação/alteração/exclusão/desbloqueio de usuário, ativar/desativar
 exclusão de OS, desconto, recebimento e estorno. Falhas de login vão só para o log
 (`evento=LOGIN_FALHA`, com um hash curto do username, nunca o valor digitado).
 
+### Paginação e busca no servidor
+
+As listagens que podem crescer sem limite devolvem **uma página** (formato do Spring Data:
+`content`, `totalElements`, `totalPages`, `number`, `size`, `last`...), e **a busca roda no
+servidor sobre TODOS os registros da oficina**, não sobre a página já carregada. É isso que
+garante que um registro fora da página atual continue sendo encontrado.
+
+| Rota | Parâmetros | A busca (`q`) casa com |
+|---|---|---|
+| `GET /api/ordens-servico` | `q`, `status`, `page`, `size`, `sort` | placa (sem hífen/caixa), nome do cliente, status, número da OS (`12`, `#0012`) |
+| `GET /api/ordens-servico/{veiculo,mecanico,unidade,cliente}/{id}` e `/status/{status}` | `page`, `size`, `sort` | — (já filtradas pela relação) |
+| `GET /api/pagamentos/oficina/{id}` | `q`, `status`, `page`, `size`, `sort` | parte do número da OS ou do pagamento |
+| `GET /api/itens-os-peca` | `q`, `avulsas`, `page`, `size`, `sort` | nome da peça ou parte do número da OS |
+| `GET /api/clientes`, `/veiculos`, `/mecanicos`, `/usuarios` e as respectivas `/buscar` | `q`, `page`, `size`, `sort` | (já existiam) |
+
+Regras comuns:
+
+- **Teto de 100 por página** (`spring.data.web.pageable.max-page-size`); `size=100000` vira 100.
+- **Ordenação restrita**: só campos escalares permitidos por recurso (ex.: OS por `id`,
+  `dataAbertura`, `dataFechamento`, `status`, `valorTotal`, `valorComDesconto`). Qualquer outro
+  caminho (`oficina.cnpj`, `password`...) é ignorado e cai na ordenação padrão (`id` decrescente).
+  Antes, o cliente podia ordenar por qualquer propriedade da entidade.
+- **Curingas do usuário são texto comum**: `%` e `_` digitados na busca não casam tudo
+  (`LIKE ... ESCAPE '!'`).
+- **Sempre restrito à oficina do usuário**; OS/pagamentos/peças de outra oficina nunca entram,
+  nem com placa ou nome iguais.
+
+**Autocomplete.** `GET /api/clientes/nome/{nome}`, `/mecanicos/nome/{nome}` e
+`/usuarios/nome/{nome}` pesquisam em toda a oficina e devolvem **no máximo 20** resultados em ordem
+alfabética (quem precisa de mais, digita mais letras: o registro certo aparece mesmo estando além
+dos 20 primeiros). `GET /api/veiculos/buscar?q=&size=10` e `GET /api/itens-os-peca?avulsas=true&q=`
+servem os autocompletes de veículo e de relacionar peça.
+
+**Totais e contagens vêm do banco**, não da soma da página:
+
+- `GET /api/pagamentos/oficina/{id}/resumo` → `{ totalRecebido, valorAReceber, pendentes }`.
+- `GET /api/pagamentos/oficina/{id}/por-os?osIds=1,2,3` → pagamentos só das OS pedidas (até 100),
+  restritos à oficina; a tela de OS usa para mostrar o valor pendente das OS da página.
+- O dashboard conta OS abertas e pagamentos pendentes com `COUNT` no banco.
+
+Não paginadas de propósito: `GET /api/unidades` (poucas por oficina; o autocomplete de unidade
+filtra essa lista) e as listas de peças e mão de obra **de uma OS** (limitadas pela própria OS).
+
 ### Buscas por documento (CPF/CNPJ)
 
 Vão no **corpo** de um `POST`, não na URL (URLs ficam em logs de acesso, proxies e histórico):

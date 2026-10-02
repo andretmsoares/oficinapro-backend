@@ -12,6 +12,9 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,8 +60,13 @@ public class OrdemDeServicoController {
   }
 
   @Operation(
-      summary = "Listar OS da própria oficina",
-      description = "Retorna todas as ordens de serviço da oficina do usuário autenticado.")
+      summary = "Listar e buscar OS da própria oficina (paginado)",
+      description =
+          "Retorna uma página das ordens de serviço da oficina do usuário autenticado. O"
+              + " parâmetro q pesquisa em TODAS as OS da oficina (placa, nome do cliente, status"
+              + " ou número da OS), e não só na página atual. status filtra por status. Página"
+              + " de no máximo 100 itens; ordenação por id, dataAbertura, dataFechamento,"
+              + " status, valorTotal ou valorComDesconto (padrão: mais recentes primeiro).")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "Lista de OS retornada com sucesso"),
     @ApiResponse(responseCode = "401", description = "Não autenticado"),
@@ -66,8 +74,14 @@ public class OrdemDeServicoController {
   })
   @GetMapping
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listar() {
-    return ResponseEntity.ok(service.listar());
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listar(
+      @Parameter(description = "Placa, cliente, status ou número da OS")
+          @RequestParam(required = false)
+          String q,
+      @Parameter(description = "Filtrar por status") @RequestParam(required = false)
+          StatusOrdemDeServico status,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listar(q, status, pageable));
   }
 
   @Operation(
@@ -273,9 +287,10 @@ public class OrdemDeServicoController {
   })
   @GetMapping("/veiculo/{veiculoId}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorVeiculo(
-      @Parameter(description = "ID do veículo") @PathVariable Long veiculoId) {
-    return ResponseEntity.ok(service.listarPorVeiculo(veiculoId));
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listarPorVeiculo(
+      @Parameter(description = "ID do veículo") @PathVariable Long veiculoId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listarPorVeiculo(veiculoId, pageable));
   }
 
   @Operation(
@@ -291,9 +306,10 @@ public class OrdemDeServicoController {
   })
   @GetMapping("/mecanico/{mecanicoId}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorMecanico(
-      @Parameter(description = "ID do mecânico") @PathVariable Long mecanicoId) {
-    return ResponseEntity.ok(service.listarPorMecanico(mecanicoId));
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listarPorMecanico(
+      @Parameter(description = "ID do mecânico") @PathVariable Long mecanicoId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listarPorMecanico(mecanicoId, pageable));
   }
 
   @Operation(
@@ -309,9 +325,10 @@ public class OrdemDeServicoController {
   })
   @GetMapping("/unidade/{unidadeId}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorUnidade(
-      @Parameter(description = "ID da unidade") @PathVariable Long unidadeId) {
-    return ResponseEntity.ok(service.listarPorUnidade(unidadeId));
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listarPorUnidade(
+      @Parameter(description = "ID da unidade") @PathVariable Long unidadeId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listarPorUnidade(unidadeId, pageable));
   }
 
   @Operation(
@@ -327,9 +344,10 @@ public class OrdemDeServicoController {
   })
   @GetMapping("/cliente/{clienteId}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorCliente(
-      @Parameter(description = "ID do cliente") @PathVariable Long clienteId) {
-    return ResponseEntity.ok(service.listarPorCliente(clienteId));
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listarPorCliente(
+      @Parameter(description = "ID do cliente") @PathVariable Long clienteId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listarPorCliente(clienteId, pageable));
   }
 
   @Operation(
@@ -345,10 +363,11 @@ public class OrdemDeServicoController {
   })
   @GetMapping("/status/{status}")
   @PreAuthorize("hasAnyRole( 'GERENTE', 'MECANICO')")
-  public ResponseEntity<List<OrdemDeServicoResponseDTO>> listarPorStatus(
+  public ResponseEntity<Page<OrdemDeServicoResponseDTO>> listarPorStatus(
       @Parameter(description = "Status da ordem de serviço") @PathVariable
-          StatusOrdemDeServico status) {
-    return ResponseEntity.ok(service.listarPorStatus(status));
+          StatusOrdemDeServico status,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.listarPorStatus(status, pageable));
   }
 
   @Operation(

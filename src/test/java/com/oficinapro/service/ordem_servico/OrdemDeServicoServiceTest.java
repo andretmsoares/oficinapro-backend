@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.oficinapro.dto.ordemDeServico.AtribuirClienteRequestDTO;
@@ -41,10 +43,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -129,32 +137,107 @@ class OrdemDeServicoServiceTest {
   // listar()
   // ---------------------------------------------------------------
 
+  private static final Pageable PAGINA = PageRequest.of(0, 20);
+
   @Test
   @DisplayName("ADMIN: deve negar acesso à listagem de OS")
   void deveNegarListagemDeOSComoAdmin() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado())
         .thenThrow(new UsuarioAcessDeniedException());
 
-    assertThatThrownBy(() -> ordemDeServicoService.listar())
+    assertThatThrownBy(() -> ordemDeServicoService.listar("", null, PAGINA))
         .isInstanceOf(UsuarioAcessDeniedException.class);
 
     verify(ordemServicoRepository, never()).findAll();
-    verify(ordemServicoRepository, never()).findByOficinaId(anyLong());
+    verify(ordemServicoRepository, never())
+        .buscar(any(), any(), any(), any(), any(), any(), any(Pageable.class));
   }
 
   @Test
-  @DisplayName("GERENTE: deve chamar findByOficinaId e retornar apenas OS da sua oficina")
+  @DisplayName("GERENTE: lista a página das OS da própria oficina, filtrando no banco")
   void deveListarOSDaPropriaOficinaComoAdministrativo() {
-    // Quem resolve a oficina do usuário logado agora é o OficinaAccessValidator.
+    // Quem resolve a oficina do usuário logado é o OficinaAccessValidator.
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(ordemServicoRepository.findByOficinaId(1L)).thenReturn(List.of(os));
+    when(ordemServicoRepository.buscar(
+            eq(1L), eq(""), eq(""), anyString(), anyString(), eq(-1L), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(os)));
 
-    List<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar();
+    Page<OrdemDeServicoResponseDTO> resultado = ordemDeServicoService.listar("", null, PAGINA);
 
-    assertThat(resultado).hasSize(1);
-    assertThat(resultado.get(0).oficinaId()).isEqualTo(1L);
-    verify(ordemServicoRepository).findByOficinaId(1L);
+    assertThat(resultado.getContent()).hasSize(1);
+    assertThat(resultado.getContent().get(0).oficinaId()).isEqualTo(1L);
     verify(ordemServicoRepository, never()).findAll();
+  }
+
+  @Test
+  @DisplayName("listar() pesquisa no servidor: termo normalizado, placa sem hífen e número da OS")
+  void deveRepassarTermoNormalizadoPlacaEIdParaABusca() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.buscar(
+            any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        .thenReturn(Page.empty());
+
+    ordemDeServicoService.listar("  abc-1d23 ", StatusOrdemDeServico.EM_EXECUCAO, PAGINA);
+
+    verify(ordemServicoRepository)
+        .buscar(
+            eq(1L),
+            eq("EM_EXECUCAO"),
+            eq("abc-1d23"),
+            eq("%abc-1d23%"),
+            eq("%abc1d23%"),
+            eq(-1L),
+            any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("listar() reconhece o código da OS (#0012) como número para casar por id")
+  void deveInterpretarCodigoDaOsComoId() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.buscar(
+            any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        .thenReturn(Page.empty());
+
+    ordemDeServicoService.listar("#0012", null, PAGINA);
+
+    verify(ordemServicoRepository)
+        .buscar(eq(1L), eq(""), eq("#0012"), any(), any(), eq(12L), any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName(
+      "listar() limita o tamanho da página a 100 e ignora ordenação por campo não permitido")
+  void deveLimitarTamanhoEOrdenacao() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.buscar(
+            any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        .thenReturn(Page.empty());
+
+    ordemDeServicoService.listar(
+        "", null, PageRequest.of(3, 100000, Sort.by("veiculo.oficina.cnpj")));
+
+    ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+    verify(ordemServicoRepository)
+        .buscar(any(), any(), any(), any(), any(), any(), pageable.capture());
+    assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+    assertThat(pageable.getValue().getPageNumber()).isEqualTo(3);
+    assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by(Sort.Direction.DESC, "id"));
+  }
+
+  @Test
+  @DisplayName("listar() aceita ordenar por campos permitidos (ex.: valorTotal asc)")
+  void devePermitirOrdenacaoPorCampoPermitido() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.buscar(
+            any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        .thenReturn(Page.empty());
+
+    ordemDeServicoService.listar("", null, PageRequest.of(0, 20, Sort.by("valorTotal")));
+
+    ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+    verify(ordemServicoRepository)
+        .buscar(any(), any(), any(), any(), any(), any(), pageable.capture());
+    assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by("valorTotal"));
   }
 
   // ---------------------------------------------------------------
@@ -264,14 +347,27 @@ class OrdemDeServicoServiceTest {
   @DisplayName("listarPorStatus() deve consultar o status já filtrando pela oficina do usuário")
   void deveListarPorStatusFiltrandoNoBancoPelaOficinaDoUsuario() {
     when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
-    when(ordemServicoRepository.findByOficinaIdAndStatus(1L, StatusOrdemDeServico.ABERTA))
-        .thenReturn(List.of(os));
+    when(ordemServicoRepository.findByOficinaIdAndStatus(
+            eq(1L), eq(StatusOrdemDeServico.ABERTA), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(os)));
 
-    List<OrdemDeServicoResponseDTO> resultado =
-        ordemDeServicoService.listarPorStatus(StatusOrdemDeServico.ABERTA);
+    Page<OrdemDeServicoResponseDTO> resultado =
+        ordemDeServicoService.listarPorStatus(StatusOrdemDeServico.ABERTA, PAGINA);
 
-    assertThat(resultado).extracting(OrdemDeServicoResponseDTO::id).containsExactly(1L);
+    assertThat(resultado.getContent())
+        .extracting(OrdemDeServicoResponseDTO::id)
+        .containsExactly(1L);
     verify(ordemServicoRepository, never()).findByStatus(any());
+  }
+
+  @Test
+  @DisplayName("contarPorStatus() conta no banco, restrito à oficina, sem carregar as OS")
+  void deveContarPorStatusNoBanco() {
+    when(oficinaAccessValidator.getOficinaIdUsuarioLogado()).thenReturn(1L);
+    when(ordemServicoRepository.countByOficinaIdAndStatus(1L, StatusOrdemDeServico.ABERTA))
+        .thenReturn(42L);
+
+    assertThat(ordemDeServicoService.contarPorStatus(StatusOrdemDeServico.ABERTA)).isEqualTo(42L);
   }
 
   // ---------------------------------------------------------------

@@ -24,13 +24,19 @@ import com.oficinapro.service.oficina.OficinaService;
 import com.oficinapro.service.pagamento.PagamentoService;
 import com.oficinapro.service.unidade.UnidadeService;
 import com.oficinapro.service.veiculo.VeiculoService;
+import com.oficinapro.util.Paginacao;
+import com.oficinapro.util.TextoUtil;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,67 +56,94 @@ public class OrdemDeServicoServiceImpl implements OrdemDeServicoService {
   private final OrdemDeServicoPdfService ordemDeServicoPdfService;
   private final AuditLogService auditLogService;
 
-  private List<OrdemDeServico> filtrarPorEscopo(List<OrdemDeServico> lista) {
-    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
-    return lista.stream()
-        .filter(os -> os.getOficina() != null && oficinaId.equals(os.getOficina().getId()))
-        .toList();
+  /** Campos pelos quais o cliente pode ordenar a listagem (escalares da própria OS). */
+  private static final Set<String> CAMPOS_ORDENAVEIS =
+      Set.of("id", "dataAbertura", "dataFechamento", "status", "valorTotal", "valorComDesconto");
+
+  private static final Sort ORDENACAO_PADRAO = Sort.by(Sort.Direction.DESC, "id");
+
+  private Pageable segura(Pageable pageable) {
+    return Paginacao.segura(pageable, CAMPOS_ORDENAVEIS, ORDENACAO_PADRAO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listar() {
+  public Page<OrdemDeServicoResponseDTO> listar(
+      String termo, StatusOrdemDeServico status, Pageable pageable) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    List<OrdemDeServico> lista = ordemServicoRepository.findByOficinaId(oficinaId);
+    String termoLimpo = Paginacao.termoOuVazio(termo);
+    String normalizado = TextoUtil.normalizar(termoLimpo);
+    String placa = normalizado == null ? "" : normalizado.replaceAll("[^A-Za-z0-9]", "");
 
-    return lista.stream().map(this::toResponseDTO).toList();
+    return ordemServicoRepository
+        .buscar(
+            oficinaId,
+            status == null ? "" : status.name(),
+            termoLimpo,
+            Paginacao.termoLike(normalizado),
+            Paginacao.termoLike(placa.isEmpty() ? normalizado : placa),
+            Paginacao.comoId(termoLimpo),
+            segura(pageable))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId) {
+  public Page<OrdemDeServicoResponseDTO> listarPorVeiculo(Long veiculoId, Pageable pageable) {
     veiculoService.buscarPorEntidadeId(veiculoId);
-    List<OrdemDeServico> lista =
-        filtrarPorEscopo(ordemServicoRepository.findByVeiculoId(veiculoId));
-    return lista.stream().map(this::toResponseDTO).toList();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ordemServicoRepository
+        .findByOficinaIdAndVeiculoId(oficinaId, veiculoId, segura(pageable))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId) {
+  public Page<OrdemDeServicoResponseDTO> listarPorMecanico(Long mecanicoId, Pageable pageable) {
     mecanicoService.buscarPorEntidadeId(mecanicoId);
-    List<OrdemDeServico> lista =
-        filtrarPorEscopo(ordemServicoRepository.findByMecanicoId(mecanicoId));
-    return lista.stream().map(this::toResponseDTO).toList();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ordemServicoRepository
+        .findByOficinaIdAndMecanicoId(oficinaId, mecanicoId, segura(pageable))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId) {
+  public Page<OrdemDeServicoResponseDTO> listarPorUnidade(Long unidadeId, Pageable pageable) {
     unidadeService.buscarPorId(unidadeId);
-    List<OrdemDeServico> lista =
-        filtrarPorEscopo(ordemServicoRepository.findByUnidadeId(unidadeId));
-    return lista.stream().map(this::toResponseDTO).toList();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ordemServicoRepository
+        .findByOficinaIdAndUnidadeId(oficinaId, unidadeId, segura(pageable))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId) {
+  public Page<OrdemDeServicoResponseDTO> listarPorCliente(Long clienteId, Pageable pageable) {
     clienteService.buscarPorEntidadeId(clienteId);
-    List<OrdemDeServico> lista =
-        filtrarPorEscopo(ordemServicoRepository.findByClienteId(clienteId));
-    return lista.stream().map(this::toResponseDTO).toList();
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ordemServicoRepository
+        .findByOficinaIdAndClienteId(oficinaId, clienteId, segura(pageable))
+        .map(this::toResponseDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<OrdemDeServicoResponseDTO> listarPorStatus(StatusOrdemDeServico status) {
+  public Page<OrdemDeServicoResponseDTO> listarPorStatus(
+      StatusOrdemDeServico status, Pageable pageable) {
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
-    return ordemServicoRepository.findByOficinaIdAndStatus(oficinaId, status).stream()
-        .map(this::toResponseDTO)
-        .toList();
+    return ordemServicoRepository
+        .findByOficinaIdAndStatus(oficinaId, status, segura(pageable))
+        .map(this::toResponseDTO);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long contarPorStatus(StatusOrdemDeServico status) {
+    Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
+    return ordemServicoRepository.countByOficinaIdAndStatus(oficinaId, status);
   }
 
   @Override

@@ -11,11 +11,16 @@ import com.oficinapro.service.oficina.OficinaServiceImpl;
 import com.oficinapro.service.pessoa.PessoaService;
 import java.util.List;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
     implements PessoaCrudService<C, U, RES, T> {
+
+  /** Teto de resultados da busca por nome (autocomplete). */
+  protected static final int LIMITE_BUSCA_POR_NOME = 20;
 
   protected final PessoaCrudRepository<T> repository;
   protected final OficinaServiceImpl oficinaService;
@@ -90,8 +95,11 @@ public abstract class AbstractPessoaServiceImpl<T extends Pessoa, C, U, RES>
 
     Long oficinaId = oficinaAccessValidator.getOficinaIdUsuarioLogado();
 
+    // Usado pelo autocomplete: no máximo LIMITE_BUSCA_POR_NOME resultados, em ordem alfabética.
+    // A busca roda sobre TODOS os registros da oficina; quem precisa de mais digita mais letras.
     return repository
-        .findByOficinaIdAndNomeContainingIgnoreCase(oficinaId, normalizar(nome))
+        .findByOficinaIdAndNomeContainingIgnoreCase(
+            oficinaId, normalizar(nome), PageRequest.of(0, LIMITE_BUSCA_POR_NOME, Sort.by("nome")))
         .stream()
         .map(this::toResponse)
         .toList();

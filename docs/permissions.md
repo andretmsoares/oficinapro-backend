@@ -226,6 +226,8 @@ o isolamento por oficina (§6) e, em vários casos, `validarRole` como segunda b
 | GET | `/api/pagamentos/oficina/{oficinaId}` | ❌ | ✅ | ❌ |
 | GET | `/api/pagamentos/oficina/{oficinaId}/status/{status}` | ❌ | ✅ | ❌ |
 | GET | `/api/pagamentos/oficina/{oficinaId}/a-receber` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/resumo` | ❌ | ✅ | ❌ |
+| GET | `/api/pagamentos/oficina/{oficinaId}/por-os` | ❌ | ✅ | ❌ |
 | PUT | `/api/pagamentos/{id}` | ❌ | ✅ | ❌ |
 
 ### Registros de pagamento — `/api/registros-pagamento`

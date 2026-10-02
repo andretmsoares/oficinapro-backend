@@ -14,6 +14,9 @@ public interface PessoaCrudRepository<T extends Pessoa> extends JpaRepository<T,
 
   List<T> findByOficinaIdAndNomeContainingIgnoreCase(Long oficinaId, String nome);
 
+  Page<T> findByOficinaIdAndNomeContainingIgnoreCase(
+      Long oficinaId, String nome, Pageable pageable);
+
   List<T> findByNome(String nome);
 
   List<T> findByDocumento(String documento);
