@@ -189,10 +189,10 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
     empresa.setPaddingLeft(6 * MM);
     empresa.addElement(new Paragraph(nullToDash(oficina.getNome()), F_EMPRESA_NOME));
     if (oficina.getCnpj() != null) {
-      empresa.addElement(new Paragraph("CNPJ " + oficina.getCnpj(), F_SUAVE));
+      empresa.addElement(new Paragraph("CNPJ " + formatarDocumento(oficina.getCnpj()), F_SUAVE));
     }
     if (oficina.getTelefone() != null) {
-      empresa.addElement(new Paragraph(oficina.getTelefone(), F_SUAVE));
+      empresa.addElement(new Paragraph(formatarTelefone(oficina.getTelefone()), F_SUAVE));
     }
     if (unidade != null && unidade.getEndereco() != null) {
       empresa.addElement(new Paragraph(unidade.getEndereco(), F_SUAVE));
@@ -319,8 +319,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             new String[][] {
               {"Nome", oficina.getNome()},
               {"Unidade", unidade != null ? unidade.getNome() : null},
-              {"CNPJ", oficina.getCnpj()},
-              {"Telefone", oficina.getTelefone()}
+              {"CNPJ", formatarDocumento(oficina.getCnpj())},
+              {"Telefone", formatarTelefone(oficina.getTelefone())}
             },
             true));
     grid.addCell(
@@ -328,8 +328,8 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
             "Cliente",
             new String[][] {
               {"Nome", cliente != null ? cliente.getNome() : null},
-              {"CPF/CNPJ", cliente != null ? cliente.getDocumento() : null},
-              {"Telefone", cliente != null ? cliente.getTelefone() : null}
+              {"CPF/CNPJ", cliente != null ? formatarDocumento(cliente.getDocumento()) : null},
+              {"Telefone", cliente != null ? formatarTelefone(cliente.getTelefone()) : null}
             },
             true));
     grid.addCell(
@@ -726,6 +726,35 @@ public class OrdemDeServicoPdfServiceImpl implements OrdemDeServicoPdfService {
 
   private String nullToDash(String v) {
     return v != null && !v.isBlank() ? v : "-";
+  }
+
+  private String formatarDocumento(String valor) {
+    if (valor == null) {
+      return null;
+    }
+    String digitos = valor.replaceAll("[^0-9]", "");
+    if (digitos.length() == 11) {
+      return digitos.replaceFirst("([0-9]{3})([0-9]{3})([0-9]{3})([0-9]{2})", "$1.$2.$3-$4");
+    }
+    if (digitos.length() == 14) {
+      return digitos.replaceFirst(
+          "([0-9]{2})([0-9]{3})([0-9]{3})([0-9]{4})([0-9]{2})", "$1.$2.$3/$4-$5");
+    }
+    return valor;
+  }
+
+  private String formatarTelefone(String valor) {
+    if (valor == null) {
+      return null;
+    }
+    String digitos = valor.replaceAll("[^0-9]", "");
+    if (digitos.length() == 11) {
+      return digitos.replaceFirst("([0-9]{2})([0-9]{5})([0-9]{4})", "($1) $2-$3");
+    }
+    if (digitos.length() == 10) {
+      return digitos.replaceFirst("([0-9]{2})([0-9]{4})([0-9]{4})", "($1) $2-$3");
+    }
+    return valor;
   }
 
   @SuppressWarnings("deprecation")
