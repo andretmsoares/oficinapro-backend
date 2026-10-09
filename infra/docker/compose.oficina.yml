@@ -1,0 +1,106 @@
+# Instalação na máquina da oficina (cliente único): Postgres LOCAL + API + Cloudflare Tunnel
+# + backup periódico (dumps locais + espelho no Neon). O R2 fica só para as logos. Tudo com "restart: unless-stopped": quando o Docker
+# sobe (ao ligar a máquina), os containers sobem sozinhos, e se algum cair, voltam.
+#
+# Uso (a partir da raiz do repositório), com o arquivo .env.oficina (modelo: .env.oficina-example):
+#   docker compose -f infra/docker/compose.oficina.yml --env-file .env.oficina up -d
+# Detalhes (autostart, restore, atualização): docs/deploy-oficina.md
+#
+# Nenhuma porta é publicada: o Postgres só existe na rede interna e a API só é alcançada pelo túnel
+# (Public Hostname do Zero Trust apontando para http://app:8080).
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: oficinapro-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: America/Sao_Paulo
+    volumes:
+      - oficina-pgdata:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${DOCKER_USERNAME}/oficinapro-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+    container_name: oficinapro-app
+    restart: unless-stopped
+    env_file:
+      - ./../../.env.oficina
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      SPRING_PROFILES_ACTIVE: prod
+      # Seguro aqui: a API não é alcançável diretamente, só pelo túnel.
+      TRUST_PROXY_HEADERS: "true"
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    container_name: oficinapro-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      app:
+        condition: service_healthy
+
+  backup:
+    build:
+      context: ../backup
+    image: oficinapro-backup:local
+    container_name: oficinapro-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Espelho no Neon (conexão DIRETA, sem -pooler). Só liga depois da migração inicial.
+      NEON_MIRROR_ENABLED: ${NEON_MIRROR_ENABLED:-false}
+      BACKUP_NEON_URL: ${BACKUP_NEON_URL:-}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-6}
+      BACKUP_PING_URL: ${BACKUP_PING_URL:-}
+    volumes:
+      - oficinapro-backups:/backups
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  oficina-pgdata:
+  oficinapro-backups:
